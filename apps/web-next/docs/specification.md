@@ -244,8 +244,8 @@ DELETE /api/images/:key           # 画像削除
 
 ### 6.1 認証方式
 - NextAuth.js使用
-- メール/パスワード認証
-- OAuth（Google、GitHub等）対応予定
+- Google OAuth認証のみ
+- セッション管理はJWT方式
 
 ### 6.2 権限管理
 - 製品情報：ログインなしで閲覧可能
@@ -411,11 +411,13 @@ NEXT_PUBLIC_SUPABASE_URL="https://..."
 NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
 SUPABASE_SERVICE_ROLE_KEY="..."
 
-# NextAuth
+# NextAuth (Google OAuth)
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="..."
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
 
-# AWS S3
+# AWS S3 (Phase 3で実装)
 AWS_REGION="ap-northeast-1"
 AWS_ACCESS_KEY_ID="..."
 AWS_SECRET_ACCESS_KEY="..."
