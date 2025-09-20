@@ -184,9 +184,181 @@ vercel --prod
 - 環境変数には秘密情報が含まれるため、GitHubなどに誤ってコミットしないよう注意
 - `.env.local`ファイルは`.gitignore`に含まれていることを確認
 
-## 7. 次の段階
+## 7. データベース環境構築（Supabase）
 
-認証システムが正常に動作確認できたら、次の段階に進みます：
-1. データベース環境構築（Supabase）
-2. Prismaスキーマ実装
-3. 製品情報・保有車両機能の実装
+### 7.1 Vercelコンソールでのデータベース作成
+
+1. **Vercelダッシュボード**にアクセス
+2. `model-train-manager` プロジェクトを選択
+3. 「Storage」タブ → 「Create Database」
+4. **Supabase**を選択
+5. 以下の設定で作成：
+   - Database Name: `model-train-manager-db`
+   - Region: `ap-northeast-1` (東京)
+6. 「Create & Continue」をクリック
+
+### 7.2 環境変数の自動設定確認
+
+データベース作成後、Vercelが以下の環境変数を自動設定します：
+
+| Vercel環境変数 | Prisma用途 | 説明 |
+|----------------|------------|------|
+| `POSTGRES_PRISMA_URL` | `DATABASE_URL` | 接続プール用URL（通常操作） |
+| `POSTGRES_URL_NON_POOLING` | `DIRECT_URL` | 直接接続URL（マイグレーション用） |
+| `POSTGRES_USER` | - | データベースユーザー名 |
+| `POSTGRES_HOST` | - | データベースホスト |
+| `POSTGRES_PASSWORD` | - | データベースパスワード |
+| `POSTGRES_DATABASE` | - | データベース名 |
+
+### 7.3 ローカル環境設定
+
+`.env.local`ファイルにデータベース設定を追加：
+
+```env
+# Database (Vercelから取得した値を設定)
+DATABASE_URL="postgres://postgres.xxx:xxx@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true"
+DIRECT_URL="postgres://postgres.xxx:xxx@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require"
+
+# Supabase (Vercelから取得した値を設定)
+NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**注意**: 実際の値はVercelのEnvironment Variablesページから取得してください。
+
+### 7.4 Prismaセットアップ
+
+#### 7.4.1 Prismaクライアント設定
+
+`apps/web-next/src/lib/prisma.ts`:
+```typescript
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ['query'],
+  })
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+```
+
+#### 7.4.2 データベーススキーマ
+
+`apps/web-next/prisma/schema.prisma`でデータベーススキーマを定義済み：
+- **User**: ユーザー情報
+- **Product**: 製品マスタ
+- **RealVehicle**: 実車情報
+- **OwnedVehicle**: 保有車両
+- **IndependentVehicle**: 独立記録車両
+- **MaintenanceRecord**: 整備記録
+
+#### 7.4.3 データベースマイグレーション
+
+```bash
+cd apps/web-next
+
+# Prismaクライアント生成
+npx prisma generate
+
+# データベースにスキーマを適用
+npx prisma db push
+```
+
+**重要**: `.env`ファイルも作成が必要（Prisma CLIは`.env.local`より`.env`を優先するため）:
+```bash
+# .env.localの内容を.envにもコピー
+cp .env.local .env
+```
+
+### 7.5 データベース接続テスト
+
+#### 7.5.1 テストAPI作成
+
+`apps/web-next/src/app/api/test-db/route.ts`:
+```typescript
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+
+export async function GET() {
+  try {
+    await prisma.$connect()
+
+    const userCount = await prisma.user.count()
+    const productCount = await prisma.product.count()
+
+    return NextResponse.json({
+      success: true,
+      message: 'データベース接続成功',
+      data: {
+        userCount,
+        productCount,
+        timestamp: new Date().toISOString()
+      }
+    })
+  } catch (error) {
+    console.error('Database connection error:', error)
+    return NextResponse.json({
+      success: false,
+      message: 'データベース接続エラー',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+```
+
+#### 7.5.2 接続確認
+
+```bash
+# 開発サーバー起動
+npm run dev
+
+# テストエンドポイントにアクセス
+curl http://localhost:3000/api/test-db
+```
+
+期待されるレスポンス：
+```json
+{
+  "success": true,
+  "message": "データベース接続成功",
+  "data": {
+    "userCount": 0,
+    "productCount": 0,
+    "timestamp": "2025-09-20T09:55:00.616Z"
+  }
+}
+```
+
+### 7.6 トラブルシューティング
+
+#### 7.6.1 よくあるエラー
+
+**`Environment variable not found: DIRECT_URL`**
+- `.env`ファイルに`DIRECT_URL`が設定されているか確認
+- `.env.local`の内容を`.env`にもコピーする
+
+**`Can't reach database server`**
+- `DATABASE_URL`と`DIRECT_URL`の値が正しいか確認
+- SupabaseプロジェクトがアクティブかSupabaseダッシュボードで確認
+
+**`Invalid connection string`**
+- 接続文字列のフォーマットが正しいか確認
+- 特殊文字がエスケープされているか確認
+
+#### 7.6.2 デバッグ方法
+
+```bash
+# Prisma接続確認
+npx prisma db pull
+
+# Supabaseダッシュボードで確認
+# https://supabase.com/dashboard/projects
+```
