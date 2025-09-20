@@ -1,0 +1,22 @@
+{
+  "name": "model-train-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリケーション",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=9.0.0"
+  }
+}
