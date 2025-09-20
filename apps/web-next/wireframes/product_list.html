@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>製品一覧 - 鉄道模型車両管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        /* ヘッダー */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .nav a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .nav a.active {
+            background: #3498db;
+        }
+        
+        /* メインコンテンツ */
+        .main-content {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+        
+        /* サイドバー（フィルタ） */
+        .sidebar {
+            width: 280px;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-right: 1px solid #eee;
+        }
+        .sidebar h3 {
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+        .filter-group {
+            margin-bottom: 2rem;
+        }
+        .filter-title {
+            font-weight: bold;
+            margin-bottom: 0.8rem;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .filter-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .filter-option input[type="checkbox"] {
+            margin: 0;
+        }
+        .filter-option label {
+            font-size: 0.9rem;
+            cursor: pointer;
+            flex: 1;
+        }
+        .count {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .clear-filters {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+        
+        /* メインエリア */
+        .content-area {
+            flex: 1;
+            padding: 1.5rem;
+        }
+        
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-title {
+            font-size: 1.8rem;
+            color: #2c3e50;
+        }
+        .results-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .sort-select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        /* リストビュー */
+        .list-item {
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 0.5rem;
+            padding: 0.75rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .list-image {
+            width: 60px;
+            height: 40px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 0.7rem;
+        }
+        .list-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .list-title {
+            font-weight: bold;
+            margin-bottom: 0.2rem;
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        .list-meta {
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1.3;
+        }
+        .list-price {
+            font-size: 0.8rem;
+            color: #666;
+            margin-right: 0.75rem;
+            white-space: nowrap;
+        }
+        .list-badges {
+            display: flex;
+            gap: 0.3rem;
+            margin-right: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .list-badges .badge {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+        }
+        
+        .badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .badge-set {
+            background: #e74c3c;
+            color: white;
+        }
+        .badge-single {
+            background: #3498db;
+            color: white;
+        }
+        .badge-owned {
+            background: #27ae60;
+            color: white;
+        }
+        .badge-wanted {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        /* ページネーション */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        .page-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .page-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .page-btn:hover {
+            background: #f8f9fa;
+        }
+        .page-btn.active:hover {
+            background: #3498db;
+        }
+        
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                order: 2;
+                border-right: none;
+                border-top: 1px solid #eee;
+            }
+            .content-area {
+                order: 1;
+            }
+            .controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .content-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <header class="header">
+            <div class="logo">鉄道模型車両管理</div>
+            <nav class="nav">
+                <a href="#" class="active">製品情報</a>
+                <a href="#">マイ車両</a>
+                <a href="#">ダッシュボード</a>
+                <a href="#">ログイン</a>
+            </nav>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <div class="main-content">
+            <!-- サイドバー（フィルタ） -->
+            <aside class="sidebar">
+                <h3>検索・フィルタ</h3>
+                
+                <input type="text" class="search-box" placeholder="製品名、メーカー、品番で検索">
+                
+                <div class="filter-group">
+                    <div class="filter-title">メーカー</div>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="checkbox" id="kato" checked>
+                            <label for="kato">KATO</label>
+                            <span class="count">(245)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="tomix">
+                            <label for="tomix">TOMIX</label>
+                            <span class="count">(312)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="microace">
+                            <label for="microace">MICRO ACE</label>
+                            <span class="count">(89)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="greenmax">
+                            <label for="greenmax">GREENMAX</label>
+                            <span class="count">(156)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <div class="filter-title">種別</div>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="checkbox" id="set">
+                            <label for="set">セット</label>
+                            <span class="count">(124)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="single" checked>
+                            <label for="single">単品</label>
+                            <span class="count">(678)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <div class="filter-title">分類</div>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="checkbox" id="shinkansen">
+                            <label for="shinkansen">新幹線</label>
+                            <span class="count">(89)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="local" checked>
+                            <label for="local">在来線</label>
+                            <span class="count">(423)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="diesel">
+                            <label for="diesel">気動車</label>
+                            <span class="count">(67)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="passenger">
+                            <label for="passenger">客車</label>
+                            <span class="count">(156)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="freight">
+                            <label for="freight">貨物</label>
+                            <span class="count">(45)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="locomotive">
+                            <label for="locomotive">機関車</label>
+                            <span class="count">(78)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <div class="filter-title">保有状況</div>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="checkbox" id="owned">
+                            <label for="owned">保有中</label>
+                            <span class="count">(34)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="wanted">
+                            <label for="wanted">欲しいもの</label>
+                            <span class="count">(12)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="clear-filters">フィルタをクリア</button>
+            </aside>
+
+            <!-- メインエリア -->
+            <main class="content-area">
+                <div class="content-header">
+                    <div>
+                        <h1 class="page-title">製品一覧</h1>
+                        <div class="results-info">245件中 1-20件を表示</div>
+                    </div>
+                    <div class="controls">
+                        <select class="sort-select">
+                            <option>新着順</option>
+                            <option>メーカー順</option>
+                            <option>価格順</option>
+                            <option>発売年順</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 製品リスト -->
+                <div class="product-list">
+                    <div class="list-item">
+                        <div class="list-image">画像</div>
+                        <div class="list-info">
+                            <div class="list-title">205系直流通勤形電車（京葉線色）</div>
+                            <div class="list-meta">KATO | 10-184 | 1998年 | セット | 6両 | 在来線・通勤形 | JAN: 4949727518404</div>
+                        </div>
+                        <div class="list-price">定価: ¥15,000</div>
+                        <div class="list-badges">
+                            <span class="badge badge-set">セット</span>
+                            <span class="badge badge-owned">保有中</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-sm btn-primary">詳細</button>
+                        </div>
+                    </div>
+
+                    <div class="list-item">
+                        <div class="list-image">画像</div>
+                        <div class="list-info">
+                            <div class="list-title">EF66 後期形 ブルートレイン牽引機</div>
+                            <div class="list-meta">KATO | 3047-2 | 2019年 | 単品 | 1両 | 機関車・直流 | JAN: 4949727510415</div>
+                        </div>
+                        <div class="list-price">定価: ¥6,500</div>
+                        <div class="list-badges">
+                            <span class="badge badge-single">単品</span>
+                            <span class="badge badge-wanted">欲しい</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-sm btn-primary">保有登録</button>
+                        </div>
+                    </div>
+
+                    <div class="list-item">
+                        <div class="list-image">画像</div>
+                        <div class="list-info">
+                            <div class="list-title">キハ40 2000</div>
+                            <div class="list-meta">KATO | 6019 | 2018年 | 単品 | 1両 | 気動車 | JAN: 4949727514246</div>
+                        </div>
+                        <div class="list-price">定価: ¥2,100</div>
+                        <div class="list-badges">
+                            <span class="badge badge-single">単品</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-sm btn-primary">保有登録</button>
+                        </div>
+                    </div>
+
+                    <div class="list-item">
+                        <div class="list-image">画像</div>
+                        <div class="list-info">
+                            <div class="list-title">E233系通勤電車 中央線</div>
+                            <div class="list-meta">TOMIX | 92561 | 2020年 | セット | 10両 | 在来線・通勤形 | JAN: 4543736925613</div>
+                        </div>
+                        <div class="list-price">定価: ¥18,000</div>
+                        <div class="list-badges">
+                            <span class="badge badge-set">セット</span>
+                            <span class="badge badge-owned">保有中</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-sm btn-primary">詳細</button>
+                        </div>
+                    </div>
+
+                    <div class="list-item">
+                        <div class="list-image">画像</div>
+                        <div class="list-info">
+                            <div class="list-title">24系25形寝台客車「北斗星」</div>
+                            <div class="list-meta">TOMIX | 98245 | 2021年 | セット | 7両 | 客車・寝台 | JAN: 4543736982456</div>
+                        </div>
+                        <div class="list-price">定価: ¥22,000</div>
+                        <div class="list-badges">
+                            <span class="badge badge-set">セット</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-sm btn-primary">保有登録</button>
+                        </div>
+                    </div>
+
+                    <div class="list-item">
+                        <div class="list-image">画像</div>
+                        <div class="list-info">
+                            <div class="list-title">C11形蒸気機関車</div>
+                            <div class="list-meta">KATO | 2002 | 1978年 | 単品 | 1両 | 蒸気機関車 | 旧製品</div>
+                        </div>
+                        <div class="list-price">定価: ¥8,500</div>
+                        <div class="list-badges">
+                            <span class="badge badge-single">単品</span>
+                            <span class="badge badge-owned">保有中</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-sm btn-primary">詳細</button>
+                        </div>
+                    </div>
+
+                    <div class="list-item">
+                        <div class="list-image">画像</div>
+                        <div class="list-info">
+                            <div class="list-title">コキ106 19Dコンテナ搭載 2両セット</div>
+                            <div class="list-meta">KATO | 10-245 | 2020年 | セット | 2両 | 貨車・コンテナ | JAN: 4949727524559</div>
+                        </div>
+                        <div class="list-price">定価: ¥3,300</div>
+                        <div class="list-badges">
+                            <span class="badge badge-set">セット</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-sm btn-primary">保有登録</button>
+                        </div>
+                    </div>
+
+                    <div class="list-item">
+                        <div class="list-image">画像</div>
+                        <div class="list-info">
+                            <div class="list-title">E351系 スーパーあずさ</div>
+                            <div class="list-meta">KATO | 10-358 | 1995年 | セット | 8両 | 在来線・特急形 | 室内灯対応</div>
+                        </div>
+                        <div class="list-price">定価: ¥24,000</div>
+                        <div class="list-badges">
+                            <span class="badge badge-set">セット</span>
+                            <span class="badge badge-owned">保有中</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-sm btn-primary">詳細</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ページネーション -->
+                <div class="pagination">
+                    <button class="page-btn">‹</button>
+                    <button class="page-btn active">1</button>
+                    <button class="page-btn">2</button>
+                    <button class="page-btn">3</button>
+                    <button class="page-btn">...</button>
+                    <button class="page-btn">13</button>
+                    <button class="page-btn">›</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // フィルタのクリア
+        document.querySelector('.clear-filters').addEventListener('click', function() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            document.querySelector('.search-box').value = '';
+        });
+
+        // 製品アイテムクリック
+        document.querySelectorAll('.list-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (!e.target.closest('button')) {
+                    alert('製品詳細画面に遷移');
+                }
+            });
+        });
+
+        // 保有登録ボタン
+        document.querySelectorAll('.btn-primary').forEach(btn => {
+            if (btn.textContent === '保有登録') {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    this.textContent = '保有済み';
+                    this.className = 'btn-sm btn-success';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

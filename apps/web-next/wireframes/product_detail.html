@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>製品詳細画面 - 鉄道模型車両管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        /* ヘッダー */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .nav a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .nav a.active {
+            background: #3498db;
+        }
+        
+        /* メインコンテンツ */
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .breadcrumb {
+            margin-bottom: 1rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .breadcrumb a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .product-header {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .product-image {
+            width: 300px;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #666;
+        }
+        
+        .product-info {
+            flex: 1;
+        }
+        .product-title {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+        .product-meta {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.5rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .meta-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .set-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .ownership-status {
+            background: #27ae60;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-top: 1rem;
+            display: inline-block;
+        }
+        
+        /* タブ */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 1.5rem;
+        }
+        .tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+            font-weight: bold;
+        }
+        .tab:hover {
+            background: #f8f9fa;
+        }
+        
+        /* セット内容セクション */
+        .set-contents {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .set-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .set-title {
+            font-size: 1.3rem;
+            color: #2c3e50;
+        }
+        .edit-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .edit-btn:hover {
+            background: #2980b9;
+        }
+        
+        .vehicle-list {
+            display: grid;
+            gap: 1rem;
+        }
+        .vehicle-item {
+            background: white;
+            border-radius: 6px;
+            padding: 1rem;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .vehicle-info {
+            flex: 1;
+        }
+        .vehicle-name {
+            font-weight: bold;
+            margin-bottom: 0.2rem;
+        }
+        .vehicle-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .vehicle-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-sm {
+            padding: 0.3rem 0.8rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .btn-edit {
+            background: #f39c12;
+            color: white;
+        }
+        .btn-remove {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-add {
+            background: #27ae60;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+            font-size: 1rem;
+        }
+        
+        /* 実車情報セクション */
+        .real-vehicle-info {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .info-item {
+            padding: 0.5rem;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .info-value {
+            margin-top: 0.2rem;
+            font-size: 1rem;
+        }
+        
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+            .nav {
+                gap: 1rem;
+            }
+            .main-content {
+                padding: 1rem;
+            }
+            .product-header {
+                flex-direction: column;
+            }
+            .product-image {
+                width: 100%;
+                height: 200px;
+            }
+            .tabs {
+                overflow-x: auto;
+            }
+            .tab {
+                white-space: nowrap;
+                padding: 1rem;
+            }
+            .vehicle-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            .vehicle-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <header class="header">
+            <div class="logo">鉄道模型車両管理</div>
+            <nav class="nav">
+                <a href="#" class="active">製品情報</a>
+                <a href="#">マイ車両</a>
+                <a href="#">編成管理</a>
+                <a href="#">ダッシュボード</a>
+                <a href="#">ログイン</a>
+            </nav>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main class="main-content">
+            <!-- パンくずリスト -->
+            <div class="breadcrumb">
+                <a href="#">製品情報</a> > <a href="#">KATO</a> > 205系直流通勤形電車（京葉線色）
+            </div>
+
+            <!-- 製品ヘッダー -->
+            <div class="product-header">
+                <div class="product-image">
+                    製品画像<br>300x200px
+                </div>
+                <div class="product-info">
+                    <h1 class="product-title">
+                        205系直流通勤形電車（京葉線色）
+                        <span class="set-badge">セット</span>
+                    </h1>
+                    <div class="product-meta">
+                        <span class="meta-label">メーカー:</span>
+                        <span>KATO</span>
+                        <span class="meta-label">品番:</span>
+                        <span>10-184</span>
+                        <span class="meta-label">発売年:</span>
+                        <span>1998年</span>
+                        <span class="meta-label">定価:</span>
+                        <span>税抜: ¥15,000 / 税込: ¥16,500</span>
+                        <span class="meta-label">JANコード:</span>
+                        <span>4949727518404</span>
+                        <span class="meta-label">車両数:</span>
+                        <span>6両</span>
+                    </div>
+                    <div class="ownership-status">保有中</div>
+                </div>
+            </div>
+
+            <!-- タブ -->
+            <div class="tabs">
+                <button class="tab active">セット内容</button>
+                <button class="tab">実車情報</button>
+                <button class="tab">詳細・備考</button>
+            </div>
+
+            <!-- セット内容セクション -->
+            <div class="set-contents">
+                <div class="set-header">
+                    <h2 class="set-title">セット構成車両 (6両)</h2>
+                    <button class="edit-btn">セット編集</button>
+                </div>
+                
+                <div class="vehicle-list">
+                    <div class="vehicle-item">
+                        <div class="vehicle-info">
+                            <div class="vehicle-name">クハ205 (4226-1)</div>
+                            <div class="vehicle-meta">先頭車 | 定価: ¥2,500</div>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-remove">削除</button>
+                        </div>
+                    </div>
+                    
+                    <div class="vehicle-item">
+                        <div class="vehicle-info">
+                            <div class="vehicle-name">クハ204 (4227-1)</div>
+                            <div class="vehicle-meta">先頭車 | 定価: ¥2,500</div>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-remove">削除</button>
+                        </div>
+                    </div>
+                    
+                    <div class="vehicle-item">
+                        <div class="vehicle-info">
+                            <div class="vehicle-name">モハ205 (4228-1)</div>
+                            <div class="vehicle-meta">中間車 | 定価: ¥2,500</div>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-remove">削除</button>
+                        </div>
+                    </div>
+                    
+                    <div class="vehicle-item">
+                        <div class="vehicle-info">
+                            <div class="vehicle-name">モハ204（M） (4229-1)</div>
+                            <div class="vehicle-meta">中間車（動力） | 定価: ¥3,000</div>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-remove">削除</button>
+                        </div>
+                    </div>
+                    
+                    <div class="vehicle-item">
+                        <div class="vehicle-info">
+                            <div class="vehicle-name">モハ204 (4230-1)</div>
+                            <div class="vehicle-meta">中間車 | 定価: ¥2,500</div>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-remove">削除</button>
+                        </div>
+                    </div>
+                    
+                    <div class="vehicle-item">
+                        <div class="vehicle-info">
+                            <div class="vehicle-name">サハ205 (4231-1)</div>
+                            <div class="vehicle-meta">中間車 | 定価: ¥2,000</div>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-remove">削除</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn-add">+ 車両を追加</button>
+            </div>
+
+            <!-- 実車情報セクション -->
+            <div class="real-vehicle-info">
+                <h2 class="section-title">実車情報</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">車両形式</div>
+                        <div class="info-value">205系</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">所属会社</div>
+                        <div class="info-value">JR東日本</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">製造年代</div>
+                        <div class="info-value">1985年〜</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">運用線区</div>
+                        <div class="info-value">京葉線</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // タブ切り替え機能
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // セット編集機能（デモ）
+        document.querySelector('.edit-btn').addEventListener('click', function() {
+            const isEditing = this.textContent === '編集完了';
+            if (isEditing) {
+                this.textContent = 'セット編集';
+                this.style.background = '#3498db';
+            } else {
+                this.textContent = '編集完了';
+                this.style.background = '#27ae60';
+            }
+        });
+
+        // 車両操作ボタン（デモ）
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', function() {
+                alert('車両編集機能（実装予定）');
+            });
+        });
+
+        document.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (confirm('この車両をセットから削除しますか？')) {
+                    this.closest('.vehicle-item').remove();
+                }
+            });
+        });
+
+        document.querySelector('.btn-add').addEventListener('click', function() {
+            alert('車両追加機能（実装予定）');
+        });
+    </script>
+</body>
+</html>

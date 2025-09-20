@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>車両詳細・編集 - 鉄道模型車両管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        /* ヘッダー */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .nav a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .nav a.active {
+            background: #3498db;
+        }
+        
+        /* メインコンテンツ */
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .breadcrumb {
+            margin-bottom: 1rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .breadcrumb a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+        .page-title {
+            font-size: 1.8rem;
+            color: #2c3e50;
+        }
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        /* モード切り替えボタン */
+        .mode-toggle {
+            display: flex;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .mode-btn {
+            background: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .mode-btn.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        /* コンテンツエリア */
+        .content-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .section {
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* 画像セクション */
+        .image-section {
+            grid-column: 1 / -1;
+        }
+        .image-gallery {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 1rem;
+        }
+        .main-image {
+            width: 300px;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            cursor: pointer;
+        }
+        .thumbnail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
+        }
+        .thumbnail {
+            width: 80px;
+            height: 60px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .thumbnail.active {
+            border-color: #3498db;
+            border-width: 2px;
+        }
+        .add-image {
+            border-style: dashed;
+            border-color: #3498db;
+            color: #3498db;
+        }
+        
+        /* 基本情報セクション */
+        .info-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.5rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            padding: 0.5rem 0;
+        }
+        .info-value {
+            padding: 0.5rem 0;
+        }
+        .info-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .info-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .info-textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        /* 状態表示 */
+        .status-display {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-normal {
+            background: #27ae60;
+            color: white;
+        }
+        .status-repair {
+            background: #f39c12;
+            color: white;
+        }
+        .status-broken {
+            background: #e74c3c;
+            color: white;
+        }
+        .status-modified {
+            background: #9b59b6;
+            color: white;
+        }
+        .case-yes {
+            background: #3498db;
+            color: white;
+        }
+        .case-no {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        /* 購入情報セクション */
+        .purchase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .purchase-item {
+            padding: 0.5rem;
+        }
+        .purchase-label {
+            font-weight: bold;
+            color: #555;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+        .purchase-value {
+            font-size: 1rem;
+        }
+        
+        /* 整備記録セクション */
+        .maintenance-records {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .maintenance-item {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .maintenance-date {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        .maintenance-content {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .add-maintenance {
+            background: #3498db;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        /* 製品情報参照セクション */
+        .product-ref {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .product-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .product-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .product-link {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        /* 編集モード */
+        .edit-mode .info-value {
+            display: none;
+        }
+        .view-mode .info-input,
+        .view-mode .info-select,
+        .view-mode .info-textarea {
+            display: none;
+        }
+        
+        /* フルセクション */
+        .full-section {
+            grid-column: 1 / -1;
+        }
+        
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            .content-sections {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .image-gallery {
+                grid-template-columns: 1fr;
+            }
+            .main-image {
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+            .header-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <header class="header">
+            <div class="logo">鉄道模型車両管理</div>
+            <nav class="nav">
+                <a href="#">製品情報</a>
+                <a href="#" class="active">マイ車両</a>
+                <a href="#">編成管理</a>
+                <a href="#">ダッシュボード</a>
+                <a href="#">山田太郎 ▼</a>
+            </nav>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main class="main-content">
+            <!-- パンくずリスト -->
+            <div class="breadcrumb">
+                <a href="#">マイ車両</a> > 205系直流通勤形電車 クハ205 (管理ID: 205-1-1)
+            </div>
+
+            <!-- ページヘッダー -->
+            <div class="page-header">
+                <h1 class="page-title">車両詳細・編集</h1>
+                <div class="header-actions">
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" data-mode="view">表示モード</button>
+                        <button class="mode-btn" data-mode="edit">編集モード</button>
+                    </div>
+                    <button class="btn btn-success" id="save-btn" style="display: none;">保存</button>
+                    <button class="btn btn-secondary" id="cancel-btn" style="display: none;">キャンセル</button>
+                    <button class="btn btn-danger">削除</button>
+                </div>
+            </div>
+
+            <!-- 画像セクション -->
+            <div class="content-sections">
+                <div class="section image-section">
+                    <div class="section-title">
+                        車両画像
+                        <button class="btn btn-primary" id="add-image-btn">画像追加</button>
+                    </div>
+                    <div class="image-gallery">
+                        <div class="main-image">
+                            メイン画像<br>300x200px
+                        </div>
+                        <div class="thumbnail-grid">
+                            <div class="thumbnail active">画像1</div>
+                            <div class="thumbnail">画像2</div>
+                            <div class="thumbnail">画像3</div>
+                            <div class="thumbnail add-image">+ 追加</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-sections view-mode">
+                <!-- 基本情報セクション -->
+                <div class="section">
+                    <div class="section-title">基本情報</div>
+                    
+                    <div class="info-grid">
+                        <span class="info-label">管理ID:</span>
+                        <span class="info-value">205-1-1</span>
+                        <input type="text" class="info-input" value="205-1-1">
+                        
+                        <span class="info-label">車両名:</span>
+                        <span class="info-value">205系直流通勤形電車 クハ205 (4226-1)</span>
+                        <input type="text" class="info-input" value="205系直流通勤形電車 クハ205 (4226-1)">
+                        
+                        <span class="info-label">現在の状態:</span>
+                        <div class="info-value">
+                            <div class="status-display">
+                                <span class="status-badge status-normal">正常</span>
+                                <span class="status-badge case-yes">ケースあり</span>
+                            </div>
+                        </div>
+                        <div>
+                            <select class="info-select">
+                                <option value="normal" selected>正常</option>
+                                <option value="repair">要修理</option>
+                                <option value="broken">故障中</option>
+                                <option value="modified">改造済み</option>
+                            </select>
+                            <select class="info-select" style="margin-top: 0.5rem;">
+                                <option value="yes" selected>ケースあり</option>
+                                <option value="no">ケースなし</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 製品情報セクション -->
+                <div class="section">
+                    <div class="section-title">製品情報</div>
+                    <div class="product-ref">
+                        <div class="product-name">205系直流通勤形電車（京葉線色）</div>
+                        <div class="product-meta">KATO | 10-184 | 1998年 | セット | 6両</div>
+                        <a href="#" class="product-link">製品詳細を見る →</a>
+                    </div>
+                    
+                    <div class="info-grid">
+                        <span class="info-label">メーカー:</span>
+                        <span class="info-value">KATO</span>
+                        <input type="text" class="info-input" value="KATO">
+                        
+                        <span class="info-label">品番:</span>
+                        <span class="info-value">4226-1</span>
+                        <input type="text" class="info-input" value="4226-1">
+                        
+                        <span class="info-label">セット品番:</span>
+                        <span class="info-value">10-184</span>
+                        <input type="text" class="info-input" value="10-184">
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-sections view-mode">
+                <!-- 購入情報セクション -->
+                <div class="section">
+                    <div class="section-title">購入情報</div>
+                    <div class="info-grid">
+                        <span class="info-label">購入日:</span>
+                        <span class="info-value">2020年3月15日</span>
+                        <input type="date" class="info-input" value="2020-03-15">
+                        
+                        <span class="info-label">購入店舗:</span>
+                        <span class="info-value">ポポンデッタ</span>
+                        <input type="text" class="info-input" value="ポポンデッタ">
+                        
+                        <span class="info-label">購入価格:</span>
+                        <span class="info-value">税抜: ¥2,300 / 税込: ¥2,500</span>
+                        <div>
+                            <input type="number" class="info-input" placeholder="税抜価格" value="2300" style="margin-bottom: 0.5rem;">
+                            <input type="number" class="info-input" placeholder="税込価格" value="2500">
+                        </div>
+                        
+                        <span class="info-label">購入時状態:</span>
+                        <span class="info-value">中古</span>
+                        <select class="info-select">
+                            <option value="new">新品</option>
+                            <option value="used" selected>中古</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 整備記録セクション -->
+                <div class="section">
+                    <div class="section-title">
+                        整備記録
+                        <button class="add-maintenance">+ 記録追加</button>
+                    </div>
+                    <div class="maintenance-records">
+                        <div class="maintenance-item">
+                            <div class="maintenance-date">2023年8月15日</div>
+                            <div class="maintenance-content">車輪清掃、カプラー調整。動作良好を確認。</div>
+                        </div>
+                        <div class="maintenance-item">
+                            <div class="maintenance-date">2022年12月10日</div>
+                            <div class="maintenance-content">全般検査実施。モーター異音なし、ライト点灯確認。</div>
+                        </div>
+                        <div class="maintenance-item">
+                            <div class="maintenance-date">2021年6月20日</div>
+                            <div class="maintenance-content">TNカプラー交換作業完了。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 備考・メモセクション -->
+            <div class="content-sections view-mode">
+                <div class="section full-section">
+                    <div class="section-title">備考・メモ</div>
+                    <div class="info-value">
+                        <p>セット購入品。箱・説明書あり。室内灯は未装着。</p>
+                        <p>前面カプラーに若干のガタあり、要観察。</p>
+                    </div>
+                    <textarea class="info-textarea" placeholder="備考・メモを入力">セット購入品。箱・説明書あり。室内灯は未装着。
+前面カプラーに若干のガタあり、要観察。</textarea>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // モード切り替え
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const mode = this.dataset.mode;
+                
+                // ボタンの状態を更新
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // モードを切り替え
+                const container = document.querySelector('.container');
+                container.className = container.className.replace(/\b(view|edit)-mode\b/g, '');
+                container.classList.add(mode + '-mode');
+                
+                // 保存・キャンセルボタンの表示
+                document.getElementById('save-btn').style.display = mode === 'edit' ? 'inline-block' : 'none';
+                document.getElementById('cancel-btn').style.display = mode === 'edit' ? 'inline-block' : 'none';
+            });
+        });
+
+        // 保存ボタン
+        document.getElementById('save-btn').addEventListener('click', function() {
+            alert('車両情報を保存しました');
+            // 表示モードに戻る
+            document.querySelector('[data-mode="view"]').click();
+        });
+
+        // キャンセルボタン
+        document.getElementById('cancel-btn').addEventListener('click', function() {
+            if (confirm('編集内容を破棄しますか？')) {
+                // 表示モードに戻る
+                document.querySelector('[data-mode="view"]').click();
+            }
+        });
+
+        // 整備記録追加
+        document.querySelector('.add-maintenance').addEventListener('click', function() {
+            const newRecord = document.createElement('div');
+            newRecord.className = 'maintenance-item';
+            newRecord.innerHTML = `
+                <div class="maintenance-date">${new Date().toLocaleDateString('ja-JP')}</div>
+                <div class="maintenance-content">
+                    <textarea class="info-textarea" placeholder="整備内容を入力"></textarea>
+                </div>
+            `;
+            document.querySelector('.maintenance-records').insertBefore(newRecord, document.querySelector('.maintenance-records').firstChild);
+        });
+
+        // 画像関連
+        document.querySelectorAll('.thumbnail').forEach(thumb => {
+            thumb.addEventListener('click', function() {
+                if (!this.classList.contains('add-image')) {
+                    document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        document.querySelector('.add-image').addEventListener('click', function() {
+            alert('画像追加機能（実装予定）');
+        });
+
+        document.getElementById('add-image-btn').addEventListener('click', function() {
+            alert('画像追加機能（実装予定）');
+        });
+
+        // 初期状態を表示モードに設定
+        document.querySelector('.container').classList.add('view-mode');
+    </script>
+</body>
+</html>

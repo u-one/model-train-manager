@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>保有車両管理 - 鉄道模型車両管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        /* ヘッダー */
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .nav a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .nav a.active {
+            background: #3498db;
+        }
+        
+        /* メインコンテンツ */
+        .main-content {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+        
+        /* サイドバー（フィルタ） */
+        .sidebar {
+            width: 280px;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-right: 1px solid #eee;
+        }
+        .sidebar h3 {
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+        .filter-group {
+            margin-bottom: 2rem;
+        }
+        .filter-title {
+            font-weight: bold;
+            margin-bottom: 0.8rem;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .filter-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .filter-option input[type="checkbox"] {
+            margin: 0;
+        }
+        .filter-option label {
+            font-size: 0.9rem;
+            cursor: pointer;
+            flex: 1;
+        }
+        .count {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .clear-filters {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+        
+        /* メインエリア */
+        .content-area {
+            flex: 1;
+            padding: 1.5rem;
+        }
+        
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-title {
+            font-size: 1.8rem;
+            color: #2c3e50;
+        }
+        .results-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .sort-select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        /* 車両リスト */
+        .vehicle-list {
+            margin-bottom: 2rem;
+        }
+        .vehicle-item {
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 0.5rem;
+            padding: 0.75rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            font-size: 0.9rem;
+            transition: box-shadow 0.2s;
+        }
+        .vehicle-item:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        
+        .vehicle-image {
+            width: 60px;
+            height: 40px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 0.7rem;
+        }
+        
+        .vehicle-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .vehicle-title {
+            font-weight: bold;
+            margin-bottom: 0.2rem;
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        .vehicle-meta {
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1.3;
+            margin-bottom: 0.2rem;
+        }
+        .purchase-info {
+            font-size: 0.75rem;
+            color: #888;
+            line-height: 1.2;
+        }
+        
+        .vehicle-status {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            margin-right: 0.75rem;
+            align-items: center;
+        }
+        
+        .status-badge {
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .status-normal {
+            background: #27ae60;
+            color: white;
+        }
+        .status-repair {
+            background: #f39c12;
+            color: white;
+        }
+        .status-broken {
+            background: #e74c3c;
+            color: white;
+        }
+        .status-modified {
+            background: #9b59b6;
+            color: white;
+        }
+        .case-yes {
+            background: #3498db;
+            color: white;
+        }
+        .case-no {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .vehicle-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .btn-sm {
+            padding: 0.3rem 0.6rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        .btn-edit {
+            background: #f39c12;
+            color: white;
+        }
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-view {
+            background: #3498db;
+            color: white;
+        }
+        
+        /* ページネーション */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        .page-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .page-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .page-btn:hover {
+            background: #f8f9fa;
+        }
+        .page-btn.active:hover {
+            background: #3498db;
+        }
+        
+        /* 統計情報 */
+        .stats-summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.2rem;
+        }
+        
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                order: 2;
+                border-right: none;
+                border-top: 1px solid #eee;
+            }
+            .content-area {
+                order: 1;
+            }
+            .controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .content-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .vehicle-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            .vehicle-status {
+                flex-direction: row;
+                justify-content: center;
+            }
+            .vehicle-actions {
+                flex-direction: row;
+                justify-content: center;
+            }
+            .stats-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <header class="header">
+            <div class="logo">鉄道模型車両管理</div>
+            <nav class="nav">
+                <a href="#">製品情報</a>
+                <a href="#" class="active">マイ車両</a>
+                <a href="#">編成管理</a>
+                <a href="#">ダッシュボード</a>
+                <a href="#">山田太郎 ▼</a>
+            </nav>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <div class="main-content">
+            <!-- サイドバー -->
+            <aside class="sidebar">
+                <h3>車両管理</h3>
+                
+                <div class="action-buttons">
+                    <a href="#" class="btn btn-primary">+ 新規車両登録</a>
+                    <a href="#" class="btn btn-success">一括インポート</a>
+                    <a href="#" class="btn btn-warning">データ出力</a>
+                </div>
+                
+                <input type="text" class="search-box" placeholder="車両名、管理ID、メーカーで検索">
+                
+                <div class="filter-group">
+                    <div class="filter-title">分類</div>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="checkbox" id="shinkansen" checked>
+                            <label for="shinkansen">新幹線</label>
+                            <span class="count">(12)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="local" checked>
+                            <label for="local">在来線</label>
+                            <span class="count">(89)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="diesel">
+                            <label for="diesel">気動車</label>
+                            <span class="count">(15)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="passenger">
+                            <label for="passenger">客車</label>
+                            <span class="count">(24)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="freight">
+                            <label for="freight">貨物</label>
+                            <span class="count">(8)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="locomotive">
+                            <label for="locomotive">機関車</label>
+                            <span class="count">(11)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <div class="filter-title">メーカー</div>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="checkbox" id="kato" checked>
+                            <label for="kato">KATO</label>
+                            <span class="count">(87)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="tomix" checked>
+                            <label for="tomix">TOMIX</label>
+                            <span class="count">(65)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="microace">
+                            <label for="microace">MICRO ACE</label>
+                            <span class="count">(7)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <div class="filter-title">状態</div>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="checkbox" id="normal" checked>
+                            <label for="normal">正常</label>
+                            <span class="count">(145)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="repair">
+                            <label for="repair">要修理</label>
+                            <span class="count">(3)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="broken">
+                            <label for="broken">故障中</label>
+                            <span class="count">(1)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="modified">
+                            <label for="modified">改造済み</label>
+                            <span class="count">(10)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <div class="filter-title">ケース</div>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="checkbox" id="case_yes" checked>
+                            <label for="case_yes">ケースあり</label>
+                            <span class="count">(134)</span>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="case_no">
+                            <label for="case_no">ケースなし</label>
+                            <span class="count">(25)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="clear-filters">フィルタをクリア</button>
+            </aside>
+
+            <!-- メインエリア -->
+            <main class="content-area">
+                <div class="content-header">
+                    <div>
+                        <h1 class="page-title">保有車両一覧</h1>
+                        <div class="results-info">159両中 1-20両を表示</div>
+                    </div>
+                    <div class="controls">
+                        <select class="sort-select">
+                            <option>管理ID順</option>
+                            <option>購入日順</option>
+                            <option>メーカー順</option>
+                            <option>分類順</option>
+                            <option>購入価格順</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 統計サマリー -->
+                <div class="stats-summary">
+                    <div class="stat-item">
+                        <div class="stat-number">159</div>
+                        <div class="stat-label">総保有車両数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">23</div>
+                        <div class="stat-label">セット数</div>
+                    </div>
+                </div>
+
+                <!-- 車両リスト -->
+                <div class="vehicle-list">
+                    <div class="vehicle-item">
+                        <div class="vehicle-image">画像</div>
+                        <div class="vehicle-info">
+                            <div class="vehicle-title">205系直流通勤形電車 クハ205 (4226-1)</div>
+                            <div class="vehicle-meta">KATO | 10-184セット | 1998年 | 在来線・通勤形</div>
+                            <div class="purchase-info">管理ID: 205-1-1 | 購入: 2020/03/15 | ポポンデッタ | ¥2,500 | 中古</div>
+                        </div>
+                        <div class="vehicle-status">
+                            <span class="status-badge status-normal">正常</span>
+                            <span class="status-badge case-yes">ケース有</span>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-view">詳細</button>
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-delete">削除</button>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-item">
+                        <div class="vehicle-image">画像</div>
+                        <div class="vehicle-info">
+                            <div class="vehicle-title">EF66 後期形 ブルートレイン牽引機</div>
+                            <div class="vehicle-meta">KATO | 3047-2 | 2019年 | 機関車・直流</div>
+                            <div class="purchase-info">管理ID: EF66-1 | 購入: 2021/05/20 | ヨドバシ新宿 | ¥5,610 | 新品</div>
+                        </div>
+                        <div class="vehicle-status">
+                            <span class="status-badge status-normal">正常</span>
+                            <span class="status-badge case-yes">ケース有</span>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-view">詳細</button>
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-delete">削除</button>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-item">
+                        <div class="vehicle-image">画像</div>
+                        <div class="vehicle-info">
+                            <div class="vehicle-title">100系新幹線 125(T)</div>
+                            <div class="vehicle-meta">TOMIX | 2816 | 1990年代 | 新幹線</div>
+                            <div class="purchase-info">管理ID: 100-1-16 | 購入: 2016/09/06 | ポポンデッタ | ¥352 | 中古</div>
+                        </div>
+                        <div class="vehicle-status">
+                            <span class="status-badge status-repair">要修理</span>
+                            <span class="status-badge case-no">ケース無</span>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-view">詳細</button>
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-delete">削除</button>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-item">
+                        <div class="vehicle-image">画像</div>
+                        <div class="vehicle-info">
+                            <div class="vehicle-title">C11形蒸気機関車</div>
+                            <div class="vehicle-meta">KATO | 2002 | 1978年 | 蒸気機関車</div>
+                            <div class="purchase-info">管理ID: C11-1 | 購入: 昔 | - | ¥0 | 引継</div>
+                        </div>
+                        <div class="vehicle-status">
+                            <span class="status-badge status-modified">改造済</span>
+                            <span class="status-badge case-yes">ケース有</span>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-view">詳細</button>
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-delete">削除</button>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-item">
+                        <div class="vehicle-image">画像</div>
+                        <div class="vehicle-info">
+                            <div class="vehicle-title">24系25形寝台客車 オハネ25-100</div>
+                            <div class="vehicle-meta">TOMIX | 8535 | 2010年代 | 客車・寝台</div>
+                            <div class="purchase-info">管理ID: 24_25-1-13 | 購入: 2018/05/03 | しんゆり湘南ライン | ¥1,080 | 中古</div>
+                        </div>
+                        <div class="vehicle-status">
+                            <span class="status-badge status-normal">正常</span>
+                            <span class="status-badge case-no">ケース無</span>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-view">詳細</button>
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-delete">削除</button>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-item">
+                        <div class="vehicle-image">画像</div>
+                        <div class="vehicle-info">
+                            <div class="vehicle-title">キハ40 2000</div>
+                            <div class="vehicle-meta">KATO | 6019 | 2018年 | 気動車</div>
+                            <div class="purchase-info">管理ID: ｷﾊ40-1 | 購入: 2018/02/28 | ポポンデッタ | ¥1,350 | 中古</div>
+                        </div>
+                        <div class="vehicle-status">
+                            <span class="status-badge status-broken">故障中</span>
+                            <span class="status-badge case-yes">ケース有</span>
+                        </div>
+                        <div class="vehicle-actions">
+                            <button class="btn-sm btn-view">詳細</button>
+                            <button class="btn-sm btn-edit">編集</button>
+                            <button class="btn-sm btn-delete">削除</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ページネーション -->
+                <div class="pagination">
+                    <button class="page-btn">‹</button>
+                    <button class="page-btn active">1</button>
+                    <button class="page-btn">2</button>
+                    <button class="page-btn">3</button>
+                    <button class="page-btn">...</button>
+                    <button class="page-btn">8</button>
+                    <button class="page-btn">›</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // フィルタのクリア
+        document.querySelector('.clear-filters').addEventListener('click', function() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            document.querySelector('.search-box').value = '';
+        });
+
+        // 車両アイテムクリック
+        document.querySelectorAll('.vehicle-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (!e.target.closest('button')) {
+                    alert('車両詳細画面に遷移');
+                }
+            });
+        });
+
+        // 操作ボタン
+        document.querySelectorAll('.btn-view').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                alert('車両詳細表示');
+            });
+        });
+
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                alert('車両編集画面に遷移');
+            });
+        });
+
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (confirm('この車両を削除しますか？')) {
+                    alert('車両削除処理');
+                }
+            });
+        });
+
+        // 新規登録ボタン
+        document.querySelector('.btn-primary').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('新規車両登録画面に遷移');
+        });
+    </script>
+</body>
+</html>
