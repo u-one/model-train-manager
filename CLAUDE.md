@@ -115,6 +115,27 @@ CLOUDFRONT_DOMAIN="..."
 - コンポーネント名: PascalCase
 - ファイル名: kebab-case
 
+### デプロイ前チェック必須項目
+実装完了時は以下のコマンドで必ずチェックしてからデプロイすること：
+
+```bash
+cd apps/web-next
+
+# 型チェック
+npm run type-check
+
+# ESLintチェック
+npm run lint
+
+# ビルドチェック
+npm run build
+
+# 一括チェック（推奨）
+npm run deploy-check
+```
+
+**重要**: これらのチェックが全て通らない場合はVercelデプロイに失敗します。
+
 ### コミット規約
 ```
 feat: 新機能追加
