@@ -1,5 +1,6 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
+import { prisma } from '@/lib/prisma'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -10,9 +11,33 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      // データベース接続前は単純にtrueを返す
-      console.log('User signed in:', user.email)
-      return true
+      try {
+        if (!user.email) return false
+
+        // ユーザーが存在するかチェック
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email }
+        })
+
+        // 存在しない場合は新規作成
+        if (!existingUser) {
+          await prisma.user.create({
+            data: {
+              email: user.email,
+              name: user.name || user.email,
+              image: user.image
+            }
+          })
+          console.log('New user created:', user.email)
+        } else {
+          console.log('Existing user signed in:', user.email)
+        }
+
+        return true
+      } catch (error) {
+        console.error('Error in signIn callback:', error)
+        return false
+      }
     },
     async session({ session }) {
       // セッション情報はそのまま返す（DB接続前）

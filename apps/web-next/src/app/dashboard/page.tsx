@@ -114,15 +114,22 @@ export default function Dashboard() {
                   </div>
                 </Link>
 
-                <div className="bg-gray-50 overflow-hidden rounded-lg p-5">
-                  <h3 className="text-lg font-medium text-gray-900">保有車両</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    保有している車両を管理
-                  </p>
-                  <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                    開発予定
+                <Link href="/owned-vehicles" className="group">
+                  <div className="bg-white border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 overflow-hidden rounded-lg p-5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600">保有車両</h3>
+                      <svg className="w-5 h-5 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">
+                      保有している車両を管理・記録
+                    </p>
+                    <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      利用可能
+                    </div>
                   </div>
-                </div>
+                </Link>
 
                 <div className="bg-gray-50 overflow-hidden rounded-lg p-5">
                   <h3 className="text-lg font-medium text-gray-900">整備記録</h3>
@@ -147,15 +154,16 @@ export default function Dashboard() {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-blue-800">
-                        Phase 2.3 完了: 製品情報機能
+                        Phase 2.4 完了: 保有車両機能
                       </p>
                       <div className="mt-2 text-sm text-blue-700">
                         <ul className="list-disc list-inside space-y-1">
-                          <li>製品一覧・詳細表示</li>
-                          <li>検索・フィルタ機能</li>
-                          <li>API連携とデータベース接続</li>
+                          <li>保有車両一覧・詳細表示</li>
+                          <li>車両状態・保管状態管理</li>
+                          <li>購入情報・整備記録管理</li>
+                          <li>認証システム統合</li>
                         </ul>
-                        <p className="mt-2 font-medium">次回: Phase 2.4（保有車両機能）の実装</p>
+                        <p className="mt-2 font-medium">次回: Phase 3（画像アップロード・検索強化）の実装</p>
                       </div>
                     </div>
                   </div>
