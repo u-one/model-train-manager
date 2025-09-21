@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Input, TextArea, Select } from '@/components/ui'
@@ -9,12 +9,30 @@ import { productFormSchema, defaultProductValues, type ProductFormData } from '@
 
 export default function NewProductPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: defaultProductValues
   })
+
+  // クエリパラメータから初期値を設定
+  useEffect(() => {
+    const type = searchParams.get('type')
+    const parentCode = searchParams.get('parentCode')
+    const brand = searchParams.get('brand')
+
+    if (type) {
+      form.setValue('type', type)
+    }
+    if (parentCode) {
+      form.setValue('parentCode', parentCode)
+    }
+    if (brand) {
+      form.setValue('brand', brand)
+    }
+  }, [searchParams, form])
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,

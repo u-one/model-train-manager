@@ -98,7 +98,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/products')}
           className="text-blue-600 hover:text-blue-800 mb-4"
         >
           ← 戻る
@@ -218,13 +218,22 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* セット構成車両 */}
-      {product.type === 'SET' && setComponents.length > 0 && (
+      {product.type === 'SET' && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            セット構成車両 ({setComponents.length}両)
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {setComponents.map((component) => (
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">
+              セット構成車両 ({setComponents.length}両)
+            </h2>
+            <button
+              onClick={() => router.push(`/products/new?type=SET_SINGLE&parentCode=${product.productCode}&brand=${encodeURIComponent(product.brand)}`)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              + セット単品を追加
+            </button>
+          </div>
+          {setComponents.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {setComponents.map((component) => (
               <div
                 key={component.id}
                 className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
@@ -263,8 +272,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">
+              セット構成車両が未登録です。上のボタンからセット単品を追加してください。
+            </p>
+          )}
         </div>
       )}
 
