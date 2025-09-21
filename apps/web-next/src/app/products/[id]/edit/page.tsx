@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Input, TextArea, Select } from '@/components/ui'
 import { productFormSchema, type ProductFormData } from '@/lib/validations/product'
 
 interface Product {
@@ -177,51 +178,36 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">基本情報</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  メーカー *
-                </label>
-                <select
-                  {...form.register('brand')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                >
-                  <option value="">選択してください</option>
-                  <option value="KATO">KATO</option>
-                  <option value="TOMIX">TOMIX</option>
-                  <option value="マイクロエース">マイクロエース</option>
-                  <option value="グリーンマックス">グリーンマックス</option>
-                  <option value="その他">その他</option>
-                </select>
-                {form.formState.errors.brand && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.brand.message}</p>
-                )}
-              </div>
+              <Select
+                label="メーカー"
+                required
+                {...form.register('brand')}
+                options={[
+                  { value: "", label: "選択してください" },
+                  { value: "KATO", label: "KATO" },
+                  { value: "TOMIX", label: "TOMIX" },
+                  { value: "マイクロエース", label: "マイクロエース" },
+                  { value: "グリーンマックス", label: "グリーンマックス" },
+                  { value: "その他", label: "その他" }
+                ]}
+                error={form.formState.errors.brand?.message}
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  品番
-                </label>
-                <input
-                  type="text"
-                  {...form.register('productCode')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  placeholder="例: 10-1234"
-                />
-              </div>
+              <Input
+                label="品番"
+                {...form.register('productCode')}
+                placeholder="例: 10-1234"
+                error={form.formState.errors.productCode?.message}
+              />
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  製品名 *
-                </label>
-                <input
-                  type="text"
+                <Input
+                  label="製品名"
+                  required
                   {...form.register('name')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
                   placeholder="例: JR 289系電車（こうのとり）基本セット"
+                  error={form.formState.errors.name?.message}
                 />
-                {form.formState.errors.name && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.name.message}</p>
-                )}
               </div>
 
               <div>
@@ -230,7 +216,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 </label>
                 <select
                   {...form.register('type')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                 >
                   <option value="SINGLE">単品</option>
                   <option value="SET">セット</option>
@@ -248,7 +234,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 <input
                   type="number"
                   {...form.register('releaseYear', { valueAsNumber: true })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="例: 2024"
                   min="1900"
                   max="2030"
@@ -268,7 +254,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 <input
                   type="number"
                   {...form.register('priceExcludingTax', { valueAsNumber: true })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="例: 15000"
                   min="0"
                 />
@@ -281,7 +267,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 <input
                   type="number"
                   {...form.register('priceIncludingTax', { valueAsNumber: true })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="例: 16500"
                   min="0"
                 />
@@ -300,7 +286,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 <input
                   type="url"
                   {...form.register('imageUrl')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="https://example.com/image.jpg"
                 />
               </div>
@@ -312,7 +298,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 <textarea
                   {...form.register('description')}
                   rows={4}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="製品の詳細説明を入力してください"
                 />
               </div>

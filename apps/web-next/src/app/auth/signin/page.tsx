@@ -3,6 +3,7 @@
 import { signIn, getSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Input } from '@/components/ui'
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false)
@@ -135,54 +136,39 @@ export default function SignIn() {
               {/* ID/パスワード認証フォーム */}
               <form onSubmit={formMode === 'login' ? handleCredentialsSignIn : handleRegister} className="space-y-4 mb-6">
                 {formMode === 'register' && (
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                      名前
-                    </label>
-                    <input
-                      id="name"
-                      name="name"
-                      type="text"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required={formMode === 'register'}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="山田太郎"
-                    />
-                  </div>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    label="名前"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required={formMode === 'register'}
+                    placeholder="山田太郎"
+                  />
                 )}
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    メールアドレス
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="example@email.com"
-                  />
-                </div>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  label="メールアドレス"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="example@email.com"
+                />
 
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    パスワード
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder={formMode === 'register' ? '8文字以上で入力' : 'パスワード'}
-                  />
-                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  label="パスワード"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  placeholder={formMode === 'register' ? '8文字以上で入力' : 'パスワード'}
+                />
 
                 <button
                   type="submit"

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Input, TextArea, Select } from '@/components/ui'
 import { productFormSchema, defaultProductValues, type ProductFormData } from '@/lib/validations/product'
 
 export default function NewProductPage() {
@@ -94,7 +95,7 @@ export default function NewProductPage() {
                 </label>
                 <select
                   {...form.register('brand')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                 >
                   <option value="">選択してください</option>
                   <option value="KATO">KATO</option>
@@ -115,7 +116,7 @@ export default function NewProductPage() {
                 <input
                   type="text"
                   {...form.register('productCode')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="例: 10-1234"
                 />
               </div>
@@ -127,7 +128,7 @@ export default function NewProductPage() {
                 <input
                   type="text"
                   {...form.register('name')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="例: JR 289系電車（こうのとり）基本セット"
                 />
                 {form.formState.errors.name && (
@@ -141,7 +142,7 @@ export default function NewProductPage() {
                 </label>
                 <select
                   {...form.register('type')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                 >
                   <option value="SINGLE">単品</option>
                   <option value="SET">セット</option>
@@ -159,7 +160,7 @@ export default function NewProductPage() {
                 <input
                   type="number"
                   {...form.register('releaseYear', { valueAsNumber: true })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="例: 2024"
                   min="1900"
                   max="2030"
@@ -179,7 +180,7 @@ export default function NewProductPage() {
                 <input
                   type="number"
                   {...form.register('priceExcludingTax', { valueAsNumber: true })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="例: 15000"
                   min="0"
                 />
@@ -192,7 +193,7 @@ export default function NewProductPage() {
                 <input
                   type="number"
                   {...form.register('priceIncludingTax', { valueAsNumber: true })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="例: 16500"
                   min="0"
                 />
@@ -211,7 +212,7 @@ export default function NewProductPage() {
                 <input
                   type="url"
                   {...form.register('imageUrl')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="https://example.com/image.jpg"
                 />
               </div>
@@ -223,7 +224,7 @@ export default function NewProductPage() {
                 <textarea
                   {...form.register('description')}
                   rows={4}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   placeholder="製品の詳細説明を入力してください"
                 />
               </div>

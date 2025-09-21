@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import AuthGuard from '@/components/AuthGuard'
+import { Input, TextArea, Select } from '@/components/ui'
 import { ownedVehicleFormSchema, defaultOwnedVehicleValues, type OwnedVehicleFormData } from '@/lib/validations/owned-vehicle'
 
 interface Product {
@@ -166,34 +167,26 @@ export default function NewOwnedVehiclePage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">基本情報</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    管理ID *
-                  </label>
-                  <input
-                    type="text"
+                  <Input
+                    label="管理ID"
+                    required
                     {...form.register('managementId')}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
                     placeholder="例: MY-001"
+                    error={form.formState.errors.managementId?.message}
                   />
-                  {form.formState.errors.managementId && (
-                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.managementId.message}</p>
-                  )}
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    車両タイプ *
-                  </label>
-                  <select
+                  <Select
+                    label="車両タイプ"
+                    required
                     {...form.register('vehicleType')}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  >
-                    <option value="PRODUCT">製品から選択</option>
-                    <option value="INDEPENDENT">独立記録</option>
-                  </select>
-                  {form.formState.errors.vehicleType && (
-                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.vehicleType.message}</p>
-                  )}
+                    options={[
+                      { value: "PRODUCT", label: "製品から選択" },
+                      { value: "INDEPENDENT", label: "独立記録" }
+                    ]}
+                    error={form.formState.errors.vehicleType?.message}
+                  />
                 </div>
 
                 {vehicleType === 'PRODUCT' && (
@@ -203,7 +196,7 @@ export default function NewOwnedVehiclePage() {
                     </label>
                     <select
                       {...form.register('productId', { valueAsNumber: true })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     >
                       <option value="">製品を選択してください</option>
                       {products.map((product) => (
@@ -229,7 +222,7 @@ export default function NewOwnedVehiclePage() {
                       <input
                         type="text"
                         {...form.register('independentVehicle.name')}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                         placeholder="例: 289系電車（こうのとり）"
                       />
                       {(form.formState.errors.independentVehicle?.name || (vehicleType === 'INDEPENDENT' && form.formState.errors.vehicleType)) && (
@@ -245,7 +238,7 @@ export default function NewOwnedVehiclePage() {
                       <input
                         type="text"
                         {...form.register('independentVehicle.brand')}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                         placeholder="例: KATO"
                       />
                     </div>
@@ -256,7 +249,7 @@ export default function NewOwnedVehiclePage() {
                       <input
                         type="text"
                         {...form.register('independentVehicle.vehicleType')}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                         placeholder="例: 289-0"
                       />
                     </div>
@@ -267,7 +260,7 @@ export default function NewOwnedVehiclePage() {
                       <textarea
                         {...form.register('independentVehicle.description')}
                         rows={3}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                         placeholder="車両の詳細説明"
                       />
                     </div>
@@ -286,7 +279,7 @@ export default function NewOwnedVehiclePage() {
                   </label>
                   <select
                     {...form.register('currentStatus')}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   >
                     {Object.entries(statusLabels).map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
@@ -303,7 +296,7 @@ export default function NewOwnedVehiclePage() {
                   </label>
                   <select
                     {...form.register('storageCondition')}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   >
                     {Object.entries(conditionLabels).map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
@@ -327,7 +320,7 @@ export default function NewOwnedVehiclePage() {
                   <input
                     type="date"
                     {...form.register('purchaseDate')}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   />
                 </div>
 
@@ -337,7 +330,7 @@ export default function NewOwnedVehiclePage() {
                   </label>
                   <select
                     {...form.register('purchaseCondition')}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   >
                     <option value="">選択してください</option>
                     {Object.entries(purchaseConditionLabels).map(([value, label]) => (
@@ -353,7 +346,7 @@ export default function NewOwnedVehiclePage() {
                   <input
                     type="number"
                     {...form.register('purchasePriceExcludingTax', { valueAsNumber: true })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     placeholder="例: 15000"
                     min="0"
                   />
@@ -366,7 +359,7 @@ export default function NewOwnedVehiclePage() {
                   <input
                     type="number"
                     {...form.register('purchasePriceIncludingTax', { valueAsNumber: true })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     placeholder="例: 16500"
                     min="0"
                   />
@@ -379,7 +372,7 @@ export default function NewOwnedVehiclePage() {
                   <input
                     type="text"
                     {...form.register('purchaseStore')}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     placeholder="例: ヨドバシカメラ"
                   />
                 </div>
@@ -397,7 +390,7 @@ export default function NewOwnedVehiclePage() {
                   <textarea
                     {...form.register('notes')}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     placeholder="一般的なメモを入力してください"
                   />
                 </div>
@@ -409,7 +402,7 @@ export default function NewOwnedVehiclePage() {
                   <textarea
                     {...form.register('maintenanceNotes')}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                     placeholder="整備に関するメモを入力してください"
                   />
                 </div>

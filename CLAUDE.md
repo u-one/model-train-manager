@@ -214,7 +214,7 @@ chore: ビルド・設定変更
 ## テスト用アカウント
 
 ### ID/パスワード認証
-- **メールアドレス**: `uonejp@gmail.com`
+- **メールアドレス**: `test@uoneweb.net`
 - **パスワード**: `password`
 - **名前**: `test`
 
