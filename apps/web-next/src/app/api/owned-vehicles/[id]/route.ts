@@ -72,19 +72,71 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id: idStr } = await params
     const id = parseInt(idStr)
     const data = await request.json()
+    const { vehicleType, independentVehicle, ...ownedVehicleData } = data
 
-    const ownedVehicle = await prisma.ownedVehicle.updateMany({
+    // 既存の保有車両を確認
+    const existingVehicle = await prisma.ownedVehicle.findFirst({
       where: {
         id,
         userId: user.id
       },
-      data
+      include: {
+        independentVehicle: true
+      }
     })
 
-    if (ownedVehicle.count === 0) {
+    if (!existingVehicle) {
       return NextResponse.json({ error: 'Owned vehicle not found' }, { status: 404 })
     }
 
+    // 車両タイプに応じてデータを処理
+    let finalUpdateData: Record<string, unknown> = {
+      ...ownedVehicleData
+    }
+
+    if (vehicleType === 'INDEPENDENT' && independentVehicle) {
+      // 独立車両の場合
+      finalUpdateData = {
+        ...finalUpdateData,
+        productId: null
+      }
+
+      if (existingVehicle.independentVehicle) {
+        // 既存の独立車両情報を更新
+        await prisma.independentVehicle.update({
+          where: { ownedVehicleId: id },
+          data: independentVehicle
+        })
+      } else {
+        // 新規に独立車両情報を作成
+        await prisma.independentVehicle.create({
+          data: {
+            ...independentVehicle,
+            ownedVehicleId: id
+          }
+        })
+      }
+    } else if (vehicleType === 'PRODUCT') {
+      // 製品車両の場合
+      if (existingVehicle.independentVehicle) {
+        // 既存の独立車両情報を削除
+        await prisma.independentVehicle.delete({
+          where: { ownedVehicleId: id }
+        })
+      }
+    }
+
+    // 不要なフィールドを削除
+    delete finalUpdateData.vehicleType
+
+    // 保有車両情報を更新
+    await prisma.ownedVehicle.update({
+      where: { id },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: finalUpdateData as any
+    })
+
+    // 更新後のデータを取得
     const updatedVehicle = await prisma.ownedVehicle.findUnique({
       where: { id },
       include: {
