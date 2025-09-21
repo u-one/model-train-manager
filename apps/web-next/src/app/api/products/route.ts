@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
@@ -54,10 +56,28 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+
     const data = await request.json()
+    const { realVehicles, ...productData } = data
+
+    // ユーザー情報を取得（認証がない場合はnull）
+    let createdByUserId = null
+    if (session?.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email }
+      })
+      createdByUserId = user?.id || null
+    }
 
     const product = await prisma.product.create({
-      data,
+      data: {
+        ...productData,
+        createdByUserId,
+        realVehicles: realVehicles ? {
+          create: realVehicles
+        } : undefined
+      },
       include: {
         realVehicles: true,
         _count: { select: { ownedVehicles: true } }

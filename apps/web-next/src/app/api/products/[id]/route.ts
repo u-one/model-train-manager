@@ -39,10 +39,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id: idStr } = await params
     const id = parseInt(idStr)
     const data = await request.json()
+    const { realVehicles, ...productData } = data
 
+    // 既存の実車情報を削除してから新しい情報を作成
     const product = await prisma.product.update({
       where: { id },
-      data,
+      data: {
+        ...productData,
+        realVehicles: {
+          deleteMany: {}, // 既存の実車情報を全て削除
+          create: realVehicles || [] // 新しい実車情報を作成
+        }
+      },
       include: {
         realVehicles: true,
         _count: { select: { ownedVehicles: true } }
