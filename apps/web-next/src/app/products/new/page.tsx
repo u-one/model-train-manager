@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Input, TextArea, Select } from '@/components/ui'
 import { productFormSchema, defaultProductValues, type ProductFormData } from '@/lib/validations/product'
 
-export default function NewProductPage() {
+function NewProductForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -23,8 +23,8 @@ export default function NewProductPage() {
     const parentCode = searchParams.get('parentCode')
     const brand = searchParams.get('brand')
 
-    if (type) {
-      form.setValue('type', type)
+    if (type && ['SINGLE', 'SET', 'SET_SINGLE'].includes(type)) {
+      form.setValue('type', type as 'SINGLE' | 'SET' | 'SET_SINGLE')
     }
     if (parentCode) {
       form.setValue('parentCode', parentCode)
@@ -350,5 +350,13 @@ export default function NewProductPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function NewProductPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">読み込み中...</div>}>
+      <NewProductForm />
+    </Suspense>
   )
 }
