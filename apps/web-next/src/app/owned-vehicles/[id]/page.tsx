@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
@@ -57,7 +57,8 @@ const purchaseConditionLabels: Record<string, string> = {
   USED: '中古'
 }
 
-export default function OwnedVehicleDetailPage({ params }: { params: { id: string } }) {
+export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const { data: session, status } = useSession()
   const router = useRouter()
   const [vehicle, setVehicle] = useState<OwnedVehicle | null>(null)
@@ -72,7 +73,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: { id: strin
       }
 
       try {
-        const response = await fetch(`/api/owned-vehicles/${params.id}`)
+        const response = await fetch(`/api/owned-vehicles/${resolvedParams.id}`)
 
         if (response.status === 401) {
           router.push('/auth/signin')
@@ -99,7 +100,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: { id: strin
     }
 
     fetchVehicle()
-  }, [params.id, session, status, router])
+  }, [resolvedParams.id, session, status, router])
 
   if (status === 'loading' || loading) {
     return (

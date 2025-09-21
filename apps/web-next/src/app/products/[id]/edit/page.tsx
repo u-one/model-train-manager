@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,6 +11,7 @@ interface Product {
   id: number
   brand: string
   productCode: string | null
+  parentCode: string | null
   name: string
   type: string
   releaseYear: number | null
@@ -30,8 +31,9 @@ interface RealVehicle {
   notes: string | null
 }
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
+export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const resolvedParams = use(params)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [product, setProduct] = useState<Product | null>(null)
@@ -61,7 +63,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await fetch(`/api/products/${params.id}`)
+        const response = await fetch(`/api/products/${resolvedParams.id}`)
         if (response.ok) {
           const productData = await response.json()
           setProduct(productData)
@@ -70,6 +72,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           form.reset({
             brand: productData.brand,
             productCode: productData.productCode || '',
+            parentCode: productData.parentCode || '',
             name: productData.name,
             type: productData.type,
             releaseYear: productData.releaseYear || undefined,
@@ -97,7 +100,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     }
 
     fetchProduct()
-  }, [params.id, form, router])
+  }, [resolvedParams.id, form, router])
 
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true)
@@ -114,7 +117,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         )
       }
 
-      const response = await fetch(`/api/products/${params.id}`, {
+      const response = await fetch(`/api/products/${resolvedParams.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -123,7 +126,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       })
 
       if (response.ok) {
-        router.push(`/products/${params.id}`)
+        router.push(`/products/${resolvedParams.id}`)
       } else {
         const error = await response.json()
         console.error('Failed to update product:', error)
@@ -200,7 +203,17 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 error={form.formState.errors.productCode?.message}
               />
 
-              <div className="md:col-span-2">
+              {/* セット単品の場合のみ親品番を表示 */}
+              {form.watch('type') === 'SET_SINGLE' && (
+                <Input
+                  label="親セット品番"
+                  {...form.register('parentCode')}
+                  placeholder="例: 10-1000（セット品番）"
+                  error={form.formState.errors.parentCode?.message}
+                />
+              )}
+
+              <div className={form.watch('type') === 'SET_SINGLE' ? "md:col-span-1" : "md:col-span-2"}>
                 <Input
                   label="製品名"
                   required

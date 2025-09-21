@@ -121,7 +121,25 @@ export default function NewProductPage() {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              {/* セット単品の場合のみ親品番を表示 */}
+              {form.watch('type') === 'SET_SINGLE' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
+                    親セット品番
+                  </label>
+                  <input
+                    type="text"
+                    {...form.register('parentCode')}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                    placeholder="例: 10-1000（セット品番）"
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    この構成車両が属するセット商品の品番を入力してください
+                  </p>
+                </div>
+              )}
+
+              <div className={form.watch('type') === 'SET_SINGLE' ? "md:col-span-1" : "md:col-span-2"}>
                 <label className="block text-sm font-medium text-gray-900 mb-1">
                   製品名 *
                 </label>

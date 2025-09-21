@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
@@ -60,7 +60,8 @@ const purchaseConditionLabels: Record<string, string> = {
   USED: '中古'
 }
 
-export default function EditOwnedVehiclePage({ params }: { params: { id: string } }) {
+export default function EditOwnedVehiclePage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const { data: session, status } = useSession()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -106,7 +107,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
 
       try {
         // 保有車両データ取得
-        const vehicleResponse = await fetch(`/api/owned-vehicles/${params.id}`)
+        const vehicleResponse = await fetch(`/api/owned-vehicles/${resolvedParams.id}`)
         if (vehicleResponse.status === 401) {
           router.push('/auth/signin')
           return
@@ -168,7 +169,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
     }
 
     fetchData()
-  }, [params.id, session, status, router, form])
+  }, [resolvedParams.id, session, status, router, form])
 
   const onSubmit = async (data: OwnedVehicleFormData) => {
     setIsSubmitting(true)
@@ -188,7 +189,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
         independentVehicle: data.vehicleType === 'INDEPENDENT' ? data.independentVehicle : undefined
       }
 
-      const response = await fetch(`/api/owned-vehicles/${params.id}`, {
+      const response = await fetch(`/api/owned-vehicles/${resolvedParams.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -197,7 +198,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
       })
 
       if (response.ok) {
-        router.push(`/owned-vehicles/${params.id}`)
+        router.push(`/owned-vehicles/${resolvedParams.id}`)
       } else {
         const error = await response.json()
         console.error('Failed to update owned vehicle:', error)

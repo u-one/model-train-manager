@@ -4,6 +4,7 @@ export const productFormSchema = z.object({
   // 基本情報
   brand: z.string().min(1, 'メーカーは必須です'),
   productCode: z.string().optional(),
+  parentCode: z.string().optional(),
   name: z.string().min(1, '製品名は必須です'),
   type: z.enum(['SINGLE', 'SET', 'SET_SINGLE'], {
     message: 'タイプを選択してください'
@@ -34,6 +35,7 @@ export type ProductFormData = z.infer<typeof productFormSchema>
 export const defaultProductValues: Partial<ProductFormData> = {
   brand: '',
   productCode: '',
+  parentCode: '',
   name: '',
   type: 'SINGLE',
   releaseYear: undefined,

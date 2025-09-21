@@ -156,8 +156,7 @@ export default function NewOwnedVehiclePage() {
                 <p>Is Submitting: {isSubmitting ? 'Yes' : 'No'}</p>
                 {Object.keys(form.formState.errors).length > 0 && (
                   <div>
-                    <p>Errors:</p>
-                    <pre className="text-xs">{JSON.stringify(form.formState.errors, null, 2)}</pre>
+                    <p>Errors: {Object.keys(form.formState.errors).join(', ')}</p>
                   </div>
                 )}
               </div>
