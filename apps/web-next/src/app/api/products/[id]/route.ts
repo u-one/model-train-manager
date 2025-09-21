@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 interface RouteParams {
@@ -9,16 +11,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: idStr } = await params
     const id = parseInt(idStr)
+    const session = await getServerSession(authOptions)
 
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
         realVehicles: true,
-        ownedVehicles: {
+        ownedVehicles: session ? {
+          where: {
+            userId: parseInt(session.user.id)
+          },
           include: {
             user: { select: { id: true, name: true } }
           }
-        },
+        } : false,
         createdByUser: { select: { id: true, name: true } }
       }
     })

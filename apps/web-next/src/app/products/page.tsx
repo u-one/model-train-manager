@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import ProductCard from '@/components/ProductCard'
 
 interface Product {
@@ -27,6 +28,7 @@ interface ProductsResponse {
 
 export default function ProductsPage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -68,12 +70,14 @@ export default function ProductsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">製品一覧</h1>
-        <button
-          onClick={() => router.push('/products/new')}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-        >
-          製品追加
-        </button>
+        {session && (
+          <button
+            onClick={() => router.push('/products/new')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            製品追加
+          </button>
+        )}
       </div>
 
       {/* フィルター */}

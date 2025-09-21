@@ -79,9 +79,24 @@ export const authOptions: NextAuthOptions = {
         return false
       }
     },
-    async session({ session }) {
-      // セッション情報はそのまま返す（DB接続前）
+    async session({ session, token }) {
+      // ユーザーIDをセッションに追加
+      if (session.user?.email) {
+        const user = await prisma.user.findUnique({
+          where: { email: session.user.email }
+        })
+        if (user) {
+          session.user.id = user.id.toString()
+        }
+      }
       return session
+    },
+    async jwt({ token, user }) {
+      // 初回ログイン時にユーザーIDをトークンに保存
+      if (user) {
+        token.id = user.id
+      }
+      return token
     },
   },
   session: {

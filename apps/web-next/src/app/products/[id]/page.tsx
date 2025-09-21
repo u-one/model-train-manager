@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 interface Product {
   id: number
@@ -37,6 +38,7 @@ interface OwnedVehicle {
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const { data: session } = useSession()
   const resolvedParams = use(params)
   const [product, setProduct] = useState<Product | null>(null)
   const [setComponents, setSetComponents] = useState<Product[]>([])
@@ -106,12 +108,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
         <div className="flex justify-between items-start">
           <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-          <button
-            onClick={() => router.push(`/products/${product.id}/edit`)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            編集
-          </button>
+          {session && (
+            <button
+              onClick={() => router.push(`/products/${product.id}/edit`)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              編集
+            </button>
+          )}
         </div>
       </div>
 
@@ -224,12 +228,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <h2 className="text-xl font-semibold text-gray-900">
               セット構成車両 ({setComponents.length}両)
             </h2>
-            <button
-              onClick={() => router.push(`/products/new?type=SET_SINGLE&parentCode=${product.productCode}&brand=${encodeURIComponent(product.brand)}`)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              + セット単品を追加
-            </button>
+            {session && (
+              <button
+                onClick={() => router.push(`/products/new?type=SET_SINGLE&parentCode=${product.productCode}&brand=${encodeURIComponent(product.brand)}`)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                + セット単品を追加
+              </button>
+            )}
           </div>
           {setComponents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -334,25 +340,27 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* 保有状況 */}
-      <div className="mt-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">
-          保有状況 ({product.ownedVehicles.length}台)
-        </h2>
-        {product.ownedVehicles.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {product.ownedVehicles.map((owned) => (
-              <div key={owned.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{owned.managementId}</span>
-                  <span className="text-sm text-gray-600">{owned.user.name}</span>
+      {session && (
+        <div className="mt-8 bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">
+            保有状況 ({product.ownedVehicles.length}台)
+          </h2>
+          {product.ownedVehicles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {product.ownedVehicles.map((owned) => (
+                <div key={owned.id} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{owned.managementId}</span>
+                    <span className="text-sm text-gray-600">{owned.user.name}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">まだ保有されていません</p>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">まだ保有されていません</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
