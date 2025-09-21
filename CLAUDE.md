@@ -207,6 +207,20 @@ chore: ビルド・設定変更
    - https://your-domain.com/api/auth/callback/google (本番)
 
 ### NextAuth.js設定
-- GoogleProviderのみ使用
+- GoogleProvider + CredentialsProvider使用
 - セッション管理はJWT方式
 - ユーザー情報はSupabaseに保存
+
+## テスト用アカウント
+
+### ID/パスワード認証
+- **メールアドレス**: `uonejp@gmail.com`
+- **パスワード**: `password`
+- **名前**: `test`
+
+### 動作確認項目
+- ユーザー登録機能
+- ID/パスワードログイン
+- Google OAuth ログイン
+- ダッシュボードアクセス
+- ログアウト機能

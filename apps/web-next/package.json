@@ -19,6 +19,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.16.2",
     "@supabase/supabase-js": "^2.57.4",
+    "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "lucide-react": "^0.544.0",
     "next": "15.5.3",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

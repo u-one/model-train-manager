@@ -17,6 +17,7 @@ model User {
   email          String   @unique
   name           String
   image          String?
+  password       String?  // ID/パスワード認証用（Google OAuth時はnull）
   emailVerified  DateTime? @map("email_verified")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
