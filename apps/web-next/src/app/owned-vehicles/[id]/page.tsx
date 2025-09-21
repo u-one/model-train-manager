@@ -168,7 +168,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: { id: strin
         <div className="lg:col-span-2 space-y-6">
           {/* 基本情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">基本情報</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">基本情報</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-gray-600">ブランド:</span>
@@ -193,7 +193,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: { id: strin
 
           {/* 購入情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">購入情報</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">購入情報</h2>
             <div className="grid grid-cols-2 gap-4">
               {vehicle.purchaseDate && (
                 <div>
@@ -225,7 +225,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: { id: strin
           {/* メモ */}
           {(vehicle.notes || vehicle.maintenanceNotes) && (
             <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">メモ</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">メモ</h2>
               {vehicle.notes && (
                 <div className="mb-4">
                   <h3 className="font-medium text-gray-900 mb-2">一般メモ:</h3>
@@ -244,7 +244,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: { id: strin
           {/* 整備記録 */}
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">整備記録</h2>
+              <h2 className="text-xl font-semibold text-gray-900">整備記録</h2>
               <button
                 onClick={() => router.push(`/owned-vehicles/${vehicle.id}/maintenance/new`)}
                 className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"

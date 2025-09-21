@@ -112,7 +112,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         {/* 製品情報 */}
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">基本情報</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">基本情報</h2>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">メーカー:</span>
@@ -145,7 +145,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
           {product.description && (
             <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">説明</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">説明</h2>
               <p className="text-gray-700 whitespace-pre-wrap">{product.description}</p>
             </div>
           )}
@@ -155,7 +155,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* 実車情報 */}
       {product.realVehicles.length > 0 && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">実車情報</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">実車情報</h2>
           <div className="space-y-4">
             {product.realVehicles.map((vehicle) => (
               <div key={vehicle.id} className="border-l-4 border-blue-500 pl-4">

@@ -259,10 +259,10 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* 基本情報 */}
             <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">基本情報</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">基本情報</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     管理ID *
                   </label>
                   <input
@@ -277,7 +277,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     車両タイプ *
                   </label>
                   <select
@@ -294,7 +294,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
 
                 {vehicleType === 'PRODUCT' && (
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
                       製品選択 *
                     </label>
                     <select
@@ -317,7 +317,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                 {vehicleType === 'INDEPENDENT' && (
                   <>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-900 mb-1">
                         車両名 *
                       </label>
                       <input
@@ -331,7 +331,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-900 mb-1">
                         ブランド
                       </label>
                       <input
@@ -342,7 +342,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-900 mb-1">
                         形式
                       </label>
                       <input
@@ -353,7 +353,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-900 mb-1">
                         説明
                       </label>
                       <textarea
@@ -370,10 +370,10 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
 
             {/* 状態情報 */}
             <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">状態情報</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">状態情報</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     現在の状態 *
                   </label>
                   <select
@@ -390,7 +390,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     保管状態 *
                   </label>
                   <select
@@ -410,10 +410,10 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
 
             {/* 購入情報 */}
             <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">購入情報</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">購入情報</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     購入日
                   </label>
                   <input
@@ -424,7 +424,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     購入時状態
                   </label>
                   <select
@@ -439,7 +439,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     購入価格（税抜）（円）
                   </label>
                   <input
@@ -452,7 +452,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     購入価格（税込）（円）
                   </label>
                   <input
@@ -465,7 +465,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     購入店
                   </label>
                   <input
@@ -480,10 +480,10 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
 
             {/* メモ */}
             <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">メモ</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">メモ</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     一般メモ
                   </label>
                   <textarea
@@ -495,7 +495,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     整備メモ
                   </label>
                   <textarea
@@ -511,7 +511,7 @@ export default function EditOwnedVehiclePage({ params }: { params: { id: string 
             {/* 画像URL */}
             <div className="bg-white p-6 rounded-lg shadow">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">画像URL</h2>
+                <h2 className="text-xl font-semibold text-gray-900">画像URL</h2>
                 <button
                   type="button"
                   onClick={addImageUrl}

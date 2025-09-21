@@ -86,10 +86,10 @@ export default function NewProductPage() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* 基本情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">基本情報</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">基本情報</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   メーカー *
                 </label>
                 <select
@@ -109,7 +109,7 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   品番
                 </label>
                 <input
@@ -121,7 +121,7 @@ export default function NewProductPage() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   製品名 *
                 </label>
                 <input
@@ -136,7 +136,7 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   タイプ *
                 </label>
                 <select
@@ -153,7 +153,7 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   発売年
                 </label>
                 <input
@@ -170,10 +170,10 @@ export default function NewProductPage() {
 
           {/* 価格情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">価格情報</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">価格情報</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   税抜価格（円）
                 </label>
                 <input
@@ -186,7 +186,7 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   税込価格（円）
                 </label>
                 <input
@@ -202,10 +202,10 @@ export default function NewProductPage() {
 
           {/* 商品情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">商品情報</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">商品情報</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   画像URL
                 </label>
                 <input
@@ -217,7 +217,7 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   説明
                 </label>
                 <textarea
@@ -233,7 +233,7 @@ export default function NewProductPage() {
           {/* 実車情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">実車情報</h2>
+              <h2 className="text-xl font-semibold text-gray-900">実車情報</h2>
               <button
                 type="button"
                 onClick={addRealVehicle}
