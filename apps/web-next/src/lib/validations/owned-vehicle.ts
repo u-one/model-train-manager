@@ -12,7 +12,7 @@ export const ownedVehicleFormSchema = z.object({
 
   // 独立車両情報（車両タイプがINDEPENDENTの場合のみ）
   independentVehicle: z.object({
-    name: z.string().min(1, '車両名は必須です'),
+    name: z.string().optional(),
     brand: z.string().optional(),
     vehicleType: z.string().optional(),
     description: z.string().optional()
@@ -36,6 +36,19 @@ export const ownedVehicleFormSchema = z.object({
   // メモ
   notes: z.string().optional(),
   maintenanceNotes: z.string().optional()
+}).refine((data) => {
+  // 製品選択時はproductIdが必須
+  if (data.vehicleType === 'PRODUCT') {
+    return data.productId !== undefined && data.productId !== null
+  }
+  // 独立車両選択時は車両名が必須
+  if (data.vehicleType === 'INDEPENDENT') {
+    return data.independentVehicle?.name && data.independentVehicle.name.trim().length > 0
+  }
+  return true
+}, {
+  message: "製品選択時は製品を選択し、独立記録時は車両名を入力してください",
+  path: ["vehicleType"]
 })
 
 export type OwnedVehicleFormData = z.infer<typeof ownedVehicleFormSchema>

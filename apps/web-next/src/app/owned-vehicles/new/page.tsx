@@ -66,6 +66,8 @@ export default function NewOwnedVehiclePage() {
   }, [])
 
   const onSubmit = async (data: OwnedVehicleFormData) => {
+    console.log('Form submitted:', data)
+    console.log('Form errors:', form.formState.errors)
     setIsSubmitting(true)
     try {
       // データを整形
@@ -147,6 +149,20 @@ export default function NewOwnedVehiclePage() {
           </div>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            {/* デバッグ情報 */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-yellow-100 p-4 rounded">
+                <h3 className="font-bold">Debug Info:</h3>
+                <p>Form Valid: {form.formState.isValid ? 'Yes' : 'No'}</p>
+                <p>Is Submitting: {isSubmitting ? 'Yes' : 'No'}</p>
+                {Object.keys(form.formState.errors).length > 0 && (
+                  <div>
+                    <p>Errors:</p>
+                    <pre className="text-xs">{JSON.stringify(form.formState.errors, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            )}
             {/* 基本情報 */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-xl font-semibold mb-4">基本情報</h2>
@@ -198,8 +214,10 @@ export default function NewOwnedVehiclePage() {
                         </option>
                       ))}
                     </select>
-                    {form.formState.errors.productId && (
-                      <p className="text-red-500 text-sm mt-1">{form.formState.errors.productId.message}</p>
+                    {(form.formState.errors.productId || (vehicleType === 'PRODUCT' && form.formState.errors.vehicleType)) && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {form.formState.errors.productId?.message || '製品を選択してください'}
+                      </p>
                     )}
                   </div>
                 )}
@@ -216,8 +234,10 @@ export default function NewOwnedVehiclePage() {
                         className="w-full border border-gray-300 rounded-md px-3 py-2"
                         placeholder="例: 289系電車（こうのとり）"
                       />
-                      {form.formState.errors.independentVehicle?.name && (
-                        <p className="text-red-500 text-sm mt-1">{form.formState.errors.independentVehicle.name.message}</p>
+                      {(form.formState.errors.independentVehicle?.name || (vehicleType === 'INDEPENDENT' && form.formState.errors.vehicleType)) && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {form.formState.errors.independentVehicle?.name?.message || '車両名は必須です'}
+                        </p>
                       )}
                     </div>
                     <div>
