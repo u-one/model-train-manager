@@ -44,6 +44,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [setComponents, setSetComponents] = useState<Product[]>([])
   const [parentSets, setParentSets] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -84,6 +85,30 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     fetchProduct()
   }, [resolvedParams.id, router])
 
+  const handleDelete = async () => {
+    if (!confirm(`製品「${product?.name}」を削除してもよろしいですか？\n\nこの操作は取り消せません。`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/products/${resolvedParams.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        router.push('/products')
+      } else {
+        alert('削除に失敗しました')
+      }
+    } catch (error) {
+      console.error('Failed to delete product:', error)
+      alert('削除中にエラーが発生しました')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -109,12 +134,21 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex justify-between items-start">
           <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
           {session && (
-            <button
-              onClick={() => router.push(`/products/${product.id}/edit`)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >
-              編集
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => router.push(`/products/${product.id}/edit`)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                編集
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? '削除中...' : '削除'}
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -63,6 +63,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
   const router = useRouter()
   const [vehicle, setVehicle] = useState<OwnedVehicle | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -102,6 +103,30 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
     fetchVehicle()
   }, [resolvedParams.id, session, status, router])
 
+  const handleDelete = async () => {
+    if (!confirm(`保有車両「${vehicle?.managementId}」を削除してもよろしいですか？\n\nこの操作は取り消せません。整備記録も一緒に削除されます。`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/owned-vehicles/${resolvedParams.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        router.push('/owned-vehicles')
+      } else {
+        alert('削除に失敗しました')
+      }
+    } catch (error) {
+      console.error('Failed to delete owned vehicle:', error)
+      alert('削除中にエラーが発生しました')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (status === 'loading' || loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -133,12 +158,21 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
             <h1 className="text-3xl font-bold text-gray-900">{vehicle.managementId}</h1>
             <p className="text-lg text-gray-600 mt-1">{vehicleName}</p>
           </div>
-          <button
-            onClick={() => router.push(`/owned-vehicles/${vehicle.id}/edit`)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            編集
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => router.push(`/owned-vehicles/${vehicle.id}/edit`)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              編集
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeleting ? '削除中...' : '削除'}
+            </button>
+          </div>
         </div>
       </div>
 
