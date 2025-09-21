@@ -51,11 +51,16 @@ repo-root/
 - ユーザー認証
 
 ### Phase 2
+- フォーム機能（追加・編集）
+
+### Phase 2.5
 - セット・編成管理
+- 製品間親子関係管理
 
 ### Phase 3
+- 整備記録機能
 - 画像アップロード
-- 検索機能
+- データエクスポート
 
 ### Phase 4
 - ウィッシュリスト
@@ -70,7 +75,10 @@ repo-root/
 ### 製品情報
 - `/api/products` - 製品一覧・追加
 - `/api/products/:id` - 製品詳細・更新・削除
-- `/api/products/:id/set` - セット構成管理
+
+### セット管理（Phase 2.5）
+- `/api/products/:id/set-components` - セット構成車両管理
+- `/api/products/:id/parent-sets` - 所属セット情報取得
 
 ### 保有車両
 - `/api/owned-vehicles` - 保有車両一覧・追加

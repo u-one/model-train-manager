@@ -93,12 +93,35 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json()
+    const { vehicleType, independentVehicle, ...ownedVehicleData } = data
+
+    // 車両タイプに応じてデータを処理
+    let createData: Record<string, unknown> = {
+      ...ownedVehicleData,
+      userId: user.id
+    }
+
+    if (vehicleType === 'INDEPENDENT' && independentVehicle) {
+      // 独立車両の場合、independentVehicle を作成
+      createData = {
+        ...createData,
+        independentVehicle: {
+          create: independentVehicle
+        }
+      }
+      // productId は設定しない
+      delete createData.productId
+    } else if (vehicleType === 'PRODUCT') {
+      // 製品車両の場合、productId を使用
+      // independentVehicle は作成しない
+    }
+
+    // 不要なフィールドを削除
+    delete createData.vehicleType
 
     const ownedVehicle = await prisma.ownedVehicle.create({
-      data: {
-        ...data,
-        userId: user.id
-      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: createData as any,
       include: {
         product: {
           include: {
