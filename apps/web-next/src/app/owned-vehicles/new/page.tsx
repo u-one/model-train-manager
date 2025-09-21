@@ -66,8 +66,6 @@ export default function NewOwnedVehiclePage() {
   }, [])
 
   const onSubmit = async (data: OwnedVehicleFormData) => {
-    console.log('Form submitted:', data)
-    console.log('Form errors:', form.formState.errors)
     setIsSubmitting(true)
     try {
       // データを整形

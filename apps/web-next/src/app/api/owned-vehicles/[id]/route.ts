@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { processDateFields } from '@/lib/utils/date-utils'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -72,6 +73,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id: idStr } = await params
     const id = parseInt(idStr)
     const data = await request.json()
+    
+    // 日付フィールドの一括処理
+    try {
+      processDateFields(data, ['purchaseDate'])
+    } catch (error) {
+      console.error('Date processing error:', error)
+      return NextResponse.json({ 
+        error: error instanceof Error ? error.message : 'Invalid date format' 
+      }, { status: 400 })
+    }
+
     const { vehicleType, independentVehicle, ...ownedVehicleData } = data
 
     // 既存の保有車両を確認
