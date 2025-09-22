@@ -30,10 +30,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <Navigation />
-          <main className="min-h-screen bg-gray-50">
-            {children}
-          </main>
+          <div className="min-h-screen bg-gray-50">
+            <Navigation />
+            <main>
+              {children}
+            </main>
+          </div>
         </AuthProvider>
       </body>
     </html>

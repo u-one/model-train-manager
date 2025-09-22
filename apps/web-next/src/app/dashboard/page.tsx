@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
@@ -33,43 +33,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
-                鉄道模型車両管理
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                {session.user?.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    className="h-8 w-8 rounded-full"
-                    src={session.user.image}
-                    alt={session.user.name || ''}
-                  />
-                )}
-                <span className="text-sm font-medium text-gray-700">
-                  {session.user?.name}
-                </span>
-              </div>
-              <button
-                onClick={() => signOut({ callbackUrl: '/' })}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200"
-              >
-                ログアウト
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* メインコンテンツ */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
@@ -171,8 +135,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
-      </main>
+      </div>
     </div>
   )
 }
