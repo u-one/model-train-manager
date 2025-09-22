@@ -78,12 +78,20 @@ export default function ProductsPage() {
         <div className="flex items-center space-x-4">
           <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
           {session && (
-            <button
-              onClick={() => router.push('/products/new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >
-              製品追加
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => router.push('/products/new')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                製品追加
+              </button>
+              <button
+                onClick={() => router.push('/import')}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              >
+                CSVインポート
+              </button>
+            </div>
           )}
         </div>
       </div>
