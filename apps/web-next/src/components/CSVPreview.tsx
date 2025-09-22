@@ -9,11 +9,6 @@ interface CSVPreviewProps {
   skippedRows: number[]
 }
 
-interface CellError {
-  row: number
-  col: number
-  message: string
-}
 
 export default function CSVPreview({ csvContent, errors, skippedRows }: CSVPreviewProps) {
   const [showPreview, setShowPreview] = useState(false)

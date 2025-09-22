@@ -88,7 +88,7 @@ export function parseProductCSV(csvContent: string): ParsedCSVResult<ProductCSVR
   }
 
   // 最初の行は行番号なのでスキップ
-  let headerRowIndex = 1
+  const headerRowIndex = 1
   if (rows.length < 2) {
     errors.push('ヘッダー行が見つかりません')
     return { data, errors, skippedRows }
@@ -228,7 +228,7 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
   }
 
   // 最初の行は行番号なのでスキップ
-  let headerRowIndex = 1
+  const headerRowIndex = 1
   if (rows.length < 2) {
     errors.push('ヘッダー行が見つかりません')
     return { data, errors, skippedRows }
@@ -318,7 +318,7 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
             purchaseDate = date.toISOString().split('T')[0]
           }
         }
-      } catch (e) {
+      } catch {
         // 日付解析エラーは無視
       }
     }

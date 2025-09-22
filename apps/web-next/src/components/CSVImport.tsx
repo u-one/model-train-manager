@@ -41,7 +41,7 @@ export default function CSVImport({ title, endpoint, onSuccess }: CSVImportProps
         setResult(null)
         setParseErrors([])
         setSkippedRows([])
-      } catch (err) {
+      } catch {
         setError('ファイルの読み込みに失敗しました')
       }
     }
