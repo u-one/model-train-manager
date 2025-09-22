@@ -63,6 +63,15 @@ repo-root/
 - セット・編成管理
 - 製品間親子関係管理
 
+### Phase 2.11
+- CSVインポート機能
+- エラーハンドリング・プレビュー機能
+
+### Phase 2.12
+- 管理者機能
+- 一括削除機能
+- ユーザー管理
+
 ### Phase 3
 - 整備記録機能
 - 画像アップロード
@@ -95,6 +104,13 @@ repo-root/
 - `/api/owned-vehicles/:id/maintenance` - 整備記録管理
 - `/api/maintenance/:id` - 整備記録操作
 
+### CSVインポート・管理（Phase 2.11-2.12）
+- `/api/products/import` - 製品CSVインポート
+- `/api/owned-vehicles/import` - 保有車両CSVインポート
+- `/api/admin/products` - 製品一括削除（管理者のみ）
+- `/api/admin/owned-vehicles` - 保有車両一括削除（管理者のみ）
+- `/api/admin/stats` - 管理統計情報（管理者のみ）
+
 ## 環境変数
 
 ```env
@@ -119,6 +135,9 @@ AWS_ACCESS_KEY_ID="..."
 AWS_SECRET_ACCESS_KEY="..."
 S3_BUCKET_NAME="..."
 CLOUDFRONT_DOMAIN="..."
+
+# 管理機能 (Phase 2.12で実装)
+ADMIN_EMAILS="test@uoneweb.net"
 ```
 
 ## 開発進捗管理
@@ -202,6 +221,10 @@ chore: ビルド・設定変更
 - 製品情報: ログインなしで閲覧可能
 - 保有情報: ログインユーザーのみ
 - 管理機能: 所有者のみ編集可能
+- **管理者機能**: 環境変数ADMIN_EMAILSで指定されたユーザーのみ
+  - 全データの一括削除・管理
+  - ユーザー管理・統計情報閲覧
+  - 危険な操作には2段階確認が必要
 
 ## テスト戦略
 
@@ -235,6 +258,7 @@ chore: ビルド・設定変更
 - **メールアドレス**: `test@uoneweb.net`
 - **パスワード**: `password`
 - **名前**: `test`
+- **管理者権限**: あり（ADMIN_EMAILSに含まれる）
 
 ### 動作確認項目
 - ユーザー登録機能
@@ -242,3 +266,7 @@ chore: ビルド・設定変更
 - Google OAuth ログイン
 - ダッシュボードアクセス
 - ログアウト機能
+- **管理機能** (test@uoneweb.netでログイン後)
+  - `/admin` への管理画面アクセス
+  - 製品・保有車両の一括削除機能
+  - ユーザー管理機能
