@@ -9,6 +9,8 @@ export const ownedVehicleFormSchema = z.object({
     message: '車両タイプを選択してください'
   }),
   productId: z.number().optional(),
+  productBrand: z.string().optional(),
+  productCode: z.string().optional(),
 
   // 独立車両情報（車両タイプがINDEPENDENTの場合のみ）
   independentVehicle: z.object({
@@ -37,9 +39,11 @@ export const ownedVehicleFormSchema = z.object({
   notes: z.string().optional(),
   maintenanceNotes: z.string().optional()
 }).refine((data) => {
-  // 製品選択時はproductIdが必須
+  // 製品選択時はproductIdまたは（productBrand + productCode）が必須
   if (data.vehicleType === 'PRODUCT') {
-    return data.productId !== undefined && data.productId !== null
+    const hasProductId = data.productId !== undefined && data.productId !== null
+    const hasBrandAndCode = data.productBrand?.trim() && data.productCode?.trim()
+    return hasProductId || hasBrandAndCode
   }
   // 独立車両選択時は車両名が必須
   if (data.vehicleType === 'INDEPENDENT') {
@@ -47,7 +51,7 @@ export const ownedVehicleFormSchema = z.object({
   }
   return true
 }, {
-  message: "製品選択時は製品を選択し、独立記録時は車両名を入力してください",
+  message: "製品選択時は製品ID、またはメーカー・品番を入力してください。独立記録時は車両名を入力してください",
   path: ["vehicleType"]
 })
 
@@ -58,6 +62,8 @@ export const defaultOwnedVehicleValues = {
   managementId: '',
   vehicleType: 'PRODUCT' as const,
   productId: undefined,
+  productBrand: '',
+  productCode: '',
   independentVehicle: {
     name: '',
     brand: '',

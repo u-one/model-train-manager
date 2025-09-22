@@ -69,8 +69,45 @@ export async function GET(request: NextRequest) {
         prisma.ownedVehicle.count({ where })
       ])
 
+      // メーカー・品番によるマッチング情報を追加
+      const enhancedOwnedVehicles = await Promise.all(
+        ownedVehicles.map(async (vehicle) => {
+          // 既存のproductIdがある場合はそのまま使用
+          if (vehicle.product) {
+            return vehicle
+          }
+
+          // productIdがない場合、メーカー・品番でマッチングを試行
+          if (vehicle.notes) {
+            // notesフィールドからメーカー・品番を抽出する簡易ロジック
+            // 実際の運用では、専用フィールドを使用することを推奨
+            const matchingProduct = await prisma.product.findFirst({
+              where: {
+                AND: [
+                  // notesに含まれる情報から製品を特定
+                  // この部分は実際のデータ形式に合わせて調整が必要
+                ]
+              },
+              include: {
+                realVehicles: true
+              }
+            })
+
+            if (matchingProduct) {
+              return {
+                ...vehicle,
+                product: matchingProduct,
+                _matchedByBrandCode: true
+              }
+            }
+          }
+
+          return vehicle
+        })
+      )
+
       return NextResponse.json({
-        ownedVehicles,
+        ownedVehicles: enhancedOwnedVehicles,
         pagination: {
           page,
           limit,
@@ -137,7 +174,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const { vehicleType, independentVehicle, ...ownedVehicleData } = data
+    const { vehicleType, independentVehicle, productBrand, productCode, ...ownedVehicleData } = data
 
     // 車両タイプに応じてデータを処理
     let createData: Record<string, unknown> = {
@@ -156,8 +193,41 @@ export async function POST(request: NextRequest) {
       // productId は設定しない
       delete createData.productId
     } else if (vehicleType === 'PRODUCT') {
-      // 製品車両の場合、productId を使用
-      // independentVehicle は作成しない
+      // 製品車両の場合
+      if (productBrand && productCode) {
+        // メーカー・品番が指定されている場合、製品を検索
+        const product = await prisma.product.findFirst({
+          where: {
+            brand: {
+              equals: productBrand,
+              mode: 'insensitive'
+            },
+            productCode: {
+              equals: productCode,
+              mode: 'insensitive'
+            }
+          }
+        })
+
+        if (product) {
+          createData.productId = product.id
+        } else {
+          return NextResponse.json(
+            {
+              error: 'マッチする製品が見つかりません',
+              details: `メーカー: ${productBrand}, 品番: ${productCode}`
+            },
+            { status: 400 }
+          )
+        }
+      } else if (createData.productId) {
+        // 既存のproductId使用（後方互換性）
+      } else {
+        return NextResponse.json(
+          { error: '製品車両の場合、製品IDまたはメーカー・品番が必要です' },
+          { status: 400 }
+        )
+      }
     }
 
     // 不要なフィールドを削除

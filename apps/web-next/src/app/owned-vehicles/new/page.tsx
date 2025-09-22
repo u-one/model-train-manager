@@ -81,6 +81,8 @@ export default function NewOwnedVehiclePage() {
         imageUrls: imageUrls.filter(url => url.trim() !== ''),
         // 車両タイプに応じて不要なデータを削除
         productId: data.vehicleType === 'PRODUCT' ? data.productId : undefined,
+        productBrand: data.vehicleType === 'PRODUCT' ? data.productBrand : undefined,
+        productCode: data.vehicleType === 'PRODUCT' ? data.productCode : undefined,
         independentVehicle: data.vehicleType === 'INDEPENDENT' ? data.independentVehicle : undefined
       }
 
@@ -189,27 +191,67 @@ export default function NewOwnedVehiclePage() {
                 </div>
 
                 {vehicleType === 'PRODUCT' && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
-                      製品選択 *
-                    </label>
-                    <select
-                      {...form.register('productId', { valueAsNumber: true })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
-                    >
-                      <option value="">製品を選択してください</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.brand} - {product.name} {product.productCode && `(${product.productCode})`}
-                        </option>
-                      ))}
-                    </select>
-                    {(form.formState.errors.productId || (vehicleType === 'PRODUCT' && form.formState.errors.vehicleType)) && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {form.formState.errors.productId?.message || '製品を選択してください'}
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">
+                        メーカー *
+                      </label>
+                      <input
+                        type="text"
+                        {...form.register('productBrand')}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                        placeholder="例: KATO"
+                        list="brand-suggestions"
+                      />
+                      <datalist id="brand-suggestions">
+                        {[...new Set(products.map(p => p.brand))].map((brand) => (
+                          <option key={brand} value={brand}>{brand}</option>
+                        ))}
+                      </datalist>
+                      {form.formState.errors.productBrand && (
+                        <p className="text-red-500 text-sm mt-1">{form.formState.errors.productBrand.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">
+                        品番 *
+                      </label>
+                      <input
+                        type="text"
+                        {...form.register('productCode')}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                        placeholder="例: 10-1603"
+                        list="code-suggestions"
+                      />
+                      <datalist id="code-suggestions">
+                        {products.filter(p => p.productCode).map((product) => (
+                          <option key={product.id} value={product.productCode!}>{product.productCode}</option>
+                        ))}
+                      </datalist>
+                      {form.formState.errors.productCode && (
+                        <p className="text-red-500 text-sm mt-1">{form.formState.errors.productCode.message}</p>
+                      )}
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-900 mb-1">
+                        製品選択（従来方式）
+                      </label>
+                      <select
+                        {...form.register('productId', { valueAsNumber: true })}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                      >
+                        <option value="">製品を選択してください（オプション）</option>
+                        {products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.brand} - {product.name} {product.productCode && `(${product.productCode})`}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-sm text-gray-500 mt-1">
+                        上のメーカー・品番での指定が優先されます
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  </>
                 )}
 
                 {vehicleType === 'INDEPENDENT' && (

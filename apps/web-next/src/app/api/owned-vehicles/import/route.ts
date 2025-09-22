@@ -78,7 +78,24 @@ export async function POST(request: NextRequest) {
         let productId: number | null = null
         let independentVehicleId: number | null = null
 
-        if (vehicleData.productCode || vehicleData.productName) {
+        if (vehicleData.productBrand && vehicleData.productCode) {
+          // メーカーと品番でマッチング
+          const { data: product } = await supabase
+            .from('products')
+            .select('id')
+            .ilike('brand', vehicleData.productBrand)
+            .ilike('product_code', vehicleData.productCode)
+            .single()
+
+          if (product) {
+            productId = product.id
+          } else {
+            importResults.errorCount++
+            importResults.errors.push(`行 ${i + 2}: 製品が見つかりません (メーカー: ${vehicleData.productBrand}, 品番: ${vehicleData.productCode})`)
+            continue
+          }
+        } else if (vehicleData.productCode || vehicleData.productName) {
+          // 後方互換性：既存の品番・商品名マッチング
           let productQuery = supabase.from('products').select('id')
 
           if (vehicleData.productCode) {

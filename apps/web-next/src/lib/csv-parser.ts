@@ -23,6 +23,7 @@ export interface ProductCSVRow {
 
 export interface OwnedVehicleCSVRow {
   managementId: string
+  productBrand: string | null // 新しく追加：メーカー
   productCode: string | null
   productName: string | null
   independentName: string | null
@@ -343,6 +344,7 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
 
     data.push({
       managementId,
+      productBrand: getField(brandIndex), // メーカー情報を追加
       productCode,
       productName,
       independentName,
