@@ -45,6 +45,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [parentSets, setParentSets] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [setComponentsViewMode, setSetComponentsViewMode] = useState<'grid' | 'list'>('grid')
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -262,58 +263,132 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <h2 className="text-xl font-semibold text-gray-900">
               セット構成車両 ({setComponents.length}両)
             </h2>
-            {session && (
-              <button
-                onClick={() => router.push(`/products/new?type=SET_SINGLE&parentCode=${product.productCode}&brand=${encodeURIComponent(product.brand)}`)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                + セット単品を追加
-              </button>
-            )}
+            <div className="flex items-center space-x-4">
+              {/* 表示モード切り替え */}
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                <button
+                  onClick={() => setSetComponentsViewMode('grid')}
+                  className={`px-3 py-2 text-sm font-medium ${
+                    setComponentsViewMode === 'grid'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  グリッド
+                </button>
+                <button
+                  onClick={() => setSetComponentsViewMode('list')}
+                  className={`px-3 py-2 text-sm font-medium ${
+                    setComponentsViewMode === 'list'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  一覧
+                </button>
+              </div>
+              {session && (
+                <button
+                  onClick={() => router.push(`/products/new?type=SET_SINGLE&parentCode=${product.productCode}&brand=${encodeURIComponent(product.brand)}`)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  + セット単品を追加
+                </button>
+              )}
+            </div>
           </div>
           {setComponents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {setComponents.map((component) => (
-              <div
-                key={component.id}
-                className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => router.push(`/products/${component.id}`)}
-              >
-                {component.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={component.imageUrl}
-                    alt={component.name}
-                    className="w-full h-32 object-cover rounded-md mb-3"
-                  />
-                ) : (
-                  <div className="w-full h-32 bg-gray-200 rounded-md flex items-center justify-center mb-3">
-                    <span className="text-gray-400">画像なし</span>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">{component.brand}</span>
-                    <span className="text-gray-600">{component.type}</span>
-                  </div>
-                  {component.productCode && (
-                    <p className="text-sm text-gray-600">品番: {component.productCode}</p>
+            setComponentsViewMode === 'grid' ? (
+              // グリッド表示
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {setComponents.map((component) => (
+                <div
+                  key={component.id}
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => router.push(`/products/${component.id}`)}
+                >
+                  {component.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={component.imageUrl}
+                      alt={component.name}
+                      className="w-full h-32 object-cover rounded-md mb-3"
+                    />
+                  ) : (
+                    <div className="w-full h-32 bg-gray-200 rounded-md flex items-center justify-center mb-3">
+                      <span className="text-gray-400">画像なし</span>
+                    </div>
                   )}
-                  <h3 className="font-medium text-gray-900 line-clamp-2">{component.name}</h3>
-                  <div className="flex justify-between items-center">
-                    {component.priceIncludingTax && (
-                      <span className="text-lg font-semibold text-green-600">
-                        ¥{component.priceIncludingTax.toLocaleString()}
-                      </span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">{component.brand}</span>
+                      <span className="text-gray-600">{component.type}</span>
+                    </div>
+                    {component.productCode && (
+                      <p className="text-sm text-gray-600">品番: {component.productCode}</p>
                     )}
-                    <span className="text-sm text-gray-600">
-                      保有: {component._count?.ownedVehicles || 0}台
-                    </span>
+                    <h3 className="font-medium text-gray-900 line-clamp-2">{component.name}</h3>
+                    <div className="flex justify-between items-center">
+                      {component.priceIncludingTax && (
+                        <span className="text-lg font-semibold text-green-600">
+                          ¥{component.priceIncludingTax.toLocaleString()}
+                        </span>
+                      )}
+                      <span className="text-sm text-gray-600">
+                        保有: {component._count?.ownedVehicles || 0}台
+                      </span>
+                    </div>
                   </div>
                 </div>
+                ))}
               </div>
-              ))}
-            </div>
+            ) : (
+              // リスト表示
+              <div className="space-y-4">
+                {setComponents.map((component) => (
+                  <div
+                    key={component.id}
+                    className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => router.push(`/products/${component.id}`)}
+                  >
+                    <div className="flex items-center space-x-4">
+                      {component.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={component.imageUrl}
+                          alt={component.name}
+                          className="w-20 h-20 object-cover rounded-md flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
+                          <span className="text-gray-400 text-xs">画像なし</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium text-gray-900 truncate">{component.name}</h3>
+                          {component.priceIncludingTax && (
+                            <span className="text-lg font-semibold text-green-600 ml-4">
+                              ¥{component.priceIncludingTax.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-sm text-gray-600">
+                          <div className="flex items-center space-x-4">
+                            <span>{component.brand}</span>
+                            <span>{component.type}</span>
+                            {component.productCode && (
+                              <span>品番: {component.productCode}</span>
+                            )}
+                          </div>
+                          <span>保有: {component._count?.ownedVehicles || 0}台</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           ) : (
             <p className="text-gray-500 text-center py-8">
               セット構成車両が未登録です。上のボタンからセット単品を追加してください。
