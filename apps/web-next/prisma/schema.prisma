@@ -115,7 +115,6 @@ model OwnedVehicle {
   independentVehicle        IndependentVehicle?
   maintenanceRecords        MaintenanceRecord[]
 
-  @@unique([userId, managementId])
   @@index([userId])
   @@index([productId])
   @@index([managementId])

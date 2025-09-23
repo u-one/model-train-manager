@@ -283,13 +283,8 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
     // 安全なフィールド取得関数
     const getField = (index: number) => row[index]?.trim() || null
 
-    // NoまたはIDを管理IDとして使用
-    let managementId = getField(idIndex) || getField(noIndex)
-
-    if (!managementId) {
-      // 管理IDが空の場合は行番号を使用
-      managementId = `行${rowIndex + 1}`
-    }
+    // IDフィールドを管理IDとして使用（空の場合はそのまま空）
+    const managementId = getField(idIndex) || ''
 
     // ステータスは正常に設定（CSVには含まれていない）
     const currentStatus = '正常'
