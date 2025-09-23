@@ -7,6 +7,7 @@ export interface ParsedCSVResult<T> {
 export interface ProductCSVRow {
   brand: string
   productCode: string | null
+  parentCode: string | null  // 追加: 親品番（セット単品用）
   name: string
   type: string // '単品' | 'セット' | 'セット単品'
   releaseYear: number | null
@@ -102,6 +103,7 @@ export function parseProductCSV(csvContent: string): ParsedCSVResult<ProductCSVR
   // ブランド,品番,parentCode,種別,商品名,税抜,税込,発売日,URL,詳細,タグ,JAN,JAN,icon,製造番号など,製造番号など,車両数
   const brandIndex = 0      // ブランド
   const codeIndex = 1       // 品番
+  const parentCodeIndex = 2 // 親品番 (追加)
   const typeIndex = 3       // 種別
   const nameIndex = 4       // 商品名
   const priceExclIndex = 5  // 税抜
@@ -199,6 +201,7 @@ export function parseProductCSV(csvContent: string): ParsedCSVResult<ProductCSVR
     data.push({
       brand,
       productCode: getField(codeIndex),
+      parentCode: getField(parentCodeIndex), // 追加: 親品番
       name,
       type: convertedType,
       releaseYear,

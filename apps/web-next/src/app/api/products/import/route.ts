@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
           .insert({
             brand: productData.brand,
             product_code: productData.productCode,
+            parent_code: productData.parentCode, // 追加: 親品番
             name: productData.name,
             type: productData.type,
             release_year: productData.releaseYear,
