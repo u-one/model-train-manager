@@ -3,13 +3,12 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import {
   LayoutDashboard,
   Package,
   Car,
   Users,
-  LogOut,
   AlertTriangle
 } from 'lucide-react'
 
@@ -43,10 +42,6 @@ const navItems = [
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
-
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' })
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -95,17 +90,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </ul>
           </nav>
 
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="border-t pt-4">
-              <button
-                onClick={handleSignOut}
-                className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md w-full transition-colors"
-              >
-                <LogOut className="h-5 w-5" />
-                <span>ログアウト</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* メインコンテンツ */}
