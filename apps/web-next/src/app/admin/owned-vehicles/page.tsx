@@ -38,7 +38,9 @@ export default function AdminOwnedVehicles() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
 
@@ -125,6 +127,40 @@ export default function AdminOwnedVehicles() {
     }
   }
 
+  const handleDeleteAll = async () => {
+    if (confirmText !== '全削除') {
+      alert('確認文字列が正しくありません')
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const response = await fetch('/api/admin/owned-vehicles/delete-all', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        alert(`全ての保有車両データ（${result.deletedCount}件）を削除しました`)
+        setSelectedIds(new Set())
+        await fetchOwnedVehicles()
+      } else {
+        alert(`削除エラー: ${result.error}`)
+      }
+    } catch (error) {
+      alert('削除処理でエラーが発生しました')
+      console.error('Delete all error:', error)
+    } finally {
+      setDeleting(false)
+      setShowDeleteAllDialog(false)
+      setConfirmText('')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -158,15 +194,25 @@ export default function AdminOwnedVehicles() {
             </div>
           </div>
 
-          {selectedIds.size > 0 && (
+          <div className="flex items-center space-x-3">
+            {selectedIds.size > 0 && (
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center space-x-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>選択項目を削除 ({selectedIds.size}件)</span>
+              </button>
+            )}
+
             <button
-              onClick={() => setShowDeleteDialog(true)}
-              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center space-x-2"
+              onClick={() => setShowDeleteAllDialog(true)}
+              className="bg-red-800 text-white px-4 py-2 rounded-md hover:bg-red-900 flex items-center space-x-2"
             >
-              <Trash2 className="h-4 w-4" />
-              <span>選択項目を削除 ({selectedIds.size}件)</span>
+              <AlertCircle className="h-4 w-4" />
+              <span>全削除</span>
             </button>
-          )}
+          </div>
         </div>
 
         <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -345,6 +391,61 @@ export default function AdminOwnedVehicles() {
               </button>
               <button
                 onClick={() => setShowDeleteDialog(false)}
+                disabled={deleting}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 disabled:opacity-50"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 全削除確認ダイアログ */}
+      {showDeleteAllDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <AlertCircle className="h-6 w-6 text-red-500" />
+              <h3 className="text-lg font-semibold text-gray-900">全保有車両削除の確認</h3>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                <strong className="text-red-600">すべての保有車両データを削除します。</strong>
+                <br />
+                この操作により、全ユーザーの保有車両と関連する整備記録がすべて削除されます。
+                <br />
+                <strong className="text-red-600">この操作は取り消せません。</strong>
+              </p>
+
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                <p className="text-sm text-red-800">
+                  続行するには下記に「<strong>全削除</strong>」と入力してください：
+                </p>
+                <input
+                  type="text"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder="全削除"
+                  className="mt-2 w-full px-3 py-2 border border-red-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleDeleteAll}
+                disabled={deleting || confirmText !== '全削除'}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? '削除中...' : '全削除実行'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteAllDialog(false)
+                  setConfirmText('')
+                }}
                 disabled={deleting}
                 className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 disabled:opacity-50"
               >
