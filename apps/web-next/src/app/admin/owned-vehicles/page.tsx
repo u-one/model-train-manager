@@ -344,21 +344,21 @@ export default function AdminOwnedVehicles() {
       {/* ページネーション */}
       {pagination && pagination.totalPages > 1 && (
         <div className="flex justify-center mt-6">
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
-              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               前へ
             </button>
-            <span className="px-3 py-2">
+            <span className="px-4 py-2 text-gray-900 font-medium bg-gray-50 rounded-md border">
               {page} / {pagination.totalPages}
             </span>
             <button
               onClick={() => setPage(page + 1)}
               disabled={page === pagination.totalPages}
-              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               次へ
             </button>
