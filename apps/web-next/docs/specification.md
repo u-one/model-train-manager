@@ -21,10 +21,10 @@ Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリ�
 ## 2. 技術仕様
 
 ### 2.1 技術スタック
-- **フロントエンド:** React (Next.js)
+- **フロントエンド:** React (Next.js 15)
 - **バックエンド:** Node.js (Next.js API Routes)
 - **データベース:** PostgreSQL
-- **認証:** NextAuth.js
+- **認証:** NextAuth.js (Google OAuth + ID/パスワード)
 - **画像ストレージ:** AWS S3 + CloudFront
 - **デプロイ:** Vercel + Supabase/PlanetScale
 
@@ -32,6 +32,7 @@ Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリ�
 1. **Phase 1 (MVP):** 製品情報管理、保有車両管理、ユーザー認証 ✅
 2. **Phase 2:** セット・編成管理、CSVインポート、管理者機能 ✅
    - **Phase 2.12:** 管理画面・一括削除・全削除機能 ✅
+   - **Phase 2.13:** ページネーション改善・インポート修正 ✅
 3. **Phase 3:** 画像アップロード、検索機能強化、整備記録
 4. **Phase 4:** ウィッシュリスト、CSV出力、共有機能
 
@@ -189,10 +190,15 @@ No,分類,系統,セット/単品,形式,メーカー,品番,定価,購入価格
 
 ### 4.1 認証API
 ```
-POST /api/auth/signin      # ログイン
-POST /api/auth/signup      # ユーザー登録
-POST /api/auth/signout     # ログアウト
-GET  /api/auth/session     # セッション情報取得
+# NextAuth.js標準エンドポイント
+/api/auth/*               # NextAuth.jsルーティング
+/api/auth/signin          # ログインページ
+/api/auth/signout         # ログアウト
+/api/auth/session         # セッション情報取得
+/api/auth/callback/*      # OAuthコールバック
+
+# カスタムエンドポイント
+POST /api/auth/register    # ID/パスワードユーザー登録
 ```
 
 ### 4.2 製品情報API
@@ -258,6 +264,7 @@ GET    /api/admin/stats                  # 管理統計情報取得（管理者�
    - **全削除機能**（「全削除」文字列入力による安全確認付き）
 3. **保有車両管理画面** - 全保有車両一覧、ユーザー別表示
    - メーカー・品番による製品マッチング表示
+   - ページネーション対応（デフォルト100件）
    - 一括削除機能（選択項目）
    - **全削除機能**（「全削除」文字列入力による安全確認付き）
 4. **ユーザー管理画面** - 全ユーザー情報、統計表示
@@ -270,7 +277,8 @@ GET    /api/admin/stats                  # 管理統計情報取得（管理者�
 
 ### 6.1 認証方式
 - NextAuth.js使用
-- Google OAuth認証のみ
+- **Google OAuth認証** + **ID/パスワード認証**
+- パスワードハッシュ化（bcryptjs 12ラウンド）
 - セッション管理はJWT方式
 
 ### 6.2 権限管理

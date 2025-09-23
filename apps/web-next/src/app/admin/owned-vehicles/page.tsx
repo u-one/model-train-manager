@@ -54,7 +54,7 @@ export default function AdminOwnedVehicles() {
       const params = new URLSearchParams()
       params.append('includeUserAndProduct', 'true')
       params.append('page', page.toString())
-      params.append('limit', '50')
+      params.append('limit', '100')
       if (searchTerm) params.append('search', searchTerm)
 
       const response = await fetch(`/api/owned-vehicles?${params}`)

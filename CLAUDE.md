@@ -7,10 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリケーション。
 
 ### 技術スタック
-- **フロントエンド:** React (Next.js)
+- **フロントエンド:** React (Next.js 15)
 - **バックエンド:** Node.js (Next.js API Routes)
 - **データベース:** PostgreSQL (Supabase)
-- **認証:** NextAuth.js (Google OAuth)
+- **認証:** NextAuth.js (Google OAuth + ID/パスワード)
 - **画像ストレージ:** AWS S3 + CloudFront
 - **デプロイ:** Vercel + Supabase
 
@@ -72,6 +72,12 @@ repo-root/
 - 一括削除機能
 - 全削除機能（安全確認付き）
 - ユーザー管理
+
+### Phase 2.13 ✅
+- ページネーション改善（デフォルト100件対応）
+- 製品インポート一意性修正（メーカー+品番）
+- UI視認性向上（ページネーション色調整）
+- .gitignore整備（Claude関連ファイル除外）
 
 ### Phase 3
 - 整備記録機能
@@ -141,6 +147,9 @@ CLOUDFRONT_DOMAIN="..."
 
 # 管理機能 (Phase 2.12で実装)
 ADMIN_EMAILS="test@uoneweb.net"
+
+# ページネーション設定 (Phase 2.13で調整)
+# デフォルト100件/ページで実装済み
 ```
 
 ## 開発進捗管理

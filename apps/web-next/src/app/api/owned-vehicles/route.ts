@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       const condition = searchParams.get('condition')
       const search = searchParams.get('search')
       const page = parseInt(searchParams.get('page') || '1')
-      const limit = parseInt(searchParams.get('limit') || '20')
+      const limit = parseInt(searchParams.get('limit') || '100')
       const offset = (page - 1) * limit
 
       const where: Record<string, unknown> = { userId: user.id }
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
 
     // 管理者の場合：すべての保有車両をユーザーと製品情報付きで取得
     const adminPage = parseInt(searchParams.get('page') || '1')
-    const adminLimit = parseInt(searchParams.get('limit') || '50')
+    const adminLimit = parseInt(searchParams.get('limit') || '100')
     const adminSearch = searchParams.get('search')
     const adminOffset = (adminPage - 1) * adminLimit
 

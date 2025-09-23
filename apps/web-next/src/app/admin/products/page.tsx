@@ -43,7 +43,7 @@ export default function AdminProducts() {
     try {
       const params = new URLSearchParams()
       params.append('page', page.toString())
-      params.append('limit', '50')
+      params.append('limit', '100')
       if (searchTerm) params.append('search', searchTerm)
 
       const response = await fetch(`/api/products?${params}`)
