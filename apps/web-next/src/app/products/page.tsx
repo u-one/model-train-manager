@@ -50,9 +50,11 @@ export default function ProductsPage() {
       if (brand) params.append('brand', brand)
       if (type) params.append('type', type)
       params.append('page', page.toString())
+      params.append('limit', '20')
 
       const response = await fetch(`/api/products?${params}`)
       const data: ProductsResponse = await response.json()
+
 
       setProducts(data.products)
       setPagination(data.pagination)
@@ -66,6 +68,7 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts()
   }, [search, brand, type, page, fetchProducts])
+
 
   const handleProductClick = (productId: number) => {
     router.push(`/products/${productId}`)

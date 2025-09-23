@@ -66,6 +66,7 @@ export default function OwnedVehiclesPage() {
       if (statusFilter) params.append('status', statusFilter)
       if (conditionFilter) params.append('condition', conditionFilter)
       params.append('page', page.toString())
+      params.append('limit', '20')
 
       const response = await fetch(`/api/owned-vehicles?${params}`)
 

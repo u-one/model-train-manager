@@ -128,7 +128,7 @@ export default function AdminUsers() {
                           {user.name || '未設定'}
                         </div>
                         <div className="text-sm text-gray-500">
-                          ID: {user.id.slice(0, 8)}...
+                          ID: {String(user.id).slice(0, 8)}...
                         </div>
                       </div>
                     </div>

@@ -15,6 +15,13 @@ interface Product {
   }
 }
 
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -22,17 +29,26 @@ export default function AdminProducts() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<Pagination | null>(null)
 
   useEffect(() => {
     fetchProducts()
-  }, [])
+  }, [page, searchTerm])
 
   const fetchProducts = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/products?includeCount=true')
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+      params.append('limit', '50')
+      if (searchTerm) params.append('search', searchTerm)
+
+      const response = await fetch(`/api/products?${params}`)
       if (response.ok) {
         const data = await response.json()
         setProducts(data.products)
+        setPagination(data.pagination)
       }
     } catch (error) {
       console.error('Products fetch error:', error)
@@ -41,17 +57,17 @@ export default function AdminProducts() {
     }
   }
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.productCode && product.productCode.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
+  // 検索時にページをリセット
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+    setPage(1)
+  }
 
   const handleSelectAll = () => {
-    if (selectedIds.size === filteredProducts.length) {
+    if (selectedIds.size === products.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(filteredProducts.map(p => p.id)))
+      setSelectedIds(new Set(products.map(p => p.id)))
     }
   }
 
@@ -125,7 +141,7 @@ export default function AdminProducts() {
                 type="text"
                 placeholder="製品名・メーカー・品番で検索"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full"
               />
             </div>
@@ -143,7 +159,7 @@ export default function AdminProducts() {
         </div>
 
         <div className="flex items-center space-x-4 text-sm text-gray-600">
-          <span>全{filteredProducts.length}件</span>
+          <span>全{pagination?.total || 0}件中 {products.length}件表示</span>
           {selectedIds.size > 0 && (
             <span className="text-blue-600">{selectedIds.size}件選択中</span>
           )}
@@ -156,7 +172,7 @@ export default function AdminProducts() {
           <div className="flex items-center">
             <input
               type="checkbox"
-              checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0}
+              checked={selectedIds.size === products.length && products.length > 0}
               onChange={handleSelectAll}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
@@ -194,7 +210,7 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <tr
                   key={product.id}
                   className={`hover:bg-gray-50 ${
@@ -235,12 +251,37 @@ export default function AdminProducts() {
           </table>
         </div>
 
-        {filteredProducts.length === 0 && (
+        {products.length === 0 && !loading && (
           <div className="text-center py-12">
             <p className="text-gray-500">該当する製品がありません</p>
           </div>
         )}
       </div>
+
+      {/* ページネーション */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex justify-center mt-6">
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50"
+            >
+              前へ
+            </button>
+            <span className="px-3 py-2">
+              {page} / {pagination.totalPages}
+            </span>
+            <button
+              onClick={() => setPage(page + 1)}
+              disabled={page === pagination.totalPages}
+              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50"
+            >
+              次へ
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 削除確認ダイアログ */}
       {showDeleteDialog && (

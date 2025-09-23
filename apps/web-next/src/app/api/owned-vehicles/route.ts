@@ -118,28 +118,59 @@ export async function GET(request: NextRequest) {
     }
 
     // 管理者の場合：すべての保有車両をユーザーと製品情報付きで取得
-    const ownedVehicles = await prisma.ownedVehicle.findMany({
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true
+    const adminPage = parseInt(searchParams.get('page') || '1')
+    const adminLimit = parseInt(searchParams.get('limit') || '50')
+    const adminSearch = searchParams.get('search')
+    const adminOffset = (adminPage - 1) * adminLimit
+
+    const adminWhere: Record<string, unknown> = {}
+
+    if (adminSearch) {
+      adminWhere.OR = [
+        { managementId: { contains: adminSearch, mode: 'insensitive' } },
+        { product: { name: { contains: adminSearch, mode: 'insensitive' } } },
+        { product: { brand: { contains: adminSearch, mode: 'insensitive' } } },
+        { product: { productCode: { contains: adminSearch, mode: 'insensitive' } } },
+        { user: { name: { contains: adminSearch, mode: 'insensitive' } } },
+        { user: { email: { contains: adminSearch, mode: 'insensitive' } } },
+        { notes: { contains: adminSearch, mode: 'insensitive' } }
+      ]
+    }
+
+    const [ownedVehicles, adminTotal] = await Promise.all([
+      prisma.ownedVehicle.findMany({
+        where: adminWhere,
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true
+            }
+          },
+          product: {
+            select: {
+              brand: true,
+              productCode: true,
+              name: true,
+              type: true
+            }
           }
         },
-        product: {
-          select: {
-            brand: true,
-            productCode: true,
-            name: true,
-            type: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+        orderBy: { createdAt: 'desc' },
+        skip: adminOffset,
+        take: adminLimit
+      }),
+      prisma.ownedVehicle.count({ where: adminWhere })
+    ])
 
     return NextResponse.json({
-      ownedVehicles
+      ownedVehicles,
+      pagination: {
+        page: adminPage,
+        limit: adminLimit,
+        total: adminTotal,
+        totalPages: Math.ceil(adminTotal / adminLimit)
+      }
     })
   } catch (error) {
     console.error('Owned vehicles fetch error:', error)
