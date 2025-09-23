@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
         }
 
         let productId: number | null = null
-        let independentVehicleId: number | null = null
 
         if (vehicleData.productBrand && vehicleData.productCode) {
           // メーカーと品番でマッチング
@@ -114,31 +113,9 @@ export async function POST(request: NextRequest) {
             importResults.errors.push(`行 ${i + 2}: 製品が見つかりません (品番: ${vehicleData.productCode}, 商品名: ${vehicleData.productName})`)
             continue
           }
-        } else if (vehicleData.independentName) {
-          const now = new Date().toISOString()
-          const { data: independentVehicle, error: independentError } = await supabase
-            .from('independent_vehicles')
-            .insert({
-              name: vehicleData.independentName,
-              brand: vehicleData.independentBrand,
-              vehicle_type: vehicleData.independentVehicleType,
-              created_at: now,
-              updated_at: now,
-            })
-            .select('id')
-            .single()
-
-          if (independentError) {
-            importResults.errorCount++
-            importResults.errors.push(`行 ${i + 2}: 独立車両登録エラー - ${independentError.message}`)
-            continue
-          }
-
-          independentVehicleId = independentVehicle.id
         } else {
-          importResults.errorCount++
-          importResults.errors.push(`行 ${i + 2}: 製品情報または独立車両名が必要です`)
-          continue
+          // 製品情報がない場合はproductId = nullで続行
+          console.log(`行 ${i + 2}: 製品情報なし、productId = null で保有車両を作成`)
         }
 
         const now = new Date().toISOString()
@@ -147,7 +124,6 @@ export async function POST(request: NextRequest) {
           .insert({
             user_id: user.id,
             product_id: productId,
-            independent_vehicle_id: independentVehicleId,
             management_id: vehicleData.managementId,
             current_status: vehicleData.currentStatus,
             storage_condition: vehicleData.storageCondition,
