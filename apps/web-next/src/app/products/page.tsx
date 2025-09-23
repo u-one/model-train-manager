@@ -8,6 +8,7 @@ import ProductListItem from '@/components/ProductListItem'
 import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
 import { useViewMode } from '@/hooks/useViewMode'
+import { useAdmin } from '@/hooks/useAdmin'
 
 interface Product {
   id: number
@@ -33,11 +34,13 @@ interface ProductsResponse {
 export default function ProductsPage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { isAdmin } = useAdmin()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [brand, setBrand] = useState('')
   const [type, setType] = useState('')
+  const [showSetSingle, setShowSetSingle] = useState(false) // セット単品デフォルト非表示
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<ProductsResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
@@ -49,6 +52,7 @@ export default function ProductsPage() {
       if (search) params.append('search', search)
       if (brand) params.append('brand', brand)
       if (type) params.append('type', type)
+      if (!showSetSingle) params.append('excludeSetSingle', 'true') // セット単品除外
       params.append('page', page.toString())
       params.append('limit', '100')
 
@@ -63,11 +67,11 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, brand, type, page])
+  }, [search, brand, type, showSetSingle, page])
 
   useEffect(() => {
     fetchProducts()
-  }, [search, brand, type, page, fetchProducts])
+  }, [search, brand, type, showSetSingle, page, fetchProducts])
 
 
   const handleProductClick = (productId: number) => {
@@ -94,41 +98,107 @@ export default function ProductsPage() {
               >
                 CSVインポート
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => router.push('/admin')}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                >
+                  管理
+                </button>
+              )}
             </div>
           )}
         </div>
       </div>
 
       {/* フィルター */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input
-            type="text"
-            placeholder="製品名・品番で検索"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2"
-          />
-          <select
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2"
-          >
-            <option value="">全メーカー</option>
-            <option value="KATO">KATO</option>
-            <option value="TOMIX">TOMIX</option>
-            <option value="マイクロエース">マイクロエース</option>
-          </select>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2"
-          >
-            <option value="">全タイプ</option>
-            <option value="SINGLE">単品</option>
-            <option value="SET">セット</option>
-            <option value="SET_SINGLE">セット単品</option>
-          </select>
+      <div className="bg-white p-6 rounded-lg shadow mb-6">
+        <div className="space-y-4">
+          {/* 検索とメインフィルタ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">検索</label>
+              <input
+                type="text"
+                placeholder="製品名・品番で検索"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">メーカー</label>
+              <select
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">全メーカー</option>
+                <option value="KATO">KATO</option>
+                <option value="TOMIX">TOMIX</option>
+                <option value="マイクロエース">マイクロエース</option>
+                <option value="グリーンマックス">グリーンマックス</option>
+                <option value="モデモ">モデモ</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">種別</label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">全種別</option>
+                <option value="単品">単品</option>
+                <option value="セット">セット</option>
+                <option value="セット単品">セット単品</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 表示オプションとリセット */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 border-t border-gray-200">
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showSetSingle}
+                  onChange={(e) => setShowSetSingle(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="ml-2 text-sm text-gray-700">セット単品を表示</span>
+              </label>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+              {/* アクティブフィルタ表示 */}
+              {(search || brand || type || showSetSingle) && (
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                  <span className="whitespace-nowrap">フィルタ適用中:</span>
+                  {search && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded whitespace-nowrap">検索: {search}</span>}
+                  {brand && <span className="bg-green-100 text-green-800 px-2 py-1 rounded whitespace-nowrap">メーカー: {brand}</span>}
+                  {type && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded whitespace-nowrap">種別: {type}</span>}
+                  {showSetSingle && <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded whitespace-nowrap">セット単品表示</span>}
+                </div>
+              )}
+
+              {/* リセットボタン */}
+              {(search || brand || type || showSetSingle) && (
+                <button
+                  onClick={() => {
+                    setSearch('')
+                    setBrand('')
+                    setType('')
+                    setShowSetSingle(false)
+                    setPage(1)
+                  }}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors whitespace-nowrap"
+                >
+                  リセット
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

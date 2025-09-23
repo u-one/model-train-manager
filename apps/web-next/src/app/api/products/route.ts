@@ -5,18 +5,36 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
     const { searchParams } = new URL(request.url)
     const brand = searchParams.get('brand')
     const type = searchParams.get('type')
     const search = searchParams.get('search')
+    const excludeSetSingle = searchParams.get('excludeSetSingle') === 'true'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '100')
     const offset = (page - 1) * limit
 
+    // ログインユーザーを取得
+    let currentUserId = null
+    if (session?.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email }
+      })
+      currentUserId = user?.id
+    }
+
     const where: Record<string, unknown> = {}
 
     if (brand) where.brand = brand
-    if (type) where.type = type
+
+    // type フィルタの処理
+    if (type) {
+      where.type = type
+    } else if (excludeSetSingle) {
+      // typeが指定されていない場合のみexcludeSetSingleを適用
+      where.type = { not: 'SET_SINGLE' }
+    }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -30,7 +48,13 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           realVehicles: true,
-          _count: { select: { ownedVehicles: true } }
+          _count: {
+            select: {
+              ownedVehicles: currentUserId ? {
+                where: { userId: currentUserId }
+              } : true
+            }
+          }
         },
         orderBy: { createdAt: 'desc' },
         skip: offset,
