@@ -56,12 +56,12 @@ export async function POST(request: NextRequest) {
           .from('products')
           .select('id')
           .eq('brand', productData.brand)
-          .eq('name', productData.name)
+          .eq('product_code', productData.productCode)
           .single()
 
         if (existingProduct) {
           importResults.errorCount++
-          importResults.errors.push(`行 ${i + 2}: "${productData.brand} ${productData.name}" は既に存在します`)
+          importResults.errors.push(`行 ${i + 2}: "${productData.brand} ${productData.productCode}" は既に存在します`)
           continue
         }
 
