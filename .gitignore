@@ -114,3 +114,4 @@ dist/
 *.bak
 *.backup
 *.old
+.vercel
