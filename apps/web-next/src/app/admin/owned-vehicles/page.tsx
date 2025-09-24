@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, Trash2, AlertCircle } from 'lucide-react'
 
 interface OwnedVehicle {
@@ -44,11 +44,7 @@ export default function AdminOwnedVehicles() {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
 
-  useEffect(() => {
-    fetchOwnedVehicles()
-  }, [page, searchTerm])
-
-  const fetchOwnedVehicles = async () => {
+  const fetchOwnedVehicles = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -68,7 +64,11 @@ export default function AdminOwnedVehicles() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, searchTerm])
+
+  useEffect(() => {
+    fetchOwnedVehicles()
+  }, [fetchOwnedVehicles])
 
   // 検索時にページをリセット
   const handleSearchChange = (value: string) => {

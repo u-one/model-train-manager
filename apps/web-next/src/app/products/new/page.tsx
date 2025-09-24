@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Input, TextArea, Select } from '@/components/ui'
+// import { Input } from '@/components/ui' // 未使用
 import { productFormSchema, defaultProductValues, type ProductFormData } from '@/lib/validations/product'
 
 function NewProductForm() {

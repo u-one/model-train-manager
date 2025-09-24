@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import AuthGuard from '@/components/AuthGuard'
-import { Input, TextArea, Select } from '@/components/ui'
+import { Input, Select } from '@/components/ui'
 import { ownedVehicleFormSchema, defaultOwnedVehicleValues, type OwnedVehicleFormData } from '@/lib/validations/owned-vehicle'
 
 interface Product {

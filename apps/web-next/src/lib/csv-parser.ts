@@ -112,7 +112,7 @@ export function parseProductCSV(csvContent: string): ParsedCSVResult<ProductCSVR
   const urlIndex = 8        // URL
   const descIndex = 9       // 詳細
   const tagIndex = 10       // タグ
-  const iconIndex = 13      // icon
+  // const iconIndex = 13      // icon (未使用)
 
   // 最低限必要な列があるかチェック（ブランド、商品名）
   const minRequiredColumns = Math.max(brandIndex, nameIndex) + 1
@@ -246,12 +246,12 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
   const noIndex = 0           // No
   const categoryIndex = 1     // 分類
   const systemIndex = 2       // 系統
-  const setTypeIndex = 5      // セット/単品
+  // const setTypeIndex = 5      // セット/単品 (未使用)
   const vehicleTypeIndex = 6  // 形式
   const brandIndex = 7        // メーカー
   const codeIndex = 8         // 品番
-  const listPriceIndex = 9    // 定価
-  const purchasePriceExclIndex = 10 // 購入価格(税抜)
+  // const listPriceIndex = 9    // 定価 (未使用)
+  // const purchasePriceExclIndex = 10 // 購入価格(税抜) (未使用)
   const purchasePriceInclIndex = 11 // (税込)
   const storeIndex = 12       // 入手場所
   const dateIndex = 13        // 購入日

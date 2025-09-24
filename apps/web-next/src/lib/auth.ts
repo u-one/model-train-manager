@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
         return false
       }
     },
-    async session({ session, token }) {
+    async session({ session }) {
       // ユーザーIDをセッションに追加
       if (session.user?.email) {
         const user = await prisma.user.findUnique({

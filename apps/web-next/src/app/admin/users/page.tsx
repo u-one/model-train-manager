@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Search, User, Calendar, Mail } from 'lucide-react'
+import Image from 'next/image'
 
 interface UserData {
   id: string
@@ -112,10 +113,12 @@ export default function AdminUsers() {
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         {user.image ? (
-                          <img
+                          <Image
                             className="h-10 w-10 rounded-full"
                             src={user.image}
                             alt=""
+                            width={40}
+                            height={40}
                           />
                         ) : (
                           <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">

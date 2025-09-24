@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, Trash2, AlertCircle } from 'lucide-react'
 
 interface Product {
@@ -34,11 +34,7 @@ export default function AdminProducts() {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
 
-  useEffect(() => {
-    fetchProducts()
-  }, [page, searchTerm])
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -57,7 +53,11 @@ export default function AdminProducts() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, searchTerm])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   // 検索時にページをリセット
   const handleSearchChange = (value: string) => {

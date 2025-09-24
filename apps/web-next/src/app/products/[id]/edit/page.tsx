@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Input, TextArea, Select } from '@/components/ui'
+import { Input, Select } from '@/components/ui'
 import { productFormSchema, type ProductFormData } from '@/lib/validations/product'
 
 interface Product {
