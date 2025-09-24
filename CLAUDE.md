@@ -79,6 +79,20 @@ repo-root/
 - UI視認性向上（ページネーション色調整）
 - .gitignore整備（Claude関連ファイル除外）
 
+### Phase 2.14 ✅
+- セット・セット単品リンク機能（Phase 2.14.1）
+- UI/UX改善（Phase 2.14.2）
+  - フィルタ機能強化（アクティブ表示・リセット）
+  - セット単品デフォルト非表示
+  - レスポンシブデザイン改善
+  - 管理者ボタン追加・保有数表示修正
+
+### Phase 2.15（計画策定完了）
+- タグシステム実装
+- カテゴリ別タグ管理（車種・会社・特徴・時代）
+- AND/OR論理演算による高度なフィルタリング
+- **詳細**: [タグシステム仕様書](./docs/tag-system-specification.md)
+
 ### Phase 3
 - 整備記録機能
 - 画像アップロード
@@ -119,6 +133,14 @@ repo-root/
 - `/api/admin/owned-vehicles` - 保有車両一括削除（管理者のみ）
 - `/api/admin/owned-vehicles/delete-all` - 全保有車両削除（管理者のみ）
 - `/api/admin/stats` - 管理統計情報（管理者のみ）
+
+### タグシステム（Phase 2.15）
+- `/api/tags` - タグCRUD操作
+- `/api/products/:id/tags` - 製品タグ管理
+- `/api/products?tags=1,2&tag_operator=AND` - タグフィルタ検索
+- カテゴリ別タグ管理（車種・会社・特徴・時代）
+- AND/OR論理演算による高度なフィルタリング
+- **詳細**: [タグシステム仕様書](./docs/tag-system-specification.md)
 
 ## 環境変数
 
