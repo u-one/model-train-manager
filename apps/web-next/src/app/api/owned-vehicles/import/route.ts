@@ -62,17 +62,20 @@ export async function POST(request: NextRequest) {
       const vehicleData = parseResult.data[i]
 
       try {
-        const { data: existingVehicle } = await supabase
-          .from('owned_vehicles')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('management_id', vehicleData.managementId)
-          .single()
+        // 管理IDが空文字列でない場合のみ重複チェック
+        if (vehicleData.managementId && vehicleData.managementId.trim() !== '') {
+          const { data: existingVehicle } = await supabase
+            .from('owned_vehicles')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('management_id', vehicleData.managementId)
+            .single()
 
-        if (existingVehicle) {
-          importResults.errorCount++
-          importResults.errors.push(`行 ${i + 2}: 管理ID "${vehicleData.managementId}" は既に存在します`)
-          continue
+          if (existingVehicle) {
+            importResults.errorCount++
+            importResults.errors.push(`行 ${i + 2}: 管理ID "${vehicleData.managementId}" は既に存在します`)
+            continue
+          }
         }
 
         let productId: number | null = null

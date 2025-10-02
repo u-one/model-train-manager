@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const ownedVehicleFormSchema = z.object({
   // 管理情報
-  managementId: z.string().min(1, '管理IDは必須です'),
+  managementId: z.string().optional().default(''),
 
   // 車両選択（製品IDまたは独立車両情報）
   vehicleType: z.enum(['PRODUCT', 'INDEPENDENT'], {

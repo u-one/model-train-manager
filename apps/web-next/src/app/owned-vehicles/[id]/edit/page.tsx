@@ -264,13 +264,13 @@ export default function EditOwnedVehiclePage({ params }: { params: Promise<{ id:
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-900 mb-1">
-                    管理ID *
+                    管理ID
                   </label>
                   <input
                     type="text"
                     {...form.register('managementId')}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="例: MY-001"
+                    placeholder="例: MY-001（省略可）"
                   />
                   {form.formState.errors.managementId && (
                     <p className="text-red-500 text-sm mt-1">{form.formState.errors.managementId.message}</p>

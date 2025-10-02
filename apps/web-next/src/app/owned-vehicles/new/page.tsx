@@ -170,9 +170,8 @@ export default function NewOwnedVehiclePage() {
                 <div className="md:col-span-2">
                   <Input
                     label="管理ID"
-                    required
                     {...form.register('managementId')}
-                    placeholder="例: MY-001"
+                    placeholder="例: MY-001（省略可）"
                     error={form.formState.errors.managementId?.message}
                   />
                 </div>
