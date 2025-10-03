@@ -23,7 +23,8 @@ repo-root/
 │     └─ docs/              # web-next固有ドキュメント
 │        └─ deployment-setup.md  # 環境設定・デプロイ手順
 ├─ docs/                    # プロジェクト全体ドキュメント
-│  └─ development-log.md    # 開発進捗記録（要参照・更新）
+│  ├─ development-log.md    # 開発進捗記録（要参照・更新）
+│  └─ database-schema-management.md  # DBスキーマ管理ガイド
 ├─ local/                   # ローカルファイル（git管理外）
 │  ├─ 車両リスト - 車両商品情報.csv
 │  └─ 車両リスト - 保有車両.csv
@@ -39,6 +40,12 @@ repo-root/
 - **owned_vehicles** - 保有車両（購入情報、状態管理）
 - **independent_vehicles** - 独立記録車両
 - **maintenance_records** - 整備記録
+
+### スキーマ管理
+- **Prismaスキーマが唯一の真実の源（Single Source of Truth）**
+- スキーマファイル: `apps/web-next/prisma/schema.prisma`
+- 変更方法: `npx prisma db push` でデータベースに反映
+- **詳細**: [データベーススキーマ管理ガイド](./docs/database-schema-management.md)
 
 ### データ移行
 - `local/` ディレクトリ内のCSVファイルに既存データが格納されている

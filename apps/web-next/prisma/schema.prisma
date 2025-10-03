@@ -13,48 +13,47 @@ datasource db {
 
 // ユーザーテーブル
 model User {
-  id             Int      @id @default(autoincrement())
-  email          String   @unique
-  name           String
-  image          String?
-  password       String?  // ID/パスワード認証用（Google OAuth時はnull）
-  emailVerified  DateTime? @map("email_verified")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
+  id              Int            @id @default(autoincrement())
+  email           String         @unique
+  name            String
+  image           String?
+  password        String?
+  emailVerified   DateTime?      @map("email_verified")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
   // リレーション
-  ownedVehicles  OwnedVehicle[]
-  createdProducts Product[] @relation("UserCreatedProducts")
+  ownedVehicles   OwnedVehicle[]
+  createdProducts Product[]      @relation("UserCreatedProducts")
 
   @@map("users")
 }
 
 // 製品マスタテーブル
 model Product {
-  id                    Int      @id @default(autoincrement())
-  brand                 String   @db.VarChar(100)
-  productCode           String?  @map("product_code") @db.VarChar(100)
-  parentCode            String?  @map("parent_code") @db.VarChar(100)
-  type                  ProductType
-  name                  String   @db.VarChar(500)
-  releaseYear           Int?     @map("release_year")
-  priceExcludingTax     Int?     @map("price_excluding_tax")
-  priceIncludingTax     Int?     @map("price_including_tax")
-  janCode               String?  @map("jan_code") @db.VarChar(50)
-  description           String?  @db.Text
-  tags                  String[]
-  vehicleCount          Int      @default(1) @map("vehicle_count")
-  imageUrl              String?  @map("image_url") @db.VarChar(500)
-  url                   String?  @db.VarChar(500)
-  icon                  String?  @db.VarChar(100)
-  createdByUserId       Int?     @map("created_by_user_id")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                Int            @id @default(autoincrement())
+  brand             String         @db.VarChar(100)
+  productCode       String?        @map("product_code") @db.VarChar(100)
+  parentCode        String?        @map("parent_code") @db.VarChar(100)
+  type              ProductType
+  name              String         @db.VarChar(500)
+  releaseYear       Int?           @map("release_year")
+  priceExcludingTax Int?           @map("price_excluding_tax")
+  priceIncludingTax Int?           @map("price_including_tax")
+  janCode           String?        @map("jan_code") @db.VarChar(50)
+  description       String?
+  tags              String[]
+  vehicleCount      Int            @default(1) @map("vehicle_count")
+  imageUrl          String?        @map("image_url") @db.VarChar(500)
+  url               String?        @db.VarChar(500)
+  icon              String?        @db.VarChar(100)
+  createdByUserId   Int?           @map("created_by_user_id")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
 
   // リレーション
-  createdByUser         User?           @relation("UserCreatedProducts", fields: [createdByUserId], references: [id])
-  realVehicles          RealVehicle[]
-  ownedVehicles         OwnedVehicle[]
+  createdByUser     User?          @relation("UserCreatedProducts", fields: [createdByUserId], references: [id])
+  realVehicles      RealVehicle[]
+  ownedVehicles     OwnedVehicle[]
 
   @@index([brand])
   @@index([productCode])
@@ -65,18 +64,18 @@ model Product {
 
 // 実車情報テーブル
 model RealVehicle {
-  id                    Int      @id @default(autoincrement())
-  productId             Int      @map("product_id")
-  vehicleType           String?  @map("vehicle_type") @db.VarChar(100)
-  company               String?  @db.VarChar(100)
-  manufacturingYear     String?  @map("manufacturing_year") @db.VarChar(50)
-  operationLine         String?  @map("operation_line") @db.VarChar(100)
-  notes                 String?  @db.Text
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                Int      @id @default(autoincrement())
+  productId         Int      @map("product_id")
+  vehicleType       String?  @map("vehicle_type") @db.VarChar(100)
+  company           String?  @db.VarChar(100)
+  manufacturingYear String?  @map("manufacturing_year") @db.VarChar(50)
+  operationLine     String?  @map("operation_line") @db.VarChar(100)
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   // リレーション
-  product               Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@map("real_vehicles")
@@ -84,34 +83,34 @@ model RealVehicle {
 
 // 保有車両テーブル
 model OwnedVehicle {
-  id                        Int      @id @default(autoincrement())
-  userId                    Int      @map("user_id")
-  managementId              String   @map("management_id") @db.VarChar(100)
-  productId                 Int?     @map("product_id")
-  isIndependent             Boolean  @default(false) @map("is_independent")
+  id                        Int                 @id @default(autoincrement())
+  userId                    Int                 @map("user_id")
+  managementId              String              @map("management_id") @db.VarChar(100)
+  productId                 Int?                @map("product_id")
+  isIndependent             Boolean             @default(false) @map("is_independent")
 
   // 購入情報
-  purchaseDate              DateTime? @map("purchase_date") @db.Date
-  purchasePriceExcludingTax Int?     @map("purchase_price_excluding_tax")
-  purchasePriceIncludingTax Int?     @map("purchase_price_including_tax")
-  purchaseStore             String?  @map("purchase_store") @db.VarChar(200)
-  purchaseCondition         PurchaseCondition? @map("purchase_condition")
-
+  purchaseDate              DateTime?           @map("purchase_date") @db.Date
+  purchasePriceExcludingTax Int?                @map("purchase_price_excluding_tax")
+  purchasePriceIncludingTax Int?                @map("purchase_price_including_tax")
+  purchaseStore             String?             @map("purchase_store") @db.VarChar(200)
+  purchaseCondition         PurchaseCondition?  @map("purchase_condition")
+  
   // 現在の状態
-  currentStatus             VehicleStatus @default(NORMAL) @map("current_status")
-  storageCondition          StorageCondition @default(WITH_CASE) @map("storage_condition")
-
+  currentStatus             VehicleStatus       @default(NORMAL) @map("current_status")
+  storageCondition          StorageCondition    @default(WITH_CASE) @map("storage_condition")
+  
   // その他
-  maintenanceNotes          String?  @map("maintenance_notes") @db.Text
-  notes                     String?  @db.Text
-  imageUrls                 String[] @map("image_urls")
+  maintenanceNotes          String?             @map("maintenance_notes")
+  notes                     String?
+  imageUrls                 String[]            @map("image_urls")
 
-  createdAt                 DateTime @default(now()) @map("created_at")
-  updatedAt                 DateTime @updatedAt @map("updated_at")
+  createdAt                 DateTime            @default(now()) @map("created_at")
+  updatedAt                 DateTime            @updatedAt @map("updated_at")
 
   // リレーション
-  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product                   Product? @relation(fields: [productId], references: [id])
+  user                      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product                   Product?            @relation(fields: [productId], references: [id])
   independentVehicle        IndependentVehicle?
   maintenanceRecords        MaintenanceRecord[]
 
@@ -123,18 +122,18 @@ model OwnedVehicle {
 
 // 独立記録車両テーブル
 model IndependentVehicle {
-  id              Int      @id @default(autoincrement())
-  ownedVehicleId  Int      @unique @map("owned_vehicle_id")
-  brand           String?  @db.VarChar(100)
-  productCode     String?  @map("product_code") @db.VarChar(100)
-  name            String   @db.VarChar(500)
-  vehicleType     String?  @map("vehicle_type") @db.VarChar(100)
-  description     String?  @db.Text
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id             Int          @id @default(autoincrement())
+  ownedVehicleId Int          @unique @map("owned_vehicle_id")
+  brand          String?      @db.VarChar(100)
+  productCode    String?      @map("product_code") @db.VarChar(100)
+  name           String       @db.VarChar(500)
+  vehicleType    String?      @map("vehicle_type") @db.VarChar(100)
+  description    String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
 
   // リレーション
-  ownedVehicle    OwnedVehicle @relation(fields: [ownedVehicleId], references: [id], onDelete: Cascade)
+  ownedVehicle   OwnedVehicle @relation(fields: [ownedVehicleId], references: [id], onDelete: Cascade)
 
   @@index([ownedVehicleId])
   @@map("independent_vehicles")
@@ -142,13 +141,13 @@ model IndependentVehicle {
 
 // 整備記録テーブル
 model MaintenanceRecord {
-  id              Int      @id @default(autoincrement())
-  ownedVehicleId  Int      @map("owned_vehicle_id")
-  maintenanceDate DateTime @map("maintenance_date") @db.Date
-  content         String   @db.Text
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
+  id              Int          @id @default(autoincrement())
+  ownedVehicleId  Int          @map("owned_vehicle_id")
+  maintenanceDate DateTime     @map("maintenance_date") @db.Date
+  content         String
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  
   // リレーション
   ownedVehicle    OwnedVehicle @relation(fields: [ownedVehicleId], references: [id], onDelete: Cascade)
 
@@ -159,23 +158,23 @@ model MaintenanceRecord {
 
 // Enum定義
 enum ProductType {
-  SINGLE      @map("単品")
-  SET         @map("セット")
-  SET_SINGLE  @map("セット単品")
+  SINGLE     @map("単品")
+  SET        @map("セット")
+  SET_SINGLE @map("セット単品")
 }
 
 enum PurchaseCondition {
-  NEW   @map("新品")
-  USED  @map("中古")
+  NEW  @map("新品")
+  USED @map("中古")
 }
 
 enum VehicleStatus {
-  NORMAL          @map("正常")
-  NEEDS_REPAIR    @map("要修理")
-  BROKEN          @map("故障中")
+  NORMAL       @map("正常")
+  NEEDS_REPAIR @map("要修理")
+  BROKEN       @map("故障中")
 }
 
 enum StorageCondition {
-  WITH_CASE     @map("ケースあり")
-  WITHOUT_CASE  @map("ケースなし")
+  WITH_CASE    @map("ケースあり")
+  WITHOUT_CASE @map("ケースなし")
 }
