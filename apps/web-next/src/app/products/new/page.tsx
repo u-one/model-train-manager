@@ -39,6 +39,10 @@ function NewProductForm() {
     name: 'realVehicles'
   })
 
+  // セット単品の場合、価格フィールドを無効化
+  const productType = form.watch('type')
+  const isSetSingle = productType === 'SET_SINGLE'
+
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true)
     try {
@@ -208,6 +212,11 @@ function NewProductForm() {
           {/* 価格情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">価格情報</h2>
+            {isSetSingle && (
+              <p className="text-sm text-orange-600 mb-3">
+                ℹ️ セット単品の価格は親セットに含まれるため、入力不要です
+              </p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-1">
@@ -216,9 +225,14 @@ function NewProductForm() {
                 <input
                   type="number"
                   {...form.register('priceExcludingTax', { valueAsNumber: true })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
-                  placeholder="例: 15000"
+                  className={`w-full border border-gray-300 rounded-md px-3 py-2 ${
+                    isSetSingle
+                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      : 'text-gray-900'
+                  }`}
+                  placeholder={isSetSingle ? '親セット価格に含まれます' : '例: 15000'}
                   min="0"
+                  disabled={isSetSingle}
                 />
               </div>
 
@@ -229,9 +243,14 @@ function NewProductForm() {
                 <input
                   type="number"
                   {...form.register('priceIncludingTax', { valueAsNumber: true })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
-                  placeholder="例: 16500"
+                  className={`w-full border border-gray-300 rounded-md px-3 py-2 ${
+                    isSetSingle
+                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      : 'text-gray-900'
+                  }`}
+                  placeholder={isSetSingle ? '親セット価格に含まれます' : '例: 16500'}
                   min="0"
+                  disabled={isSetSingle}
                 />
               </div>
             </div>
