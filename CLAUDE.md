@@ -24,7 +24,9 @@ repo-root/
 │        └─ deployment-setup.md  # 環境設定・デプロイ手順
 ├─ docs/                    # プロジェクト全体ドキュメント
 │  ├─ development-log.md    # 開発進捗記録（要参照・更新）
-│  └─ database-schema-management.md  # DBスキーマ管理ガイド
+│  ├─ database-schema-management.md  # DBスキーマ管理ガイド
+│  ├─ tag-system-specification.md    # Phase 2.15仕様書
+│  └─ phase-2.16-csv-import-improvement.md  # Phase 2.16仕様書
 ├─ local/                   # ローカルファイル（git管理外）
 │  ├─ 車両リスト - 車両商品情報.csv
 │  └─ 車両リスト - 保有車両.csv
@@ -93,12 +95,23 @@ repo-root/
   - セット単品デフォルト非表示
   - レスポンシブデザイン改善
   - 管理者ボタン追加・保有数表示修正
+- 入力項目の柔軟性向上（Phase 2.14.3）進行中
+  - 管理IDの空文字列許容 ✅
+  - 発売年・購入日・価格等の任意項目化
+  - バリデーションルール調整
 
 ### Phase 2.15（計画策定完了）
 - タグシステム実装
 - カテゴリ別タグ管理（車種・会社・特徴・時代）
 - AND/OR論理演算による高度なフィルタリング
 - **詳細**: [タグシステム仕様書](./docs/tag-system-specification.md)
+
+### Phase 2.16（計画策定完了）
+- CSVインポート改善・製品未登録時の柔軟な対応
+- 製品が見つからない場合の独立車両自動登録
+- 独立車両から製品情報への変換機能
+- 一括製品作成機能
+- **詳細**: [Phase 2.16仕様書](./docs/phase-2.16-csv-import-improvement.md)
 
 ### Phase 3
 - 整備記録機能
