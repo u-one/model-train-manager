@@ -11,17 +11,49 @@ function NewProductForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fromIndependentId, setFromIndependentId] = useState<number | null>(null)
+  const [autoLink, setAutoLink] = useState(true)
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: defaultProductValues
   })
 
+  const fetchIndependentVehicleData = async (ownedVehicleId: number) => {
+    try {
+      const response = await fetch(`/api/owned-vehicles/${ownedVehicleId}`)
+      if (response.ok) {
+        const vehicle = await response.json()
+
+        if (vehicle.isIndependent && vehicle.independentVehicle) {
+          const { independentVehicle } = vehicle
+
+          // フォームに初期値を設定
+          if (independentVehicle.brand) {
+            form.setValue('brand', independentVehicle.brand)
+          }
+          if (independentVehicle.productCode) {
+            form.setValue('productCode', independentVehicle.productCode)
+          }
+          if (independentVehicle.name) {
+            form.setValue('name', independentVehicle.name)
+          }
+          if (independentVehicle.description) {
+            form.setValue('description', independentVehicle.description)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch independent vehicle data:', error)
+    }
+  }
+
   // クエリパラメータから初期値を設定
   useEffect(() => {
     const type = searchParams.get('type')
     const parentCode = searchParams.get('parentCode')
     const brand = searchParams.get('brand')
+    const fromIndependent = searchParams.get('fromIndependent')
 
     if (type && ['SINGLE', 'SET', 'SET_SINGLE'].includes(type)) {
       form.setValue('type', type as 'SINGLE' | 'SET' | 'SET_SINGLE')
@@ -32,7 +64,17 @@ function NewProductForm() {
     if (brand) {
       form.setValue('brand', brand)
     }
-  }, [searchParams, form])
+
+    // 独立車両からの製品作成の場合
+    if (fromIndependent) {
+      const independentId = parseInt(fromIndependent)
+      if (!isNaN(independentId)) {
+        setFromIndependentId(independentId)
+        fetchIndependentVehicleData(independentId)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -68,6 +110,34 @@ function NewProductForm() {
 
       if (response.ok) {
         const newProduct = await response.json()
+
+        // 独立車両からの作成で自動リンクが有効な場合
+        if (fromIndependentId && autoLink) {
+          try {
+            const linkResponse = await fetch(`/api/owned-vehicles/${fromIndependentId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                productId: newProduct.id,
+                isIndependent: false
+              })
+            })
+
+            if (linkResponse.ok) {
+              // リンク成功後、保有車両詳細画面へ
+              router.push(`/owned-vehicles/${fromIndependentId}`)
+              return
+            } else {
+              console.error('Failed to link product to owned vehicle')
+              // リンク失敗でも製品作成は成功したので製品詳細へ
+            }
+          } catch (linkError) {
+            console.error('Error linking product to owned vehicle:', linkError)
+          }
+        }
+
         router.push(`/products/${newProduct.id}`)
       } else {
         const error = await response.json()
@@ -105,6 +175,25 @@ function NewProductForm() {
           <h1 className="text-3xl font-bold text-gray-900">製品追加</h1>
           <p className="text-gray-600 mt-2">新しい製品情報を登録します</p>
         </div>
+
+        {/* 独立車両からの作成時の情報バナー */}
+        {fromIndependentId && (
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">独立車両から製品情報を作成</h3>
+                <div className="mt-2 text-sm text-blue-700">
+                  <p>独立車両の情報がフォームに自動入力されています。必要に応じて情報を追加・修正してください。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* 基本情報 */}
@@ -350,21 +439,43 @@ function NewProductForm() {
           </div>
 
           {/* 送信ボタン */}
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              キャンセル
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? '作成中...' : '製品を作成'}
-            </button>
+          <div className="space-y-4">
+            {/* 独立車両からの作成時の自動リンクオプション */}
+            {fromIndependentId && (
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoLink}
+                    onChange={(e) => setAutoLink(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-900">
+                    ☑ 作成後、この保有車両と自動リンク
+                  </span>
+                </label>
+                <p className="text-xs text-gray-600 mt-2 ml-6">
+                  チェックを入れると、製品作成後に自動的に保有車両と紐付けされます。
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-4">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? '作成中...' : '製品を作成'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

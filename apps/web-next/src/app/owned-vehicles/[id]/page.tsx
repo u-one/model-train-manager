@@ -8,6 +8,8 @@ import AuthGuard from '@/components/AuthGuard'
 interface OwnedVehicle {
   id: number
   managementId: string
+  isIndependent: boolean
+  productId: number | null
   currentStatus: string
   storageCondition: string
   purchaseDate: string | null
@@ -28,6 +30,7 @@ interface OwnedVehicle {
   independentVehicle?: {
     name: string
     brand: string | null
+    productCode: string | null
     vehicleType: string | null
     description: string | null
   } | null
@@ -157,8 +160,19 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{vehicle.managementId}</h1>
             <p className="text-lg text-gray-600 mt-1">{vehicleName}</p>
+            {vehicle.isIndependent && (
+              <p className="text-sm text-orange-600 mt-1">⚠️ 独立記録車両（製品情報なし）</p>
+            )}
           </div>
           <div className="flex space-x-2">
+            {vehicle.isIndependent && vehicle.independentVehicle && (
+              <button
+                onClick={() => router.push(`/products/new?fromIndependent=${vehicle.id}`)}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2"
+              >
+                <span>この情報で製品を作成</span>
+              </button>
+            )}
             <button
               onClick={() => router.push(`/owned-vehicles/${vehicle.id}/edit`)}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -175,6 +189,32 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
           </div>
         </div>
       </div>
+
+      {/* 独立車両の警告メッセージ */}
+      {vehicle.isIndependent && vehicle.independentVehicle && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">この車両は独立記録されています</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>CSVインポート時に製品情報が見つからなかったため、独立車両として登録されています。</p>
+                <p className="mt-1">「この情報で製品を作成」ボタンから製品情報を作成すると、他のユーザーとも製品情報を共有できます。</p>
+              </div>
+              {vehicle.independentVehicle.description && (
+                <div className="mt-2">
+                  <p className="text-xs text-yellow-600">{vehicle.independentVehicle.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* 画像 */}
@@ -203,16 +243,26 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
         <div className="lg:col-span-2 space-y-6">
           {/* 基本情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">基本情報</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              {vehicle.isIndependent ? '車両情報（独立記録）' : '基本情報'}
+            </h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-gray-600">ブランド:</span>
                 <span className="ml-2 font-medium">{brand}</span>
               </div>
-              {vehicle.product?.productCode && (
+              {(vehicle.product?.productCode || vehicle.independentVehicle?.productCode) && (
                 <div>
                   <span className="text-gray-600">品番:</span>
-                  <span className="ml-2 font-medium">{vehicle.product.productCode}</span>
+                  <span className="ml-2 font-medium">
+                    {vehicle.product?.productCode || vehicle.independentVehicle?.productCode}
+                  </span>
+                </div>
+              )}
+              {vehicle.independentVehicle?.vehicleType && (
+                <div>
+                  <span className="text-gray-600">形式:</span>
+                  <span className="ml-2 font-medium">{vehicle.independentVehicle.vehicleType}</span>
                 </div>
               )}
               <div>
