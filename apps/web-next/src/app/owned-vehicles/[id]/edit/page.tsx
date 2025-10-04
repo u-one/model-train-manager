@@ -186,7 +186,7 @@ export default function EditOwnedVehiclePage({ params }: { params: Promise<{ id:
         maintenanceNotes: data.maintenanceNotes === '' ? undefined : data.maintenanceNotes,
         imageUrls: imageUrls.filter(url => url.trim() !== ''),
         // 車両タイプに応じて不要なデータを削除
-        productId: data.vehicleType === 'PRODUCT' ? data.productId : undefined,
+        productId: data.vehicleType === 'PRODUCT' ? (isNaN(data.productId as number) ? undefined : data.productId) : undefined,
         independentVehicle: data.vehicleType === 'INDEPENDENT' ? data.independentVehicle : undefined
       }
 

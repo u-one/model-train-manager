@@ -8,7 +8,7 @@ export const ownedVehicleFormSchema = z.object({
   vehicleType: z.enum(['PRODUCT', 'INDEPENDENT'], {
     message: '車両タイプを選択してください'
   }),
-  productId: z.number().optional(),
+  productId: z.number().optional().or(z.nan()),
   productBrand: z.string().optional(),
   productCode: z.string().optional(),
 
