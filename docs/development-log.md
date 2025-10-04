@@ -155,7 +155,7 @@ Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリ�
   - フォーム送信時のNaN→undefined変換処理実装
   - TypeScript型エラー修正完了
 
-### Phase 2.15: タグシステム実装（計画策定完了）
+### Phase 2.15: タグシステム実装（計画策定完了・実装保留）
 - [x] 詳細仕様策定 → **[タグシステム仕様書](./tag-system-specification.md)参照**
 - [ ] データベース拡張（tags, product_tagsテーブル追加）
 - [ ] API実装（タグCRUD、AND/OR論理演算フィルタ）
@@ -163,10 +163,23 @@ Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリ�
 - [ ] 管理画面でのタグ管理機能
 - [ ] 既存データへのタグ適用・運用改善
 
-### Phase 2.16: CSVインポート改善・製品未登録時の柔軟な対応（計画策定完了）
+**Note**: Phase 2.16を優先実装のため保留中
+
+### Phase 2.16: CSVインポート改善・製品未登録時の柔軟な対応 ✅
+#### 2.16.1: CSVインポート改善（完了）
 - [x] 詳細仕様策定 → **[Phase 2.16仕様書](./phase-2.16-csv-import-improvement.md)参照**
-- [ ] CSVインポート改善（製品未登録時の独立車両自動登録）
+- [x] CSVインポート改善（製品未登録時の独立車両自動登録）
+- [x] 独立車両情報の自動保存（メーカー・品番・商品名）
+- [x] インポート結果の詳細化（製品リンク数・独立車両数の内訳表示）
+- [x] インポート結果UI改善（成功件数内訳・注意メッセージ表示）
+- [x] 管理画面での独立車両対応（型定義・表示ロジック修正）
+
+#### 2.16.2: 製品情報変換機能（未実装）
 - [ ] 製品情報変換機能（独立車両→製品情報）
+- [ ] 保有車両詳細画面での変換ボタン追加
+- [ ] 製品作成フォームの改善（独立車両情報から初期値設定）
+
+#### 2.16.3: 一括変換機能（未実装）
 - [ ] 一括製品作成機能
 
 ### Phase 3: 詳細機能
@@ -388,12 +401,83 @@ Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリ�
 - ✅ Next.jsビルド: `npx next build --turbopack` - 成功（30ルート生成確認）
 - ✅ 全フォームで空欄提出時のバリデーションエラー解消
 
+### Phase 2.16.1実装完了詳細（2025年1月24日）
+#### CSVインポート改善・独立車両自動登録
+
+- ✅ **CSVインポートAPI修正**（2025年1月24日完了）
+  - ファイル: `apps/web-next/src/app/api/owned-vehicles/import/route.ts`
+  - 製品が見つからない場合、**エラーにせず独立車両として登録**
+  - メーカー・品番・商品名を`independent_vehicles`テーブルに自動保存
+  - `is_independent`フラグをtrueに設定
+  - 独立車両情報の説明文を自動生成
+  ```typescript
+  independentVehicleData = {
+    brand: vehicleData.productBrand,
+    productCode: vehicleData.productCode,
+    name: vehicleData.productName || `${vehicleData.productBrand} ${vehicleData.productCode}`,
+    description: `CSVインポート時に製品が見つからなかったため独立車両として登録...`
+  }
+  ```
+
+- ✅ **インポート結果の詳細化**（2025年1月24日完了）
+  - `linkedCount`: 製品リンク数の集計
+  - `independentCount`: 独立車両数の集計
+  - APIレスポンス形式拡張:
+  ```json
+  {
+    "totalRows": 150,
+    "successCount": 145,
+    "linkedCount": 120,      // 製品リンク成功
+    "independentCount": 25,  // 独立車両として登録
+    "errorCount": 5,
+    "errors": [...]
+  }
+  ```
+
+- ✅ **インポート結果UI改善**（2025年1月24日完了）
+  - ファイル: `apps/web-next/src/components/CSVImport.tsx`
+  - 成功件数の内訳表示（📦製品リンク、📝独立車両）
+  - 独立車両登録時の注意メッセージ表示
+  - 視覚的なアイコンとカラーコーディング
+  - 「⚠️ 注意: X件が独立車両として登録されました。保有車両一覧から製品情報を作成できます。」
+
+- ✅ **管理画面での独立車両対応**（2025年1月24日完了）
+  - ファイル: `apps/web-next/src/app/admin/owned-vehicles/page.tsx`
+  - 型定義の修正:
+    - `productId: number | null` - null許容
+    - `isIndependent: boolean` - 独立車両フラグ追加
+    - `product: {...} | null` - productオブジェクトnull許容
+  - 表示ロジックの修正:
+    - メーカー: `vehicle.product?.brand || (vehicle.isIndependent ? '(独立記録)' : '-')`
+    - 品番: `vehicle.product?.productCode || '-'`
+    - 商品名: `vehicle.product?.name || (vehicle.isIndependent ? '(独立記録車両)' : '-')`
+  - エラー修正: `Cannot read properties of null (reading 'brand')` 解消
+
+- ✅ **独立車両フォーム修正**（2025年1月24日完了）
+  - ファイル:
+    - `apps/web-next/src/lib/validations/owned-vehicle.ts`
+    - `apps/web-next/src/app/owned-vehicles/new/page.tsx`
+    - `apps/web-next/src/app/owned-vehicles/[id]/edit/page.tsx`
+  - `productId`バリデーション修正: `.or(z.nan())` 追加
+  - フォーム送信処理: `isNaN(data.productId as number)` 判定追加
+  - 独立記録選択時のバリデーションエラー解消
+
+#### 動作確認結果
+- ✅ TypeScript型チェック: エラーなし
+- ✅ 管理画面での独立車両表示: 正常
+- ✅ CSVインポートで製品未登録時の独立車両登録: 動作確認済み
+- ✅ インポート結果の内訳表示: 正常
+
 ### 次の実装予定
 
-#### Phase 2.16 - CSVインポート改善
-1. **製品未登録時の対応** - 独立車両として自動登録
-2. **製品情報変換** - 独立車両→製品情報への変換UI
-3. **一括変換機能** - 複数の独立車両から製品情報を一括作成
+#### Phase 2.16.2 - 製品情報変換機能
+1. **保有車両詳細画面改善** - 独立車両判定UI・製品作成ボタン追加
+2. **製品作成フォーム改善** - 独立車両情報からの初期値設定
+3. **変換API実装** - `/api/owned-vehicles/:id/convert-to-product`
+
+#### Phase 2.16.3 - 一括変換機能（Phase 2.17で実装予定）
+1. **独立車両一覧フィルタ** - 管理画面での独立車両絞り込み
+2. **一括製品作成** - 複数の独立車両から製品情報を一括作成
 
 ### 実装方針
 - **一画面ずつ段階的に実装**
