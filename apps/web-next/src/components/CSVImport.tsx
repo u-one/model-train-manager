@@ -6,6 +6,8 @@ import CSVPreview from './CSVPreview'
 interface ImportResult {
   totalRows: number
   successCount: number
+  linkedCount?: number      // 製品リンク数（保有車両インポートのみ）
+  independentCount?: number // 独立車両数（保有車両インポートのみ）
   errorCount: number
   errors: string[]
 }
@@ -184,10 +186,20 @@ export default function CSVImport({ title, endpoint, onSuccess }: CSVImportProps
                 <h3 className="text-sm font-medium text-green-800">インポート完了</h3>
                 <div className="mt-2 text-sm text-green-700">
                   <p>総行数: {result.totalRows}行</p>
-                  <p>成功: {result.successCount}行</p>
+                  <p className="font-medium">✅ 成功: {result.successCount}行</p>
+                  {(result.linkedCount !== undefined || result.independentCount !== undefined) && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      {result.linkedCount !== undefined && result.linkedCount > 0 && (
+                        <p className="text-xs">📦 製品リンク: {result.linkedCount}件</p>
+                      )}
+                      {result.independentCount !== undefined && result.independentCount > 0 && (
+                        <p className="text-xs">📝 独立車両: {result.independentCount}件</p>
+                      )}
+                    </div>
+                  )}
                   {result.errorCount > 0 && (
                     <>
-                      <p>エラー: {result.errorCount}行</p>
+                      <p className="mt-2 font-medium">❌ エラー: {result.errorCount}行</p>
                       <div className="mt-2">
                         <details className="cursor-pointer">
                           <summary className="font-medium">エラー詳細</summary>
@@ -199,6 +211,14 @@ export default function CSVImport({ title, endpoint, onSuccess }: CSVImportProps
                         </details>
                       </div>
                     </>
+                  )}
+                  {result.independentCount !== undefined && result.independentCount > 0 && (
+                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                      <p className="text-xs text-yellow-800">
+                        ⚠️ 注意: {result.independentCount}件が独立車両として登録されました。<br />
+                        保有車両一覧から製品情報を作成できます。
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

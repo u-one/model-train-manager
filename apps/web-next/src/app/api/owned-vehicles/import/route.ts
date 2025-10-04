@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
     const importResults = {
       totalRows: parseResult.data.length,
       successCount: 0,
+      linkedCount: 0,        // 製品リンク数
+      independentCount: 0,   // 独立車両数
       errorCount: 0,
       errors: [] as string[]
     }
@@ -80,6 +82,14 @@ export async function POST(request: NextRequest) {
 
         let productId: number | null = null
 
+        let isIndependent = false
+        let independentVehicleData: {
+          brand?: string | null
+          productCode?: string | null
+          name: string
+          description?: string
+        } | null = null
+
         if (vehicleData.productBrand && vehicleData.productCode) {
           // メーカーと品番でマッチング
           const { data: product } = await supabase
@@ -92,9 +102,15 @@ export async function POST(request: NextRequest) {
           if (product) {
             productId = product.id
           } else {
-            importResults.errorCount++
-            importResults.errors.push(`行 ${i + 2}: 製品が見つかりません (メーカー: ${vehicleData.productBrand}, 品番: ${vehicleData.productCode})`)
-            continue
+            // 製品が見つからない場合は独立車両として登録
+            isIndependent = true
+            independentVehicleData = {
+              brand: vehicleData.productBrand,
+              productCode: vehicleData.productCode,
+              name: vehicleData.productName || `${vehicleData.productBrand} ${vehicleData.productCode}`,
+              description: `CSVインポート時に製品が見つからなかったため独立車両として登録 (メーカー: ${vehicleData.productBrand}, 品番: ${vehicleData.productCode})`
+            }
+            console.log(`行 ${i + 2}: 製品が見つからないため独立車両として登録 (メーカー: ${vehicleData.productBrand}, 品番: ${vehicleData.productCode})`)
           }
         } else if (vehicleData.productCode || vehicleData.productName) {
           // 後方互換性：既存の品番・商品名マッチング
@@ -112,22 +128,35 @@ export async function POST(request: NextRequest) {
           if (product) {
             productId = product.id
           } else {
-            importResults.errorCount++
-            importResults.errors.push(`行 ${i + 2}: 製品が見つかりません (品番: ${vehicleData.productCode}, 商品名: ${vehicleData.productName})`)
-            continue
+            // 製品が見つからない場合は独立車両として登録
+            isIndependent = true
+            independentVehicleData = {
+              brand: vehicleData.independentBrand,
+              productCode: vehicleData.productCode,
+              name: vehicleData.productName || vehicleData.independentName || '(商品名不明)',
+              description: `CSVインポート時に製品が見つからなかったため独立車両として登録 (品番: ${vehicleData.productCode}, 商品名: ${vehicleData.productName})`
+            }
+            console.log(`行 ${i + 2}: 製品が見つからないため独立車両として登録 (品番: ${vehicleData.productCode}, 商品名: ${vehicleData.productName})`)
           }
         } else {
-          // 製品情報がない場合はproductId = nullで続行
-          console.log(`行 ${i + 2}: 製品情報なし、productId = null で保有車両を作成`)
+          // 製品情報がない場合は独立車両として登録
+          isIndependent = true
+          independentVehicleData = {
+            brand: vehicleData.independentBrand,
+            name: vehicleData.independentName || '(商品名不明)',
+            description: 'CSVインポート時に製品情報がなかったため独立車両として登録'
+          }
+          console.log(`行 ${i + 2}: 製品情報なし、独立車両として登録`)
         }
 
         const now = new Date().toISOString()
-        const { error: vehicleError } = await supabase
+        const { data: ownedVehicle, error: vehicleError } = await supabase
           .from('owned_vehicles')
           .insert({
             user_id: user.id,
             product_id: productId,
             management_id: vehicleData.managementId,
+            is_independent: isIndependent,
             current_status: vehicleData.currentStatus,
             storage_condition: vehicleData.storageCondition,
             purchase_date: vehicleData.purchaseDate,
@@ -137,11 +166,39 @@ export async function POST(request: NextRequest) {
             created_at: now,
             updated_at: now,
           })
+          .select('id')
+          .single()
 
         if (vehicleError) {
           importResults.errorCount++
           importResults.errors.push(`行 ${i + 2}: 保有車両登録エラー - ${vehicleError.message}`)
           continue
+        }
+
+        // 独立車両の場合は独立車両情報も登録
+        if (isIndependent && independentVehicleData && ownedVehicle) {
+          const { error: independentError } = await supabase
+            .from('independent_vehicles')
+            .insert({
+              owned_vehicle_id: ownedVehicle.id,
+              brand: independentVehicleData.brand,
+              product_code: independentVehicleData.productCode,
+              name: independentVehicleData.name,
+              vehicle_type: vehicleData.independentVehicleType,
+              description: independentVehicleData.description,
+              created_at: now,
+              updated_at: now,
+            })
+
+          if (independentError) {
+            importResults.errorCount++
+            importResults.errors.push(`行 ${i + 2}: 独立車両情報登録エラー - ${independentError.message}`)
+            continue
+          }
+
+          importResults.independentCount++
+        } else {
+          importResults.linkedCount++
         }
 
         importResults.successCount++

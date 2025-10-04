@@ -5,8 +5,9 @@ import { Search, Trash2, AlertCircle } from 'lucide-react'
 
 interface OwnedVehicle {
   id: number
-  productId: number
+  productId: number | null
   userId: string
+  isIndependent: boolean
   notes: string | null
   purchaseDate: string | null
   purchasePrice: number | null
@@ -22,7 +23,7 @@ interface OwnedVehicle {
     productCode: string | null
     name: string
     type: string
-  }
+  } | null
 }
 
 interface Pagination {
@@ -299,13 +300,13 @@ export default function AdminOwnedVehicles() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {vehicle.product.brand}
+                    {vehicle.product?.brand || (vehicle.isIndependent ? '(独立記録)' : '-')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {vehicle.product.productCode || '-'}
+                    {vehicle.product?.productCode || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {vehicle.product.name}
+                    {vehicle.product?.name || (vehicle.isIndependent ? '(独立記録車両)' : '-')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
