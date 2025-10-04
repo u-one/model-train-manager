@@ -178,9 +178,10 @@ export default function EditOwnedVehiclePage({ params }: { params: Promise<{ id:
       const cleanedData = {
         ...data,
         purchaseDate: data.purchaseDate === '' ? undefined : data.purchaseDate,
-        purchasePriceExcludingTax: data.purchasePriceExcludingTax === '' ? undefined : Number(data.purchasePriceExcludingTax),
-        purchasePriceIncludingTax: data.purchasePriceIncludingTax === '' ? undefined : Number(data.purchasePriceIncludingTax),
+        purchasePriceExcludingTax: isNaN(data.purchasePriceExcludingTax as number) ? undefined : data.purchasePriceExcludingTax,
+        purchasePriceIncludingTax: isNaN(data.purchasePriceIncludingTax as number) ? undefined : data.purchasePriceIncludingTax,
         purchaseStore: data.purchaseStore === '' ? undefined : data.purchaseStore,
+        purchaseCondition: data.purchaseCondition === '' ? undefined : data.purchaseCondition,
         notes: data.notes === '' ? undefined : data.notes,
         maintenanceNotes: data.maintenanceNotes === '' ? undefined : data.maintenanceNotes,
         imageUrls: imageUrls.filter(url => url.trim() !== ''),

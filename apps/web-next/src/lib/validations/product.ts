@@ -9,11 +9,11 @@ export const productFormSchema = z.object({
   type: z.enum(['SINGLE', 'SET', 'SET_SINGLE'], {
     message: 'タイプを選択してください'
   }),
-  releaseYear: z.union([z.number().int().min(1900).max(2030), z.string().length(0)]).optional(),
+  releaseYear: z.number().int().min(1900).max(2030).optional().or(z.nan()),
 
   // 価格情報
-  priceExcludingTax: z.union([z.number().min(0, '価格は0以上で入力してください'), z.string().length(0)]).optional(),
-  priceIncludingTax: z.union([z.number().min(0, '価格は0以上で入力してください'), z.string().length(0)]).optional(),
+  priceExcludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan()),
+  priceIncludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan()),
 
   // 商品情報
   description: z.string().optional(),

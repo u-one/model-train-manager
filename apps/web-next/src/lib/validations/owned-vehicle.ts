@@ -30,10 +30,10 @@ export const ownedVehicleFormSchema = z.object({
 
   // 購入情報
   purchaseDate: z.string().optional(),
-  purchasePriceExcludingTax: z.union([z.number().min(0, '価格は0以上で入力してください'), z.string().length(0)]).optional(),
-  purchasePriceIncludingTax: z.union([z.number().min(0, '価格は0以上で入力してください'), z.string().length(0)]).optional(),
+  purchasePriceExcludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan()),
+  purchasePriceIncludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan()),
   purchaseStore: z.string().optional(),
-  purchaseCondition: z.enum(['NEW', 'USED']).optional(),
+  purchaseCondition: z.enum(['NEW', 'USED']).optional().or(z.literal('')),
 
   // メモ
   notes: z.string().optional(),

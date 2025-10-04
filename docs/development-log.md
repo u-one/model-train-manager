@@ -141,16 +141,19 @@ Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリ�
 - [x] ヘッダに管理者向け管理画面遷移ボタン追加
 - [x] 製品一覧の保有数表示をログインユーザーのみに修正
 
-#### 2.14.3 入力項目の柔軟性向上（進行中）
+#### 2.14.3 入力項目の柔軟性向上 ✅
 - [x] 管理IDの空文字列を許容
   - バリデーション・フォーム・CSVインポート対応完了
   - データベース制約削除（Prisma db push使用）
 - [x] 発売年：不明・未設定を許容（既存実装で対応済み）
-- [ ] 価格：セット単品時のグレーアウト・無効化（データ的には0でも可）
-- [ ] 購入日：不明・未設定を許容
-- [ ] 購入情報：必須項目の見直し（わかりにくい必須項目の表示改善）
-- [ ] 価格：未入力・不明を許容（任意項目化）
-- [ ] バリデーションルールの調整
+- [x] 価格：セット単品時のグレーアウト・無効化（製品追加・編集画面）
+- [x] 購入日：不明・未設定を許容（既存実装で対応済み）
+- [x] 購入情報：必須項目の見直し（全項目任意化完了）
+- [x] 価格：未入力・不明を許容（NaN対応完了）
+- [x] バリデーションルールの調整（NaN/空文字処理対応）
+  - Zodスキーマに`.or(z.nan())`追加
+  - フォーム送信時のNaN→undefined変換処理実装
+  - TypeScript型エラー修正完了
 
 ### Phase 2.15: タグシステム実装（計画策定完了）
 - [x] 詳細仕様策定 → **[タグシステム仕様書](./tag-system-specification.md)参照**
@@ -331,14 +334,61 @@ Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリ�
   - バリデーション: すでに `.optional()` で任意項目
   - フォーム: 必須マーク（*）なし、既に任意扱い
 
-### 次の実装予定
+- ✅ **価格のセット単品時グレーアウト・無効化**（2025年1月24日完了）
+  - 製品追加・編集画面: `productType === 'SET_SINGLE'` の場合
+    - 価格入力フィールドに `disabled={isSetSingle}` 属性追加
+    - グレーアウトスタイル: `bg-gray-100 text-gray-500 cursor-not-allowed`
+    - プレースホルダー: 「親セット価格に含まれます」
+    - 情報メッセージ: 「ℹ️ セット単品の価格は親セットに含まれるため、入力不要です」
+  - タイプ選択に応じた動的UI制御（`form.watch('type')`）
 
-#### Phase 2.14.3（継続中）- 入力項目の柔軟性向上
-1. **価格フィールド** - セット単品時のグレーアウト・無効化
-2. **購入日** - 不明・未設定を許容
-3. **購入情報** - 必須項目の見直し
-4. **価格** - 未入力・不明を許容（任意項目化）
-5. **バリデーション** - ルールの最終調整
+- ✅ **購入日の不明・未設定許容**（既存実装で対応済み）
+  - データベース: `purchaseDate DateTime?` - NULL許可
+  - バリデーション: `z.string().optional()` で任意項目
+  - フォーム: 必須マーク（*）なし、任意扱い
+
+- ✅ **購入情報の必須項目見直し**（既存実装で対応済み）
+  - 購入価格（税抜・税込）: `.optional()` で任意項目
+  - 購入店: `z.string().optional()` で任意項目
+  - 購入状態: `z.enum(['NEW', 'USED']).optional().or(z.literal(''))` で空文字許容
+
+- ✅ **価格の未入力・不明許容 + NaN対応**（2025年1月24日完了）
+  - バリデーション修正:
+    ```typescript
+    // product.ts & owned-vehicle.ts
+    priceExcludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan())
+    priceIncludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan())
+    releaseYear: z.number().int().min(1900).max(2030).optional().or(z.nan())
+    purchaseCondition: z.enum(['NEW', 'USED']).optional().or(z.literal(''))
+    ```
+  - フォーム送信処理修正（全4ファイル）:
+    - `apps/web-next/src/app/products/new/page.tsx`
+    - `apps/web-next/src/app/products/[id]/edit/page.tsx`
+    - `apps/web-next/src/app/owned-vehicles/new/page.tsx`
+    - `apps/web-next/src/app/owned-vehicles/[id]/edit/page.tsx`
+    ```typescript
+    // NaN判定による変換処理
+    releaseYear: isNaN(data.releaseYear as number) ? undefined : data.releaseYear
+    priceExcludingTax: isNaN(data.priceExcludingTax as number) ? undefined : data.priceExcludingTax
+    priceIncludingTax: isNaN(data.priceIncludingTax as number) ? undefined : data.priceIncludingTax
+    purchaseCondition: data.purchaseCondition === '' ? undefined : data.purchaseCondition
+    ```
+  - react-hook-formの`valueAsNumber`がempty時に`NaN`を返す問題に対応
+  - TypeScript型エラー修正完了（型チェック・ビルド成功）
+
+- ✅ **バリデーションルール総合調整**（2025年1月24日完了）
+  - `.or(z.nan())`により、NaN値も許容するスキーマに変更
+  - `.or(z.literal(''))`により、空文字列も許容（enum項目）
+  - フォーム送信時に`isNaN()`判定でundefinedに変換
+  - 空フォーム送信時のバリデーションエラー解消
+  - 必須項目は`vehicleType`, `currentStatus`, `storageCondition`のみ
+
+#### 動作確認結果
+- ✅ TypeScript型チェック: `npm run type-check` - エラーなし
+- ✅ Next.jsビルド: `npx next build --turbopack` - 成功（30ルート生成確認）
+- ✅ 全フォームで空欄提出時のバリデーションエラー解消
+
+### 次の実装予定
 
 #### Phase 2.16 - CSVインポート改善
 1. **製品未登録時の対応** - 独立車両として自動登録

@@ -112,9 +112,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       // 空文字列を undefined に変換
       const cleanedData = {
         ...data,
-        releaseYear: data.releaseYear === '' ? undefined : Number(data.releaseYear),
-        priceExcludingTax: data.priceExcludingTax === '' ? undefined : Number(data.priceExcludingTax),
-        priceIncludingTax: data.priceIncludingTax === '' ? undefined : Number(data.priceIncludingTax),
+        releaseYear: isNaN(data.releaseYear as number) ? undefined : data.releaseYear,
+        priceExcludingTax: isNaN(data.priceExcludingTax as number) ? undefined : data.priceExcludingTax,
+        priceIncludingTax: isNaN(data.priceIncludingTax as number) ? undefined : data.priceIncludingTax,
         imageUrl: data.imageUrl === '' ? undefined : data.imageUrl,
         realVehicles: data.realVehicles?.filter(rv =>
           rv.vehicleType || rv.company || rv.manufacturingYear || rv.operationLine || rv.notes
