@@ -43,7 +43,7 @@ model Product {
   description       String?
   tags              String[]
   vehicleCount      Int            @default(1) @map("vehicle_count")
-  imageUrl          String?        @map("image_url") @db.VarChar(500)
+  imageUrls         String[]       @default([]) @map("image_urls")
   url               String?        @db.VarChar(500)
   icon              String?        @db.VarChar(100)
   createdByUserId   Int?           @map("created_by_user_id")

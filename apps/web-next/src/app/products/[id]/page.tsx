@@ -20,7 +20,7 @@ interface Product {
   priceExcludingTax: number | null
   priceIncludingTax: number | null
   description: string | null
-  imageUrl: string | null
+  imageUrls: string[]
   realVehicles: RealVehicle[]
   ownedVehicles: OwnedVehicle[]
   _count?: { ownedVehicles: number }
@@ -172,10 +172,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 製品画像 */}
         <div>
-          {product.imageUrl ? (
+          {product.imageUrls && product.imageUrls.length > 0 ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={product.imageUrl}
+              src={product.imageUrls[0]}
               alt={product.name}
               className="w-full rounded-lg shadow-md"
             />
@@ -345,10 +345,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => router.push(`/products/${parentSet.id}`)}
               >
-                {parentSet.imageUrl ? (
+                {parentSet.imageUrls && parentSet.imageUrls.length > 0 ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={parentSet.imageUrl}
+                    src={parentSet.imageUrls[0]}
                     alt={parentSet.name}
                     className="w-full h-32 object-cover rounded-md mb-3"
                   />

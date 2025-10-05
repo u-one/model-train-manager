@@ -17,7 +17,7 @@ export const productFormSchema = z.object({
 
   // 商品情報
   description: z.string().optional(),
-  imageUrl: z.union([z.string().url('正しいURLを入力してください'), z.string().length(0)]).optional(),
+  imageUrls: z.array(z.string().url('正しいURLを入力してください')).optional(),
 
   // 実車情報
   realVehicles: z.array(z.object({
@@ -42,6 +42,6 @@ export const defaultProductValues: Partial<ProductFormData> = {
   priceExcludingTax: undefined,
   priceIncludingTax: undefined,
   description: '',
-  imageUrl: '',
+  imageUrls: [],
   realVehicles: []
 }

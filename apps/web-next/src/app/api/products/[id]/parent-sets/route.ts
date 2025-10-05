@@ -30,7 +30,7 @@ export async function GET(
       priceExcludingTax: number | null
       priceIncludingTax: number | null
       description: string | null
-      imageUrl: string | null
+      imageUrls: string[]
       realVehicles: Array<{
         id: number
         vehicleType: string | null

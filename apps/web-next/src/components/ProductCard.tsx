@@ -17,7 +17,7 @@ interface Product {
   name: string
   type: string
   priceIncludingTax: number | null
-  imageUrl: string | null
+  imageUrls: string[]
   _count?: { ownedVehicles: number }
   productTags?: ProductTag[]
 }
@@ -37,10 +37,10 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       onClick={onClick}
     >
       <div className="aspect-w-16 aspect-h-9 mb-3">
-        {product.imageUrl ? (
+        {product.imageUrls && product.imageUrls.length > 0 ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.imageUrl}
+            src={product.imageUrls[0]}
             alt={product.name}
             className="w-full h-32 object-cover rounded"
           />

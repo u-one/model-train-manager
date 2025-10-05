@@ -17,7 +17,7 @@ interface Product {
   name: string
   type: string
   priceIncludingTax: number | null
-  imageUrl: string | null
+  imageUrls: string[]
   _count?: { ownedVehicles: number }
   productTags?: ProductTag[]
 }
@@ -37,10 +37,10 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
       onClick={onClick}
     >
       <div className="flex items-center space-x-4">
-        {product.imageUrl ? (
+        {product.imageUrls && product.imageUrls.length > 0 ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.imageUrl}
+            src={product.imageUrls[0]}
             alt={product.name}
             className="w-20 h-20 object-cover rounded flex-shrink-0"
           />

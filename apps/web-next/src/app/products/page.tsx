@@ -28,7 +28,7 @@ interface Product {
   name: string
   type: string
   priceIncludingTax: number | null
-  imageUrl: string | null
+  imageUrls: string[]
   _count: { ownedVehicles: number }
   productTags?: ProductTag[]
 }

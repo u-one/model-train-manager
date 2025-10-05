@@ -96,7 +96,7 @@ function NewProductForm() {
         releaseYear: isNaN(data.releaseYear as number) ? undefined : data.releaseYear,
         priceExcludingTax: isNaN(data.priceExcludingTax as number) ? undefined : data.priceExcludingTax,
         priceIncludingTax: isNaN(data.priceIncludingTax as number) ? undefined : data.priceIncludingTax,
-        imageUrl: data.imageUrl === '' ? undefined : data.imageUrl,
+        imageUrls: data.imageUrls || [],
         realVehicles: data.realVehicles?.filter(rv =>
           rv.vehicleType || rv.company || rv.manufacturingYear || rv.operationLine || rv.notes
         )
@@ -366,18 +366,6 @@ function NewProductForm() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">商品情報</h2>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  画像URL
-                </label>
-                <input
-                  type="url"
-                  {...form.register('imageUrl')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-1">
                   説明

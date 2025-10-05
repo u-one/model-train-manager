@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             price_excluding_tax: productData.priceExcludingTax,
             price_including_tax: productData.priceIncludingTax,
             description: productData.description,
-            image_url: productData.imageUrl,
+            image_urls: productData.imageUrl ? [productData.imageUrl] : [],
             created_at: now,
             updated_at: now,
           })
