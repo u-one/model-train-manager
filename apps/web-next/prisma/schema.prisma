@@ -54,6 +54,7 @@ model Product {
   createdByUser     User?          @relation("UserCreatedProducts", fields: [createdByUserId], references: [id])
   realVehicles      RealVehicle[]
   ownedVehicles     OwnedVehicle[]
+  productTags       ProductTag[]
 
   @@index([brand])
   @@index([productCode])
@@ -176,4 +177,37 @@ enum VehicleStatus {
 enum StorageCondition {
   WITH_CASE    @map("ケースあり")
   WITHOUT_CASE @map("ケースなし")
+}
+
+// タグテーブル
+model Tag {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(50)
+  category    String       @db.VarChar(30)
+  description String?      @db.Text
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // リレーション
+  productTags ProductTag[]
+
+  @@index([category])
+  @@index([name])
+  @@map("tags")
+}
+
+// 製品タグ中間テーブル
+model ProductTag {
+  productId Int      @map("product_id")
+  tagId     Int      @map("tag_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // リレーション
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+  @@index([productId])
+  @@index([tagId])
+  @@map("product_tags")
 }
