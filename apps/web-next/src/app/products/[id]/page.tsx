@@ -23,6 +23,15 @@ interface Product {
   realVehicles: RealVehicle[]
   ownedVehicles: OwnedVehicle[]
   _count?: { ownedVehicles: number }
+  productTags?: ProductTag[]
+}
+
+interface ProductTag {
+  tag: {
+    id: number
+    name: string
+    category: string
+  }
 }
 
 interface RealVehicle {
@@ -214,6 +223,33 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">説明</h2>
               <p className="text-gray-700 whitespace-pre-wrap">{product.description}</p>
+            </div>
+          )}
+
+          {/* タグ情報 */}
+          {product.productTags && product.productTags.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">タグ</h2>
+              <div className="flex flex-wrap gap-2">
+                {product.productTags.map((productTag) => {
+                  const categoryColors: Record<string, string> = {
+                    vehicle_type: 'bg-blue-100 text-blue-800',
+                    company: 'bg-green-100 text-green-800',
+                    feature: 'bg-purple-100 text-purple-800',
+                    era: 'bg-orange-100 text-orange-800'
+                  }
+                  const colorClass = categoryColors[productTag.tag.category] || 'bg-gray-100 text-gray-800'
+
+                  return (
+                    <span
+                      key={productTag.tag.id}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${colorClass}`}
+                    >
+                      {productTag.tag.name}
+                    </span>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>

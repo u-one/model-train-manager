@@ -25,7 +25,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             user: { select: { id: true, name: true } }
           }
         } : false,
-        createdByUser: { select: { id: true, name: true } }
+        createdByUser: { select: { id: true, name: true } },
+        productTags: {
+          include: {
+            tag: true
+          }
+        }
       }
     })
 
