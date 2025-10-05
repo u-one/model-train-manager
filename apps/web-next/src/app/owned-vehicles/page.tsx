@@ -51,6 +51,7 @@ export default function OwnedVehiclesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [conditionFilter, setConditionFilter] = useState('')
+  const [independentFilter, setIndependentFilter] = useState('')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<OwnedVehiclesResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
@@ -65,6 +66,7 @@ export default function OwnedVehiclesPage() {
       if (search) params.append('search', search)
       if (statusFilter) params.append('status', statusFilter)
       if (conditionFilter) params.append('condition', conditionFilter)
+      if (independentFilter) params.append('isIndependent', independentFilter)
       params.append('page', page.toString())
       params.append('limit', '100')
 
@@ -91,11 +93,22 @@ export default function OwnedVehiclesPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter, conditionFilter, page, session, status])
+  }, [search, statusFilter, conditionFilter, independentFilter, page, session, status])
 
   useEffect(() => {
     fetchVehicles()
   }, [fetchVehicles])
+
+  // フィルタリセット
+  const handleResetFilters = () => {
+    setSearch('')
+    setStatusFilter('')
+    setConditionFilter('')
+    setIndependentFilter('')
+    setPage(1)
+  }
+
+  const hasActiveFilters = search || statusFilter || conditionFilter || independentFilter
 
   const handleVehicleClick = (vehicleId: number) => {
     router.push(`/owned-vehicles/${vehicleId}`)
@@ -127,7 +140,7 @@ export default function OwnedVehiclesPage() {
 
       {/* フィルター */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <input
             type="text"
             placeholder="管理ID・車両名で検索"
@@ -154,8 +167,27 @@ export default function OwnedVehiclesPage() {
             <option value="WITH_CASE">ケースあり</option>
             <option value="WITHOUT_CASE">ケースなし</option>
           </select>
-          <div className="text-sm text-gray-600 flex items-center">
-            合計: {pagination?.total || 0}台
+          <select
+            value={independentFilter}
+            onChange={(e) => setIndependentFilter(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2"
+          >
+            <option value="">全車両</option>
+            <option value="true">独立車両のみ</option>
+            <option value="false">製品リンク済みのみ</option>
+          </select>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              合計: {pagination?.total || 0}台
+            </div>
+            {hasActiveFilters && (
+              <button
+                onClick={handleResetFilters}
+                className="text-xs text-blue-600 hover:text-blue-700"
+              >
+                フィルタ解除
+              </button>
+            )}
           </div>
         </div>
       </div>

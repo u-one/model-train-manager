@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
       const status = searchParams.get('status')
       const condition = searchParams.get('condition')
       const search = searchParams.get('search')
+      const isIndependent = searchParams.get('isIndependent')
       const page = parseInt(searchParams.get('page') || '1')
       const limit = parseInt(searchParams.get('limit') || '100')
       const offset = (page - 1) * limit
@@ -38,11 +39,20 @@ export async function GET(request: NextRequest) {
 
       if (status) where.currentStatus = status
       if (condition) where.storageCondition = condition
+      if (isIndependent === 'true') {
+        // 独立車両のみ: independentVehicle が存在
+        where.independentVehicle = { isNot: null }
+      } else if (isIndependent === 'false') {
+        // 製品リンク済みのみ: independentVehicle が存在しない
+        where.independentVehicle = null
+      }
       if (search) {
         where.OR = [
           { managementId: { contains: search, mode: 'insensitive' } },
           { product: { name: { contains: search, mode: 'insensitive' } } },
           { product: { productCode: { contains: search, mode: 'insensitive' } } },
+          { independentVehicle: { name: { contains: search, mode: 'insensitive' } } },
+          { independentVehicle: { brand: { contains: search, mode: 'insensitive' } } },
           { notes: { contains: search, mode: 'insensitive' } }
         ]
       }
@@ -69,45 +79,8 @@ export async function GET(request: NextRequest) {
         prisma.ownedVehicle.count({ where })
       ])
 
-      // メーカー・品番によるマッチング情報を追加
-      const enhancedOwnedVehicles = await Promise.all(
-        ownedVehicles.map(async (vehicle) => {
-          // 既存のproductIdがある場合はそのまま使用
-          if (vehicle.productId) {
-            return vehicle
-          }
-
-          // productIdがない場合、メーカー・品番でマッチングを試行
-          if (vehicle.notes) {
-            // notesフィールドからメーカー・品番を抽出する簡易ロジック
-            // 実際の運用では、専用フィールドを使用することを推奨
-            const matchingProduct = await prisma.product.findFirst({
-              where: {
-                AND: [
-                  // notesに含まれる情報から製品を特定
-                  // この部分は実際のデータ形式に合わせて調整が必要
-                ]
-              },
-              include: {
-                realVehicles: true
-              }
-            })
-
-            if (matchingProduct) {
-              return {
-                ...vehicle,
-                product: matchingProduct,
-                _matchedByBrandCode: true
-              }
-            }
-          }
-
-          return vehicle
-        })
-      )
-
       return NextResponse.json({
-        ownedVehicles: enhancedOwnedVehicles,
+        ownedVehicles,
         pagination: {
           page,
           limit,
