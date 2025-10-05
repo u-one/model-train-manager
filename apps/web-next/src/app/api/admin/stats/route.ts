@@ -16,7 +16,9 @@ export async function GET() {
       totalUsers,
       recentProductImports,
       recentOwnedVehicleImports,
-      activeUsers
+      activeUsers,
+      totalTags,
+      taggedProducts
     ] = await Promise.all([
       prisma.product.count(),
       prisma.ownedVehicle.count(),
@@ -44,6 +46,16 @@ export async function GET() {
             some: {}
           }
         }
+      }),
+      // 総タグ数
+      prisma.tag.count(),
+      // タグ付き製品数
+      prisma.product.count({
+        where: {
+          productTags: {
+            some: {}
+          }
+        }
       })
     ])
 
@@ -54,7 +66,9 @@ export async function GET() {
       totalOwnedVehicles,
       totalUsers,
       recentImports,
-      activeUsers
+      activeUsers,
+      totalTags,
+      taggedProducts
     })
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unauthorized')) {

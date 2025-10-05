@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Package, Car, Users, Database } from 'lucide-react'
+import { Package, Car, Users, Database, Tags } from 'lucide-react'
 
 interface SystemStats {
   totalProducts: number
@@ -9,6 +9,8 @@ interface SystemStats {
   totalUsers: number
   recentImports: number
   activeUsers: number
+  totalTags?: number
+  taggedProducts?: number
 }
 
 export default function AdminDashboard() {
@@ -147,6 +149,46 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </a>
+            <a
+              href="/admin/tags"
+              className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center">
+                <Tags className="h-5 w-5 text-indigo-500 mr-3" />
+                <div>
+                  <p className="font-medium text-gray-900">タグ管理</p>
+                  <p className="text-sm text-gray-600">タグの作成・編集・削除</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            タグ統計
+          </h2>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium text-gray-600">総タグ数</span>
+              <span className="text-lg font-semibold text-gray-900">
+                {stats?.totalTags || 0}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium text-gray-600">タグ付き製品数</span>
+              <span className="text-lg font-semibold text-gray-900">
+                {stats?.taggedProducts || 0}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium text-gray-600">タグ付与率</span>
+              <span className="text-lg font-semibold text-gray-900">
+                {stats?.totalProducts && stats?.taggedProducts
+                  ? `${Math.round((stats.taggedProducts / stats.totalProducts) * 100)}%`
+                  : '0%'}
+              </span>
+            </div>
           </div>
         </div>
 
