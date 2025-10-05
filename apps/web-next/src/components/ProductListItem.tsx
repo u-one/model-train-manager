@@ -1,3 +1,5 @@
+import { getCategoryColor } from '@/constants/tags'
+
 interface Tag {
   id: number
   name: string
@@ -23,13 +25,6 @@ interface Product {
 interface ProductListItemProps {
   product: Product
   onClick?: () => void
-}
-
-const TAG_CATEGORY_COLORS: Record<string, string> = {
-  vehicle_type: 'bg-blue-100 text-blue-800',
-  company: 'bg-green-100 text-green-800',
-  feature: 'bg-purple-100 text-purple-800',
-  era: 'bg-orange-100 text-orange-800'
 }
 
 export default function ProductListItem({ product, onClick }: ProductListItemProps) {
@@ -84,7 +79,7 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
               {displayTags.map((pt) => (
                 <span
                   key={pt.tag.id}
-                  className={`text-xs px-2 py-0.5 rounded ${TAG_CATEGORY_COLORS[pt.tag.category] || 'bg-gray-100 text-gray-800'}`}
+                  className={`text-xs px-2 py-0.5 rounded ${getCategoryColor(pt.tag.category)}`}
                 >
                   {pt.tag.name}
                 </span>

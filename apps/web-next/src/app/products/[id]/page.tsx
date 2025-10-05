@@ -8,6 +8,7 @@ import ProductListItem from '@/components/ProductListItem'
 import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
 import { useViewMode } from '@/hooks/useViewMode'
+import { getCategoryColor } from '@/constants/tags'
 
 interface Product {
   id: number
@@ -231,24 +232,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">タグ</h2>
               <div className="flex flex-wrap gap-2">
-                {product.productTags.map((productTag) => {
-                  const categoryColors: Record<string, string> = {
-                    vehicle_type: 'bg-blue-100 text-blue-800',
-                    company: 'bg-green-100 text-green-800',
-                    feature: 'bg-purple-100 text-purple-800',
-                    era: 'bg-orange-100 text-orange-800'
-                  }
-                  const colorClass = categoryColors[productTag.tag.category] || 'bg-gray-100 text-gray-800'
-
-                  return (
-                    <span
-                      key={productTag.tag.id}
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${colorClass}`}
-                    >
-                      {productTag.tag.name}
-                    </span>
-                  )
-                })}
+                {product.productTags.map((productTag) => (
+                  <span
+                    key={productTag.tag.id}
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${getCategoryColor(productTag.tag.category)}`}
+                  >
+                    {productTag.tag.name}
+                  </span>
+                ))}
               </div>
             </div>
           )}

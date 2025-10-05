@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getCategoryLabel, getCategoryColor } from '@/constants/tags'
 
 interface Tag {
   id: number
@@ -17,20 +18,6 @@ interface TagCategory {
 interface ProductFormTagSelectorProps {
   selectedTags: number[]
   onTagsChange: (tags: number[]) => void
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  vehicle_type: '車種',
-  company: '運営会社',
-  feature: '特徴・仕様',
-  era: '時代・塗装'
-}
-
-const TAG_CATEGORY_COLORS: Record<string, string> = {
-  vehicle_type: 'bg-blue-100 text-blue-800',
-  company: 'bg-green-100 text-green-800',
-  feature: 'bg-purple-100 text-purple-800',
-  era: 'bg-orange-100 text-orange-800'
 }
 
 export default function ProductFormTagSelector({
@@ -121,7 +108,7 @@ export default function ProductFormTagSelector({
           {tags.filter(tag => selectedTags.includes(tag.id)).map(tag => (
             <span
               key={tag.id}
-              className={`text-xs px-2 py-1 rounded flex items-center space-x-1 ${TAG_CATEGORY_COLORS[tag.category] || 'bg-gray-100 text-gray-800'}`}
+              className={`text-xs px-2 py-1 rounded flex items-center space-x-1 ${getCategoryColor(tag.category)}`}
             >
               <span>{tag.name}</span>
               <button
@@ -152,7 +139,7 @@ export default function ProductFormTagSelector({
               >
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-medium text-gray-900">
-                    {CATEGORY_LABELS[categoryInfo.category] || categoryInfo.category}
+                    {getCategoryLabel(categoryInfo.category)}
                   </span>
                   {selectedCount > 0 && (
                     <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">

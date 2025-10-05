@@ -6,7 +6,8 @@
 export const TAG_CATEGORIES = [
   { value: 'vehicle_type', label: '車種' },
   { value: 'company', label: '運営会社' },
-  { value: 'feature', label: '特徴・仕様' },
+  { value: 'product_feature', label: '商品特徴' },
+  { value: 'vehicle_spec', label: '車両仕様' },
   { value: 'era', label: '時代・塗装' }
 ] as const
 
@@ -19,7 +20,8 @@ export type TagCategoryValue = typeof TAG_CATEGORIES[number]['value']
 export const TAG_CATEGORY_COLORS: Record<string, string> = {
   vehicle_type: 'bg-blue-100 text-blue-800',
   company: 'bg-green-100 text-green-800',
-  feature: 'bg-purple-100 text-purple-800',
+  product_feature: 'bg-purple-100 text-purple-800',
+  vehicle_spec: 'bg-indigo-100 text-indigo-800',
   era: 'bg-orange-100 text-orange-800'
 }
 
