@@ -8,7 +8,6 @@ import AuthGuard from '@/components/AuthGuard'
 interface OwnedVehicle {
   id: number
   managementId: string
-  isIndependent: boolean
   productId: number | null
   currentStatus: string
   storageCondition: string
@@ -160,12 +159,12 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{vehicle.managementId}</h1>
             <p className="text-lg text-gray-600 mt-1">{vehicleName}</p>
-            {vehicle.isIndependent && (
+            {vehicle.independentVehicle && (
               <p className="text-sm text-orange-600 mt-1">⚠️ 独立記録車両（製品情報なし）</p>
             )}
           </div>
           <div className="flex space-x-2">
-            {vehicle.isIndependent && vehicle.independentVehicle && (
+            {vehicle.independentVehicle && (
               <button
                 onClick={() => router.push(`/products/new?fromIndependent=${vehicle.id}`)}
                 className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2"
@@ -191,7 +190,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* 独立車両の警告メッセージ */}
-      {vehicle.isIndependent && vehicle.independentVehicle && (
+      {vehicle.independentVehicle && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -244,7 +243,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
           {/* 基本情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              {vehicle.isIndependent ? '車両情報（独立記録）' : '基本情報'}
+              {vehicle.independentVehicle ? '車両情報（独立記録）' : '基本情報'}
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <div>

@@ -87,7 +87,6 @@ model OwnedVehicle {
   userId                    Int                 @map("user_id")
   managementId              String              @map("management_id") @db.VarChar(100)
   productId                 Int?                @map("product_id")
-  isIndependent             Boolean             @default(false) @map("is_independent")
 
   // 購入情報
   purchaseDate              DateTime?           @map("purchase_date") @db.Date

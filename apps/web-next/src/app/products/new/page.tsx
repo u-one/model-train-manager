@@ -25,7 +25,7 @@ function NewProductForm() {
       if (response.ok) {
         const vehicle = await response.json()
 
-        if (vehicle.isIndependent && vehicle.independentVehicle) {
+        if (vehicle.independentVehicle) {
           const { independentVehicle } = vehicle
 
           // フォームに初期値を設定
@@ -120,8 +120,7 @@ function NewProductForm() {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                productId: newProduct.id,
-                isIndependent: false
+                productId: newProduct.id
               })
             })
 

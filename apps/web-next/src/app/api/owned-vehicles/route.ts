@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       const enhancedOwnedVehicles = await Promise.all(
         ownedVehicles.map(async (vehicle) => {
           // 既存のproductIdがある場合はそのまま使用
-          if (vehicle.product) {
+          if (vehicle.productId) {
             return vehicle
           }
 

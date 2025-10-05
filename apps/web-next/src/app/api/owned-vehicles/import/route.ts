@@ -82,7 +82,6 @@ export async function POST(request: NextRequest) {
 
         let productId: number | null = null
 
-        let isIndependent = false
         let independentVehicleData: {
           brand?: string | null
           productCode?: string | null
@@ -103,7 +102,6 @@ export async function POST(request: NextRequest) {
             productId = product.id
           } else {
             // 製品が見つからない場合は独立車両として登録
-            isIndependent = true
             independentVehicleData = {
               brand: vehicleData.productBrand,
               productCode: vehicleData.productCode,
@@ -129,7 +127,6 @@ export async function POST(request: NextRequest) {
             productId = product.id
           } else {
             // 製品が見つからない場合は独立車両として登録
-            isIndependent = true
             independentVehicleData = {
               brand: vehicleData.independentBrand,
               productCode: vehicleData.productCode,
@@ -140,7 +137,6 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // 製品情報がない場合は独立車両として登録
-          isIndependent = true
           independentVehicleData = {
             brand: vehicleData.independentBrand,
             name: vehicleData.independentName || '(商品名不明)',
@@ -156,7 +152,6 @@ export async function POST(request: NextRequest) {
             user_id: user.id,
             product_id: productId,
             management_id: vehicleData.managementId,
-            is_independent: isIndependent,
             current_status: vehicleData.currentStatus,
             storage_condition: vehicleData.storageCondition,
             purchase_date: vehicleData.purchaseDate,
@@ -176,7 +171,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 独立車両の場合は独立車両情報も登録
-        if (isIndependent && independentVehicleData && ownedVehicle) {
+        if (independentVehicleData && ownedVehicle) {
           const { error: independentError } = await supabase
             .from('independent_vehicles')
             .insert({

@@ -2,6 +2,9 @@
 local/
 settings.local.json
 
+# Playwright
+.playwright-mcp/
+
 # Claude specific files
 .claude/
 claude_data/

@@ -136,6 +136,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           where: { ownedVehicleId: id }
         })
       }
+    } else if (ownedVehicleData.productId && existingVehicle.independentVehicle) {
+      // productId が設定される場合は独立車両情報を削除
+      await prisma.independentVehicle.delete({
+        where: { ownedVehicleId: id }
+      })
     }
 
     // 不要なフィールドを削除
