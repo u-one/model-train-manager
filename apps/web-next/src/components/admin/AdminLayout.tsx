@@ -9,6 +9,7 @@ import {
   Package,
   Car,
   Users,
+  Tags,
   AlertTriangle
 } from 'lucide-react'
 
@@ -31,6 +32,11 @@ const navItems = [
     href: '/admin/owned-vehicles',
     icon: Car,
     label: '保有車両管理'
+  },
+  {
+    href: '/admin/tags',
+    icon: Tags,
+    label: 'タグ管理'
   },
   {
     href: '/admin/users',
