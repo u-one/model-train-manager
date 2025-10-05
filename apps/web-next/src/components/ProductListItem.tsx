@@ -1,3 +1,13 @@
+interface Tag {
+  id: number
+  name: string
+  category: string
+}
+
+interface ProductTag {
+  tag: Tag
+}
+
 interface Product {
   id: number
   brand: string
@@ -7,6 +17,7 @@ interface Product {
   priceIncludingTax: number | null
   imageUrl: string | null
   _count?: { ownedVehicles: number }
+  productTags?: ProductTag[]
 }
 
 interface ProductListItemProps {
@@ -14,7 +25,17 @@ interface ProductListItemProps {
   onClick?: () => void
 }
 
+const TAG_CATEGORY_COLORS: Record<string, string> = {
+  vehicle_type: 'bg-blue-100 text-blue-800',
+  company: 'bg-green-100 text-green-800',
+  feature: 'bg-purple-100 text-purple-800',
+  era: 'bg-orange-100 text-orange-800'
+}
+
 export default function ProductListItem({ product, onClick }: ProductListItemProps) {
+  const displayTags = product.productTags?.slice(0, 5) || []
+  const remainingCount = (product.productTags?.length || 0) - displayTags.length
+
   return (
     <div
       className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer p-4"
@@ -56,6 +77,25 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
               <span>保有: {product._count.ownedVehicles}台</span>
             )}
           </div>
+
+          {/* タグバッジ */}
+          {displayTags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {displayTags.map((pt) => (
+                <span
+                  key={pt.tag.id}
+                  className={`text-xs px-2 py-0.5 rounded ${TAG_CATEGORY_COLORS[pt.tag.category] || 'bg-gray-100 text-gray-800'}`}
+                >
+                  {pt.tag.name}
+                </span>
+              ))}
+              {remainingCount > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                  +{remainingCount}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

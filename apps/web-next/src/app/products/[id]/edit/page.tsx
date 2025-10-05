@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Input, Select } from '@/components/ui'
+import ProductFormTagSelector from '@/components/ProductFormTagSelector'
 import { productFormSchema, type ProductFormData } from '@/lib/validations/product'
 
 interface Product {
@@ -37,6 +38,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [product, setProduct] = useState<Product | null>(null)
+  const [selectedTags, setSelectedTags] = useState<number[]>([])
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -71,6 +73,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         if (response.ok) {
           const productData = await response.json()
           setProduct(productData)
+
+          // 既存のタグを読み込み
+          const tagsResponse = await fetch(`/api/products/${resolvedParams.id}/tags`)
+          if (tagsResponse.ok) {
+            const tagsData = await tagsResponse.json()
+            setSelectedTags(tagsData.tags.map((tag: { id: number }) => tag.id))
+          }
 
           // フォームの初期値を設定
           form.reset({
@@ -130,6 +139,20 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       })
 
       if (response.ok) {
+        // タグを更新
+        try {
+          await fetch(`/api/products/${resolvedParams.id}/tags`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ tagIds: selectedTags })
+          })
+        } catch (tagError) {
+          console.error('Failed to update tags:', tagError)
+          // タグ更新失敗でも製品更新は成功したので続行
+        }
+
         router.push(`/products/${resolvedParams.id}`)
       } else {
         const error = await response.json()
@@ -398,6 +421,14 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 ))}
               </div>
             )}
+          </div>
+
+          {/* タグ選択 */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <ProductFormTagSelector
+              selectedTags={selectedTags}
+              onTagsChange={setSelectedTags}
+            />
           </div>
 
           {/* 送信ボタン */}

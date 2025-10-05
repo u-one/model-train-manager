@@ -15,6 +15,11 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100')
     const offset = (page - 1) * limit
 
+    // タグフィルタパラメータ
+    const tagsParam = searchParams.get('tags')
+    const tagOperator = searchParams.get('tag_operator') || 'OR'
+    const excludeTagsParam = searchParams.get('exclude_tags')
+
     // ログインユーザーを取得
     let currentUserId = null
     if (session?.user?.email) {
@@ -43,11 +48,51 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    // タグフィルタの処理
+    const tagIds = tagsParam ? tagsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : []
+    const excludeTagIds = excludeTagsParam ? excludeTagsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : []
+
+    if (tagIds.length > 0) {
+      if (tagOperator === 'AND') {
+        // AND検索: 指定されたすべてのタグを持つ製品
+        where.productTags = {
+          some: {
+            tagId: { in: tagIds }
+          }
+        }
+        // ANDの場合は、全てのタグを持つ製品のみを取得する必要があるため、
+        // havingを使った集計が必要だが、Prismaでは複雑なので一度取得してフィルタする
+      } else {
+        // OR検索: 指定されたタグのいずれかを持つ製品
+        where.productTags = {
+          some: {
+            tagId: { in: tagIds }
+          }
+        }
+      }
+    }
+
+    // 除外タグの処理
+    if (excludeTagIds.length > 0) {
+      where.NOT = {
+        productTags: {
+          some: {
+            tagId: { in: excludeTagIds }
+          }
+        }
+      }
+    }
+
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
         include: {
           realVehicles: true,
+          productTags: {
+            include: {
+              tag: true
+            }
+          },
           _count: {
             select: {
               ownedVehicles: currentUserId ? {
@@ -63,13 +108,22 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where })
     ])
 
+    // AND検索の場合、全てのタグを持つ製品のみにフィルタ
+    let filteredProducts = products
+    if (tagIds.length > 0 && tagOperator === 'AND') {
+      filteredProducts = products.filter(product => {
+        const productTagIds = product.productTags.map(pt => pt.tagId)
+        return tagIds.every(tagId => productTagIds.includes(tagId))
+      })
+    }
+
     return NextResponse.json({
-      products,
+      products: filteredProducts,
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit)
+        total: tagOperator === 'AND' && tagIds.length > 0 ? filteredProducts.length : total,
+        totalPages: Math.ceil((tagOperator === 'AND' && tagIds.length > 0 ? filteredProducts.length : total) / limit)
       }
     })
   } catch (error) {

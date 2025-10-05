@@ -7,8 +7,19 @@ import ProductCard from '@/components/ProductCard'
 import ProductListItem from '@/components/ProductListItem'
 import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
+import TagFilter from '@/components/TagFilter'
 import { useViewMode } from '@/hooks/useViewMode'
 import { useAdmin } from '@/hooks/useAdmin'
+
+interface Tag {
+  id: number
+  name: string
+  category: string
+}
+
+interface ProductTag {
+  tag: Tag
+}
 
 interface Product {
   id: number
@@ -19,6 +30,7 @@ interface Product {
   priceIncludingTax: number | null
   imageUrl: string | null
   _count: { ownedVehicles: number }
+  productTags?: ProductTag[]
 }
 
 interface ProductsResponse {
@@ -41,6 +53,8 @@ export default function ProductsPage() {
   const [brand, setBrand] = useState('')
   const [type, setType] = useState('')
   const [showSetSingle, setShowSetSingle] = useState(false) // セット単品デフォルト非表示
+  const [selectedTags, setSelectedTags] = useState<number[]>([])
+  const [tagOperator, setTagOperator] = useState<'AND' | 'OR'>('OR')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<ProductsResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
@@ -53,6 +67,10 @@ export default function ProductsPage() {
       if (brand) params.append('brand', brand)
       if (type) params.append('type', type)
       if (!showSetSingle) params.append('excludeSetSingle', 'true') // セット単品除外
+      if (selectedTags.length > 0) {
+        params.append('tags', selectedTags.join(','))
+        params.append('tag_operator', tagOperator)
+      }
       params.append('page', page.toString())
       params.append('limit', '100')
 
@@ -67,11 +85,11 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, brand, type, showSetSingle, page])
+  }, [search, brand, type, showSetSingle, selectedTags, tagOperator, page])
 
   useEffect(() => {
     fetchProducts()
-  }, [search, brand, type, showSetSingle, page, fetchProducts])
+  }, [search, brand, type, showSetSingle, selectedTags, tagOperator, page, fetchProducts])
 
 
   const handleProductClick = (productId: number) => {
@@ -112,10 +130,22 @@ export default function ProductsPage() {
       </div>
 
       {/* フィルター */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <div className="space-y-4">
-          {/* 検索とメインフィルタ */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        {/* タグフィルタ */}
+        <div className="lg:col-span-1">
+          <TagFilter
+            selectedTags={selectedTags}
+            operator={tagOperator}
+            onTagsChange={setSelectedTags}
+            onOperatorChange={setTagOperator}
+          />
+        </div>
+
+        {/* 既存のフィルター */}
+        <div className="lg:col-span-3 bg-white p-6 rounded-lg shadow">
+          <div className="space-y-4">
+            {/* 検索とメインフィルタ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">検索</label>
               <input
@@ -172,24 +202,26 @@ export default function ProductsPage() {
 
             <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
               {/* アクティブフィルタ表示 */}
-              {(search || brand || type || showSetSingle) && (
+              {(search || brand || type || showSetSingle || selectedTags.length > 0) && (
                 <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
                   <span className="whitespace-nowrap">フィルタ適用中:</span>
                   {search && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded whitespace-nowrap">検索: {search}</span>}
                   {brand && <span className="bg-green-100 text-green-800 px-2 py-1 rounded whitespace-nowrap">メーカー: {brand}</span>}
                   {type && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded whitespace-nowrap">種別: {type}</span>}
                   {showSetSingle && <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded whitespace-nowrap">セット単品表示</span>}
+                  {selectedTags.length > 0 && <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded whitespace-nowrap">タグ: {selectedTags.length}件 ({tagOperator})</span>}
                 </div>
               )}
 
               {/* リセットボタン */}
-              {(search || brand || type || showSetSingle) && (
+              {(search || brand || type || showSetSingle || selectedTags.length > 0) && (
                 <button
                   onClick={() => {
                     setSearch('')
                     setBrand('')
                     setType('')
                     setShowSetSingle(false)
+                    setSelectedTags([])
                     setPage(1)
                   }}
                   className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors whitespace-nowrap"
@@ -200,6 +232,7 @@ export default function ProductsPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {loading ? (

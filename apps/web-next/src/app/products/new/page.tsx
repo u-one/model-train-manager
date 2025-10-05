@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import ProductFormTagSelector from '@/components/ProductFormTagSelector'
 // import { Input } from '@/components/ui' // 未使用
 import { productFormSchema, defaultProductValues, type ProductFormData } from '@/lib/validations/product'
 
@@ -13,6 +14,7 @@ function NewProductForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fromIndependentId, setFromIndependentId] = useState<number | null>(null)
   const [autoLink, setAutoLink] = useState(true)
+  const [selectedTags, setSelectedTags] = useState<number[]>([])
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -110,6 +112,22 @@ function NewProductForm() {
 
       if (response.ok) {
         const newProduct = await response.json()
+
+        // タグを追加
+        if (selectedTags.length > 0) {
+          try {
+            await fetch(`/api/products/${newProduct.id}/tags`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ tagIds: selectedTags })
+            })
+          } catch (tagError) {
+            console.error('Failed to add tags:', tagError)
+            // タグ追加失敗でも製品作成は成功したので続行
+          }
+        }
 
         // 独立車両からの作成で自動リンクが有効な場合
         if (fromIndependentId && autoLink) {
@@ -435,6 +453,14 @@ function NewProductForm() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* タグ選択 */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <ProductFormTagSelector
+              selectedTags={selectedTags}
+              onTagsChange={setSelectedTags}
+            />
           </div>
 
           {/* 送信ボタン */}
