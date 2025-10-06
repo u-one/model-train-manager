@@ -42,7 +42,7 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
           <img
             src={product.imageUrls[0]}
             alt={product.name}
-            className="w-20 h-20 object-cover rounded flex-shrink-0"
+            className="w-20 h-20 object-contain bg-gray-100 rounded flex-shrink-0"
           />
         ) : (
           <div className="w-20 h-20 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">

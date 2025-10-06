@@ -66,13 +66,13 @@ export default function ImageGallery({
   return (
     <>
       {/* 画像グリッド */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {images.map((url, index) => (
           <div key={url} className="relative group cursor-pointer">
             <img
               src={url}
               alt={`画像 ${index + 1}`}
-              className="w-full h-32 object-cover rounded-lg hover:opacity-90 transition-opacity"
+              className="w-full h-64 object-contain bg-gray-100 rounded-lg hover:opacity-90 transition-opacity"
               onClick={() => handleImageClick(index)}
             />
             {editable && onDelete && (

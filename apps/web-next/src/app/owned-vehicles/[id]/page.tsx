@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
+import ImageGallery from '@/components/ImageGallery'
 
 interface OwnedVehicle {
   id: number
@@ -219,18 +220,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
         {/* 画像 */}
         <div className="lg:col-span-1">
           {vehicle.imageUrls.length > 0 ? (
-            <div className="space-y-4">
-              {vehicle.imageUrls.map((url, index) => (
-                <div key={index}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={url}
-                    alt={`${vehicleName} ${index + 1}`}
-                    className="w-full rounded-lg shadow-md"
-                  />
-                </div>
-              ))}
-            </div>
+            <ImageGallery images={vehicle.imageUrls} />
           ) : (
             <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-400">画像なし</span>

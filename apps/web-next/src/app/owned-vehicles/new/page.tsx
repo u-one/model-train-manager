@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import AuthGuard from '@/components/AuthGuard'
+import ImageUploader from '@/components/ImageUploader'
 import { Input, Select } from '@/components/ui'
 import { ownedVehicleFormSchema, defaultOwnedVehicleValues, type OwnedVehicleFormData } from '@/lib/validations/owned-vehicle'
 
@@ -37,6 +38,7 @@ export default function NewOwnedVehiclePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
+  const [createdVehicleId, setCreatedVehicleId] = useState<number | null>(null)
 
   const form = useForm({
     resolver: zodResolver(ownedVehicleFormSchema),
@@ -97,7 +99,8 @@ export default function NewOwnedVehiclePage() {
 
       if (response.ok) {
         const newVehicle = await response.json()
-        router.push(`/owned-vehicles/${newVehicle.id}`)
+        setCreatedVehicleId(newVehicle.id)
+        // router.push(`/owned-vehicles/${newVehicle.id}`) // 画像アップロード後に遷移
       } else {
         const error = await response.json()
         console.error('Failed to create owned vehicle:', error)
@@ -450,41 +453,20 @@ export default function NewOwnedVehiclePage() {
               </div>
             </div>
 
-            {/* 画像URL */}
+            {/* 画像 */}
             <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">画像URL</h2>
-                <button
-                  type="button"
-                  onClick={addImageUrl}
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                >
-                  画像URL追加
-                </button>
-              </div>
-
-              {imageUrls.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">画像URLを追加してください</p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">車両画像</h2>
+              {createdVehicleId ? (
+                <ImageUploader
+                  entityType="owned-vehicle"
+                  entityId={createdVehicleId.toString()}
+                  currentImages={imageUrls}
+                  onUploadComplete={(urls) => setImageUrls([...imageUrls, ...urls])}
+                  onDelete={(url) => setImageUrls(imageUrls.filter(u => u !== url))}
+                />
               ) : (
-                <div className="space-y-3">
-                  {imageUrls.map((url, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="url"
-                        value={url}
-                        onChange={(e) => updateImageUrl(index, e.target.value)}
-                        className="flex-1 border border-gray-300 rounded px-3 py-2"
-                        placeholder="https://example.com/image.jpg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImageUrl(index)}
-                        className="text-red-600 hover:text-red-800 px-3 py-2"
-                      >
-                        削除
-                      </button>
-                    </div>
-                  ))}
+                <div className="text-sm text-gray-500">
+                  ℹ️ 保有車両を作成後に画像をアップロードできます
                 </div>
               )}
             </div>

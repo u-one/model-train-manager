@@ -42,7 +42,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           <img
             src={product.imageUrls[0]}
             alt={product.name}
-            className="w-full h-32 object-cover rounded"
+            className="w-full h-32 object-contain bg-gray-100 rounded"
           />
         ) : (
           <div className="w-full h-32 bg-gray-200 rounded flex items-center justify-center">

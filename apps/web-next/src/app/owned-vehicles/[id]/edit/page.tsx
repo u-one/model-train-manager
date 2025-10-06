@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import AuthGuard from '@/components/AuthGuard'
+import ImageUploader from '@/components/ImageUploader'
 import { ownedVehicleFormSchema, type OwnedVehicleFormData } from '@/lib/validations/owned-vehicle'
 
 interface Product {
@@ -510,43 +511,16 @@ export default function EditOwnedVehiclePage({ params }: { params: Promise<{ id:
               </div>
             </div>
 
-            {/* 画像URL */}
+            {/* 画像 */}
             <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">画像URL</h2>
-                <button
-                  type="button"
-                  onClick={addImageUrl}
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                >
-                  画像URL追加
-                </button>
-              </div>
-
-              {imageUrls.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">画像URLを追加してください</p>
-              ) : (
-                <div className="space-y-3">
-                  {imageUrls.map((url, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="url"
-                        value={url}
-                        onChange={(e) => updateImageUrl(index, e.target.value)}
-                        className="flex-1 border border-gray-300 rounded px-3 py-2"
-                        placeholder="https://example.com/image.jpg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImageUrl(index)}
-                        className="text-red-600 hover:text-red-800 px-3 py-2"
-                      >
-                        削除
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">車両画像</h2>
+              <ImageUploader
+                entityType="owned-vehicle"
+                entityId={resolvedParams.id}
+                currentImages={imageUrls}
+                onUploadComplete={(urls) => setImageUrls([...imageUrls, ...urls])}
+                onDelete={(url) => setImageUrls(imageUrls.filter(u => u !== url))}
+              />
             </div>
 
             {/* 送信ボタン */}
