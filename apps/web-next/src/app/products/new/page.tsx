@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import ProductFormTagSelector from '@/components/ProductFormTagSelector'
+import ImageUploader from '@/components/ImageUploader'
 // import { Input } from '@/components/ui' // 未使用
 import { productFormSchema, defaultProductValues, type ProductFormData } from '@/lib/validations/product'
 
@@ -15,6 +16,8 @@ function NewProductForm() {
   const [fromIndependentId, setFromIndependentId] = useState<number | null>(null)
   const [autoLink, setAutoLink] = useState(true)
   const [selectedTags, setSelectedTags] = useState<number[]>([])
+  const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [createdProductId, setCreatedProductId] = useState<number | null>(null)
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -96,7 +99,7 @@ function NewProductForm() {
         releaseYear: isNaN(data.releaseYear as number) ? undefined : data.releaseYear,
         priceExcludingTax: isNaN(data.priceExcludingTax as number) ? undefined : data.priceExcludingTax,
         priceIncludingTax: isNaN(data.priceIncludingTax as number) ? undefined : data.priceIncludingTax,
-        imageUrls: data.imageUrls || [],
+        imageUrls: imageUrls,
         realVehicles: data.realVehicles?.filter(rv =>
           rv.vehicleType || rv.company || rv.manufacturingYear || rv.operationLine || rv.notes
         )
@@ -112,6 +115,7 @@ function NewProductForm() {
 
       if (response.ok) {
         const newProduct = await response.json()
+        setCreatedProductId(newProduct.id)
 
         // タグを追加
         if (selectedTags.length > 0) {
@@ -377,6 +381,27 @@ function NewProductForm() {
                   placeholder="製品の詳細説明を入力してください"
                 />
               </div>
+
+              {/* 画像アップロード（製品作成後に使用可能） */}
+              {createdProductId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    製品画像
+                  </label>
+                  <ImageUploader
+                    entityType="product"
+                    entityId={createdProductId.toString()}
+                    currentImages={imageUrls}
+                    onUploadComplete={(urls) => setImageUrls([...imageUrls, ...urls])}
+                    onDelete={(url) => setImageUrls(imageUrls.filter(u => u !== url))}
+                  />
+                </div>
+              )}
+              {!createdProductId && (
+                <div className="text-sm text-gray-500">
+                  ℹ️ 製品を作成後に画像をアップロードできます
+                </div>
+              )}
             </div>
           </div>
 

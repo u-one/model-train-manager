@@ -38,6 +38,8 @@ export class VercelBlobStorage implements StorageProvider {
   async getMetadata(url: string): Promise<StorageMetadata> {
     const blob = await head(url)
     return {
+      key: blob.pathname,
+      url: blob.url,
       contentType: blob.contentType || 'application/octet-stream',
       size: blob.size || 0,
       uploadedAt: new Date(blob.uploadedAt || Date.now()),

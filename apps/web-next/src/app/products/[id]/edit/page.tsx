@@ -6,6 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Input, Select } from '@/components/ui'
 import ProductFormTagSelector from '@/components/ProductFormTagSelector'
+import ImageUploader from '@/components/ImageUploader'
 import { productFormSchema, type ProductFormData } from '@/lib/validations/product'
 
 interface Product {
@@ -39,6 +40,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true)
   const [product, setProduct] = useState<Product | null>(null)
   const [selectedTags, setSelectedTags] = useState<number[]>([])
+  const [imageUrls, setImageUrls] = useState<string[]>([])
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -74,12 +76,14 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           const productData = await response.json()
           setProduct(productData)
 
-          // 既存のタグを読み込み
+          // 既存のタグと画像を読み込み
           const tagsResponse = await fetch(`/api/products/${resolvedParams.id}/tags`)
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json()
             setSelectedTags(tagsData.tags.map((tag: { id: number }) => tag.id))
           }
+
+          setImageUrls(productData.imageUrls || [])
 
           // フォームの初期値を設定
           form.reset({
@@ -124,7 +128,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         releaseYear: isNaN(data.releaseYear as number) ? undefined : data.releaseYear,
         priceExcludingTax: isNaN(data.priceExcludingTax as number) ? undefined : data.priceExcludingTax,
         priceIncludingTax: isNaN(data.priceIncludingTax as number) ? undefined : data.priceIncludingTax,
-        imageUrls: data.imageUrls || [],
+        imageUrls: imageUrls,
         realVehicles: data.realVehicles?.filter(rv =>
           rv.vehicleType || rv.company || rv.manufacturingYear || rv.operationLine || rv.notes
         )
@@ -334,6 +338,19 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">商品情報</h2>
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  製品画像
+                </label>
+                <ImageUploader
+                  entityType="product"
+                  entityId={resolvedParams.id}
+                  currentImages={imageUrls}
+                  onUploadComplete={(urls) => setImageUrls([...imageUrls, ...urls])}
+                  onDelete={(url) => setImageUrls(imageUrls.filter(u => u !== url))}
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-1">
                   説明

@@ -7,6 +7,7 @@ import ProductCard from '@/components/ProductCard'
 import ProductListItem from '@/components/ProductListItem'
 import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
+import ImageGallery from '@/components/ImageGallery'
 import { useViewMode } from '@/hooks/useViewMode'
 import { getCategoryColor } from '@/constants/tags'
 
@@ -173,12 +174,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         {/* 製品画像 */}
         <div>
           {product.imageUrls && product.imageUrls.length > 0 ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={product.imageUrls[0]}
-              alt={product.name}
-              className="w-full rounded-lg shadow-md"
-            />
+            <ImageGallery images={product.imageUrls} />
           ) : (
             <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-400">画像なし</span>

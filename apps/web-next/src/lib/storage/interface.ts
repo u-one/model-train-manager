@@ -63,6 +63,8 @@ export interface StorageItem {
 }
 
 export interface StorageMetadata {
+  key: string
+  url: string
   contentType: string
   size: number
   uploadedAt: Date
