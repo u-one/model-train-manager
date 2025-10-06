@@ -15,11 +15,11 @@ export default function Navigation() {
   ]
 
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="bg-[#2c3e50] shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
-            <Link href="/" className="text-xl font-bold text-gray-900">
+            <Link href="/" className="text-xl font-bold text-white">
               鉄道模型管理
             </Link>
 
@@ -29,10 +29,10 @@ export default function Navigation() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
                       pathname === item.href
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        ? 'bg-[#3498db] text-white'
+                        : 'text-white hover:bg-white/10'
                     }`}
                   >
                     {item.label}
@@ -45,12 +45,12 @@ export default function Navigation() {
           <div className="flex items-center space-x-4">
             {session ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-white">
                   {session.user?.name}
                 </span>
                 <button
                   onClick={() => signOut()}
-                  className="bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm hover:bg-gray-300"
+                  className="bg-white/10 text-white px-3 py-2 rounded text-sm hover:bg-white/20 transition-colors"
                 >
                   ログアウト
                 </button>
@@ -58,7 +58,7 @@ export default function Navigation() {
             ) : (
               <Link
                 href="/auth/signin"
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700"
+                className="bg-white/10 text-white px-4 py-2 rounded text-sm hover:bg-white/20 transition-colors"
               >
                 ログイン
               </Link>
