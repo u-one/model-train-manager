@@ -97,42 +97,67 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">製品一覧</h1>
-        <div className="flex items-center space-x-4">
-          <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-          {session && (
-            <div className="flex space-x-2">
-              <button
-                onClick={() => router.push('/products/new')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-              >
-                製品追加
-              </button>
-              <button
-                onClick={() => router.push('/import')}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-              >
-                CSVインポート
-              </button>
-              {isAdmin && (
-                <button
-                  onClick={() => router.push('/admin')}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-                >
-                  管理
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* サイドバー（フィルタ） */}
+      <aside className="w-72 bg-gray-50 border-r border-gray-200 p-6 overflow-y-auto">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">検索・フィルタ</h3>
 
-      {/* フィルター */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        {/* 検索ボックス */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="製品名、メーカー、品番で検索"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        {/* メーカーフィルタ */}
+        <div className="mb-6">
+          <div className="text-sm font-semibold text-gray-700 mb-3">メーカー</div>
+          <div className="space-y-2">
+            {['KATO', 'TOMIX', 'マイクロエース', 'グリーンマックス', 'モデモ'].map((b) => (
+              <label key={b} className="flex items-center text-sm">
+                <input
+                  type="radio"
+                  name="brand"
+                  checked={brand === b}
+                  onChange={() => setBrand(brand === b ? '' : b)}
+                  className="mr-2"
+                />
+                {b}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* 種別フィルタ */}
+        <div className="mb-6">
+          <div className="text-sm font-semibold text-gray-700 mb-3">種別</div>
+          <div className="space-y-2">
+            {['セット', '単品', 'セット単品'].map((t) => (
+              <label key={t} className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  checked={type === t || (t === 'セット単品' && showSetSingle)}
+                  onChange={() => {
+                    if (t === 'セット単品') {
+                      setShowSetSingle(!showSetSingle)
+                    } else {
+                      setType(type === t ? '' : t)
+                    }
+                  }}
+                  className="mr-2"
+                />
+                {t}
+              </label>
+            ))}
+          </div>
+        </div>
+
         {/* タグフィルタ */}
-        <div className="lg:col-span-1">
+        <div className="mb-6">
           <TagFilter
             selectedTags={selectedTags}
             operator={tagOperator}
@@ -141,156 +166,121 @@ export default function ProductsPage() {
           />
         </div>
 
-        {/* 既存のフィルター */}
-        <div className="lg:col-span-3 bg-white p-6 rounded-lg shadow">
-          <div className="space-y-4">
-            {/* 検索とメインフィルタ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">検索</label>
-              <input
-                type="text"
-                placeholder="製品名・品番で検索"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">メーカー</label>
-              <select
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">全メーカー</option>
-                <option value="KATO">KATO</option>
-                <option value="TOMIX">TOMIX</option>
-                <option value="マイクロエース">マイクロエース</option>
-                <option value="グリーンマックス">グリーンマックス</option>
-                <option value="モデモ">モデモ</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">種別</label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">全種別</option>
-                <option value="単品">単品</option>
-                <option value="セット">セット</option>
-                <option value="セット単品">セット単品</option>
-              </select>
-            </div>
-          </div>
+        {/* フィルタリセット */}
+        {(search || brand || type || showSetSingle || selectedTags.length > 0) && (
+          <button
+            onClick={() => {
+              setSearch('')
+              setBrand('')
+              setType('')
+              setShowSetSingle(false)
+              setSelectedTags([])
+              setPage(1)
+            }}
+            className="w-full px-4 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+          >
+            フィルタをクリア
+          </button>
+        )}
+      </aside>
 
-          {/* 表示オプションとリセット */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 border-t border-gray-200">
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={showSetSingle}
-                  onChange={(e) => setShowSetSingle(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+      {/* メインコンテンツ */}
+      <main className="flex-1 p-6">
+        {/* ヘッダー */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">製品一覧</h1>
+            {pagination && (
+              <div className="text-sm text-gray-600 mt-1">
+                {pagination.total}件中 {(page - 1) * pagination.limit + 1}-{Math.min(page * pagination.limit, pagination.total)}件を表示
+              </div>
+            )}
+          </div>
+          <div className="flex items-center space-x-3">
+            <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+            {session && (
+              <>
+                <button
+                  onClick={() => router.push('/products/new')}
+                  className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
+                >
+                  製品追加
+                </button>
+                <button
+                  onClick={() => router.push('/import')}
+                  className="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
+                >
+                  CSVインポート
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => router.push('/admin')}
+                    className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
+                  >
+                    管理
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">読み込み中...</p>
+          </div>
+        ) : (
+          <>
+            <ItemsContainer
+              items={products}
+              viewMode={viewMode}
+              renderGridItem={(product) => (
+                <ProductCard
+                  product={product}
+                  onClick={() => handleProductClick(product.id)}
                 />
-                <span className="ml-2 text-sm text-gray-700">セット単品を表示</span>
-              </label>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
-              {/* アクティブフィルタ表示 */}
-              {(search || brand || type || showSetSingle || selectedTags.length > 0) && (
-                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-                  <span className="whitespace-nowrap">フィルタ適用中:</span>
-                  {search && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded whitespace-nowrap">検索: {search}</span>}
-                  {brand && <span className="bg-green-100 text-green-800 px-2 py-1 rounded whitespace-nowrap">メーカー: {brand}</span>}
-                  {type && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded whitespace-nowrap">種別: {type}</span>}
-                  {showSetSingle && <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded whitespace-nowrap">セット単品表示</span>}
-                  {selectedTags.length > 0 && <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded whitespace-nowrap">タグ: {selectedTags.length}件 ({tagOperator})</span>}
+              )}
+              renderListItem={(product) => (
+                <ProductListItem
+                  product={product}
+                  onClick={() => handleProductClick(product.id)}
+                />
+              )}
+              emptyState={
+                <div className="text-center py-12">
+                  <p className="text-gray-500">製品が見つかりませんでした</p>
                 </div>
-              )}
+              }
+            />
 
-              {/* リセットボタン */}
-              {(search || brand || type || showSetSingle || selectedTags.length > 0) && (
-                <button
-                  onClick={() => {
-                    setSearch('')
-                    setBrand('')
-                    setType('')
-                    setShowSetSingle(false)
-                    setSelectedTags([])
-                    setPage(1)
-                  }}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors whitespace-nowrap"
-                >
-                  リセット
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">読み込み中...</p>
-        </div>
-      ) : (
-        <>
-          <ItemsContainer
-            items={products}
-            viewMode={viewMode}
-            renderGridItem={(product) => (
-              <ProductCard
-                product={product}
-                onClick={() => handleProductClick(product.id)}
-              />
-            )}
-            renderListItem={(product) => (
-              <ProductListItem
-                product={product}
-                onClick={() => handleProductClick(product.id)}
-              />
-            )}
-            emptyState={
-              <div className="text-center py-12">
-                <p className="text-gray-500">製品が見つかりませんでした</p>
+            {/* ページネーション */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setPage(page - 1)}
+                    disabled={page === 1}
+                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ‹
+                  </button>
+                  <span className="px-4 py-2 text-gray-900 font-medium">
+                    {page} / {pagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage(page + 1)}
+                    disabled={page === pagination.totalPages}
+                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ›
+                  </button>
+                </div>
               </div>
-            }
-          />
-
-
-          {/* ページネーション */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                >
-                  前へ
-                </button>
-                <span className="px-4 py-2 text-gray-900 font-medium bg-gray-50 rounded-md border">
-                  {page} / {pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => setPage(page + 1)}
-                  disabled={page === pagination.totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                >
-                  次へ
-                </button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </main>
     </div>
   )
 }
