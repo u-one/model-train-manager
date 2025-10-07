@@ -140,7 +140,12 @@ export async function GET(request: NextRequest) {
           include: {
             product: {
               include: {
-                realVehicles: true
+                realVehicles: true,
+                productTags: {
+                  include: {
+                    tag: true
+                  }
+                }
               }
             },
             independentVehicle: true,

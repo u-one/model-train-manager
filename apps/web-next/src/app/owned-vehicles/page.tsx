@@ -26,6 +26,13 @@ interface OwnedVehicle {
     brand: string
     productCode: string | null
     type: string
+    productTags?: {
+      tag: {
+        id: number
+        name: string
+        category: string
+      }
+    }[]
   } | null
   independentVehicle?: {
     name: string

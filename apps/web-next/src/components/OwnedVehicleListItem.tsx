@@ -13,6 +13,13 @@ interface OwnedVehicle {
     brand: string
     productCode: string | null
     type: string
+    productTags?: {
+      tag: {
+        id: number
+        name: string
+        category: string
+      }
+    }[]
   } | null
   independentVehicle?: {
     name: string
@@ -53,7 +60,7 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
       className="bg-white rounded shadow hover:shadow-md transition-shadow cursor-pointer p-3 mb-2"
       onClick={onClick}
     >
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-3">
         {/* 画像 - 64px × 44px */}
         <div className="w-16 h-11 flex-shrink-0">
           {vehicle.imageUrls.length > 0 ? (
@@ -70,19 +77,64 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
           )}
         </div>
 
-        {/* 車両情報 */}
+        {/* 車両情報 - 3行構成 */}
         <div className="flex-1 min-w-0">
+          {/* 1行目: 車両名 */}
           <div className="font-semibold text-gray-900 text-sm mb-1 truncate">
             {vehicleName}
           </div>
-          <div className="text-xs text-gray-600 flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-blue-700">{vehicle.managementId}</span>
-            <span>|</span>
+
+          {/* 2行目: 製品情報（メーカー、品番、種別、タグ） */}
+          <div className="text-xs text-gray-600 flex items-center gap-2 flex-wrap mb-1">
             <span className="font-medium">{brand}</span>
             {productCode && (
               <>
                 <span>|</span>
                 <span>{productCode}</span>
+              </>
+            )}
+            {vehicle.product?.type && (
+              <>
+                <span>|</span>
+                <span>{vehicle.product.type}</span>
+              </>
+            )}
+            {vehicle.independentVehicle?.vehicleType && (
+              <>
+                <span>|</span>
+                <span>{vehicle.independentVehicle.vehicleType}</span>
+              </>
+            )}
+            {vehicle.product?.productTags && vehicle.product.productTags.length > 0 && (
+              <>
+                <span>|</span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {vehicle.product.productTags.map(({ tag }) => (
+                    <span
+                      key={tag.id}
+                      className="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-800"
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 3行目: 保有車両情報（管理ID、購入日、価格、ステータス、保管状態） */}
+          <div className="text-xs text-gray-600 flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-blue-700">{vehicle.managementId}</span>
+            {vehicle.purchaseDate && (
+              <>
+                <span>|</span>
+                <span className="whitespace-nowrap">購入: {new Date(vehicle.purchaseDate).toLocaleDateString('ja-JP')}</span>
+              </>
+            )}
+            {vehicle.purchasePriceIncludingTax && (
+              <>
+                <span>|</span>
+                <span>¥{vehicle.purchasePriceIncludingTax.toLocaleString()}</span>
               </>
             )}
             <span>|</span>
@@ -92,16 +144,6 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
             <span>|</span>
             <span>{conditionLabels[vehicle.storageCondition] || vehicle.storageCondition}</span>
           </div>
-        </div>
-
-        {/* 価格と購入日 */}
-        <div className="flex items-center gap-3 flex-shrink-0 text-xs text-gray-600">
-          {vehicle.purchasePriceIncludingTax && (
-            <span>¥{vehicle.purchasePriceIncludingTax.toLocaleString()}</span>
-          )}
-          {vehicle.purchaseDate && (
-            <span className="whitespace-nowrap">購入: {new Date(vehicle.purchaseDate).toLocaleDateString('ja-JP')}</span>
-          )}
         </div>
       </div>
     </div>
