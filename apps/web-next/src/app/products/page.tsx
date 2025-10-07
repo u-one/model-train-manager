@@ -9,7 +9,6 @@ import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
 import TagFilter from '@/components/TagFilter'
 import { useViewMode } from '@/hooks/useViewMode'
-import { useAdmin } from '@/hooks/useAdmin'
 
 interface Tag {
   id: number
@@ -46,7 +45,6 @@ interface ProductsResponse {
 export default function ProductsPage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { isAdmin } = useAdmin()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -212,14 +210,6 @@ export default function ProductsPage() {
                 >
                   CSVインポート
                 </button>
-                {isAdmin && (
-                  <button
-                    onClick={() => router.push('/admin')}
-                    className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
-                  >
-                    管理
-                  </button>
-                )}
               </>
             )}
           </div>

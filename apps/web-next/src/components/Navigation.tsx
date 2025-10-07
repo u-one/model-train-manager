@@ -3,10 +3,12 @@
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
+import { useAdmin } from '@/hooks/useAdmin'
 
 export default function Navigation() {
   const { data: session } = useSession()
   const pathname = usePathname()
+  const { isAdmin } = useAdmin()
 
   const navItems = [
     { href: '/dashboard', label: 'ダッシュボード' },
@@ -45,6 +47,14 @@ export default function Navigation() {
           <div className="flex items-center space-x-4">
             {session ? (
               <div className="flex items-center space-x-4">
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+                  >
+                    管理
+                  </Link>
+                )}
                 <span className="text-sm text-white">
                   {session.user?.name}
                 </span>
