@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
       const type = searchParams.get('type')
       const tags = searchParams.get('tags')
       const tagOperator = searchParams.get('tag_operator') || 'OR'
+      const sortBy = searchParams.get('sortBy') || 'purchaseDate'
+      const sortOrder = searchParams.get('sortOrder') || 'desc'
       const page = parseInt(searchParams.get('page') || '1')
       const limit = parseInt(searchParams.get('limit') || '100')
       const offset = (page - 1) * limit
@@ -103,6 +105,35 @@ export async function GET(request: NextRequest) {
         ]
       }
 
+      // ソート条件の構築
+      let orderBy: Record<string, unknown> | Record<string, unknown>[] = { createdAt: 'desc' }
+
+      switch (sortBy) {
+        case 'purchaseDate':
+          // 購入日+登録順（購入日でソート、同じ場合は登録順）
+          orderBy = [
+            { purchaseDate: sortOrder },
+            { createdAt: sortOrder }
+          ]
+          break
+        case 'name':
+          // 名称（製品名または独立車両名）
+          // Prismaでは複数テーブルの条件付きソートが難しいため、フロントエンドでソート
+          orderBy = { createdAt: sortOrder }
+          break
+        case 'managementId':
+          // 管理ID
+          orderBy = { managementId: sortOrder }
+          break
+        case 'category':
+          // 分類順（製品タイプ→メーカー→品番）
+          // 複雑なため、フロントエンドでソート
+          orderBy = { createdAt: sortOrder }
+          break
+        default:
+          orderBy = { createdAt: 'desc' }
+      }
+
       const [ownedVehicles, total] = await Promise.all([
         prisma.ownedVehicle.findMany({
           where,
@@ -118,7 +149,7 @@ export async function GET(request: NextRequest) {
               take: 3
             }
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy,
           skip: offset,
           take: limit
         }),

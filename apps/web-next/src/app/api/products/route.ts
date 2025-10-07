@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const search = searchParams.get('search')
     const excludeSetSingle = searchParams.get('excludeSetSingle') === 'true'
+    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortOrder = searchParams.get('sortOrder') || 'asc'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '100')
     const offset = (page - 1) * limit
@@ -83,6 +85,37 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // ソート条件の構築
+    let orderBy: Record<string, unknown> | Record<string, unknown>[] = { createdAt: 'desc' }
+
+    switch (sortBy) {
+      case 'createdAt':
+        // 登録順
+        orderBy = { createdAt: sortOrder }
+        break
+      case 'name':
+        // 名称
+        orderBy = { name: sortOrder }
+        break
+      case 'brandCode':
+        // メーカー＋品番
+        orderBy = [
+          { brand: sortOrder },
+          { productCode: sortOrder }
+        ]
+        break
+      case 'category':
+        // 分類順（タイプ→メーカー→品番）
+        orderBy = [
+          { type: sortOrder },
+          { brand: sortOrder },
+          { productCode: sortOrder }
+        ]
+        break
+      default:
+        orderBy = { createdAt: 'asc' }
+    }
+
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -101,7 +134,7 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip: offset,
         take: limit
       }),

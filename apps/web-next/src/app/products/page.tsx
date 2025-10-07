@@ -53,6 +53,8 @@ export default function ProductsPage() {
   const [showSetSingle, setShowSetSingle] = useState(false) // セット単品デフォルト非表示
   const [selectedTags, setSelectedTags] = useState<number[]>([])
   const [tagOperator, setTagOperator] = useState<'AND' | 'OR'>('OR')
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<ProductsResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
@@ -69,6 +71,8 @@ export default function ProductsPage() {
         params.append('tags', selectedTags.join(','))
         params.append('tag_operator', tagOperator)
       }
+      params.append('sortBy', sortBy)
+      params.append('sortOrder', sortOrder)
       params.append('page', page.toString())
       params.append('limit', '100')
 
@@ -83,11 +87,11 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, brand, type, showSetSingle, selectedTags, tagOperator, page])
+  }, [search, brand, type, showSetSingle, selectedTags, tagOperator, sortBy, sortOrder, page])
 
   useEffect(() => {
     fetchProducts()
-  }, [search, brand, type, showSetSingle, selectedTags, tagOperator, page, fetchProducts])
+  }, [fetchProducts])
 
 
   const handleProductClick = (productId: number) => {
@@ -195,6 +199,27 @@ export default function ProductsPage() {
             )}
           </div>
           <div className="flex items-center space-x-3">
+            {/* ソート選択 */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-700">並び順:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                <option value="createdAt">登録順</option>
+                <option value="name">名称</option>
+                <option value="brandCode">メーカー＋品番</option>
+                <option value="category">分類順</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
+                title={sortOrder === 'asc' ? '昇順' : '降順'}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
             <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
             {session && (
               <>

@@ -57,6 +57,8 @@ export default function OwnedVehiclesPage() {
   const [type, setType] = useState('')
   const [selectedTags, setSelectedTags] = useState<number[]>([])
   const [tagOperator, setTagOperator] = useState<'AND' | 'OR'>('OR')
+  const [sortBy, setSortBy] = useState('purchaseDate')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<OwnedVehiclesResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
@@ -78,6 +80,8 @@ export default function OwnedVehiclesPage() {
         params.append('tags', selectedTags.join(','))
         params.append('tag_operator', tagOperator)
       }
+      params.append('sortBy', sortBy)
+      params.append('sortOrder', sortOrder)
       params.append('page', page.toString())
       params.append('limit', '100')
 
@@ -90,7 +94,44 @@ export default function OwnedVehiclesPage() {
 
       if (response.ok) {
         const data: OwnedVehiclesResponse = await response.json()
-        setVehicles(data.ownedVehicles || [])
+        let sortedVehicles = data.ownedVehicles || []
+
+        // クライアント側でソート（名称と分類順）
+        if (sortBy === 'name') {
+          sortedVehicles = [...sortedVehicles].sort((a, b) => {
+            const nameA = (a.product?.name || a.independentVehicle?.name || '').toLowerCase()
+            const nameB = (b.product?.name || b.independentVehicle?.name || '').toLowerCase()
+            return sortOrder === 'asc'
+              ? nameA.localeCompare(nameB)
+              : nameB.localeCompare(nameA)
+          })
+        } else if (sortBy === 'category') {
+          sortedVehicles = [...sortedVehicles].sort((a, b) => {
+            // 分類順：タイプ → メーカー → 品番
+            const typeA = a.product?.type || a.independentVehicle?.vehicleType || ''
+            const typeB = b.product?.type || b.independentVehicle?.vehicleType || ''
+            const brandA = a.product?.brand || a.independentVehicle?.brand || ''
+            const brandB = b.product?.brand || b.independentVehicle?.brand || ''
+            const codeA = a.product?.productCode || ''
+            const codeB = b.product?.productCode || ''
+
+            if (typeA !== typeB) {
+              return sortOrder === 'asc'
+                ? typeA.localeCompare(typeB)
+                : typeB.localeCompare(typeA)
+            }
+            if (brandA !== brandB) {
+              return sortOrder === 'asc'
+                ? brandA.localeCompare(brandB)
+                : brandB.localeCompare(brandA)
+            }
+            return sortOrder === 'asc'
+              ? codeA.localeCompare(codeB)
+              : codeB.localeCompare(codeA)
+          })
+        }
+
+        setVehicles(sortedVehicles)
         setPagination(data.pagination)
       } else {
         console.error('API Error:', response.status, response.statusText)
@@ -104,7 +145,7 @@ export default function OwnedVehiclesPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter, conditionFilter, independentFilter, brand, type, selectedTags, tagOperator, page, session, status])
+  }, [search, statusFilter, conditionFilter, independentFilter, brand, type, selectedTags, tagOperator, sortBy, sortOrder, page, session, status])
 
   useEffect(() => {
     fetchVehicles()
@@ -260,6 +301,27 @@ export default function OwnedVehiclesPage() {
             )}
           </div>
           <div className="flex items-center space-x-3">
+            {/* ソート選択 */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-700">並び順:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                <option value="purchaseDate">購入日</option>
+                <option value="name">名称</option>
+                <option value="managementId">管理ID</option>
+                <option value="category">分類順</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
+                title={sortOrder === 'asc' ? '昇順' : '降順'}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
             <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
             <button
               onClick={() => router.push('/owned-vehicles/new')}
