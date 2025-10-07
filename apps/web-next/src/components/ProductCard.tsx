@@ -93,7 +93,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
           {product._count && (
             <span className="text-sm text-gray-600">
-              保有: {product._count.ownedVehicles}台
+              保有: {product._count.ownedVehicles}両
             </span>
           )}
         </div>

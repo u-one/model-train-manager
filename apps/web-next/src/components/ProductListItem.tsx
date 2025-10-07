@@ -96,7 +96,7 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
             <span>¥{product.priceIncludingTax.toLocaleString()}</span>
           )}
           {product._count && (
-            <span className="whitespace-nowrap">保有: {product._count.ownedVehicles}台</span>
+            <span className="whitespace-nowrap">保有: {product._count.ownedVehicles}両</span>
           )}
         </div>
       </div>

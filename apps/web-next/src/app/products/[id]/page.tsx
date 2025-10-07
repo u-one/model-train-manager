@@ -369,7 +369,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                       </span>
                     )}
                     <span className="text-sm text-gray-600">
-                      保有: {parentSet._count?.ownedVehicles || 0}台
+                      保有: {parentSet._count?.ownedVehicles || 0}両
                     </span>
                   </div>
                 </div>
@@ -383,7 +383,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       {session && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">
-            保有状況 ({product.ownedVehicles.length}台)
+            保有状況 ({product.ownedVehicles.length}両)
           </h2>
           {product.ownedVehicles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

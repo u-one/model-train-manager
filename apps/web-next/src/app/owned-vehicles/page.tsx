@@ -255,7 +255,7 @@ export default function OwnedVehiclesPage() {
             <h1 className="text-2xl font-bold text-gray-900">保有車両</h1>
             {pagination && (
               <div className="text-sm text-gray-600 mt-1">
-                {pagination.total}台中 {(page - 1) * pagination.limit + 1}-{Math.min(page * pagination.limit, pagination.total)}台を表示
+                {pagination.total}両中 {(page - 1) * pagination.limit + 1}-{Math.min(page * pagination.limit, pagination.total)}両を表示
               </div>
             )}
           </div>
