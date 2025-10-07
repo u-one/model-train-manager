@@ -50,49 +50,58 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
 
   return (
     <div
-      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer p-4"
+      className="bg-white rounded shadow hover:shadow-md transition-shadow cursor-pointer p-3 mb-2"
       onClick={onClick}
     >
-      <div className="flex items-center space-x-4">
-        {vehicle.imageUrls.length > 0 ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={vehicle.imageUrls[0]}
-            alt={vehicleName}
-            className="w-20 h-20 object-cover rounded flex-shrink-0"
-          />
-        ) : (
-          <div className="w-20 h-20 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
-            <span className="text-gray-400 text-xs">画像なし</span>
-          </div>
-        )}
+      <div className="flex gap-3 items-center">
+        {/* 画像 - 64px × 44px */}
+        <div className="w-16 h-11 flex-shrink-0">
+          {vehicle.imageUrls.length > 0 ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={vehicle.imageUrls[0]}
+              alt={vehicleName}
+              className="w-16 h-11 object-contain bg-gray-100 rounded"
+            />
+          ) : (
+            <div className="w-16 h-11 bg-gray-200 rounded flex items-center justify-center">
+              <span className="text-gray-400 text-[10px]">画像なし</span>
+            </div>
+          )}
+        </div>
+
+        {/* 車両情報 */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="font-bold text-lg text-gray-900">{vehicle.managementId}</span>
-              <span className={`text-xs px-2 py-1 rounded-full ${statusColors[vehicle.currentStatus] || 'bg-gray-100 text-gray-800'}`}>
-                {statusLabels[vehicle.currentStatus] || vehicle.currentStatus}
-              </span>
-            </div>
-            {vehicle.purchasePriceIncludingTax && (
-              <span className="text-lg font-semibold text-gray-900 ml-4">
-                ¥{vehicle.purchasePriceIncludingTax.toLocaleString()}
-              </span>
-            )}
+          <div className="font-semibold text-gray-900 text-sm mb-1 truncate">
+            {vehicleName}
           </div>
-          <h3 className="font-medium text-gray-900 truncate mt-1">{vehicleName}</h3>
-          <div className="mt-1 flex items-center justify-between text-sm text-gray-600">
-            <div className="flex items-center space-x-4">
-              <span className="font-medium">{brand}</span>
-              {productCode && (
+          <div className="text-xs text-gray-600 flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-blue-700">{vehicle.managementId}</span>
+            <span>|</span>
+            <span className="font-medium">{brand}</span>
+            {productCode && (
+              <>
+                <span>|</span>
                 <span>{productCode}</span>
-              )}
-              <span>{conditionLabels[vehicle.storageCondition] || vehicle.storageCondition}</span>
-            </div>
-            {vehicle.purchaseDate && (
-              <span>購入: {new Date(vehicle.purchaseDate).toLocaleDateString('ja-JP')}</span>
+              </>
             )}
+            <span>|</span>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusColors[vehicle.currentStatus] || 'bg-gray-100 text-gray-800'}`}>
+              {statusLabels[vehicle.currentStatus] || vehicle.currentStatus}
+            </span>
+            <span>|</span>
+            <span>{conditionLabels[vehicle.storageCondition] || vehicle.storageCondition}</span>
           </div>
+        </div>
+
+        {/* 価格と購入日 */}
+        <div className="flex items-center gap-3 flex-shrink-0 text-xs text-gray-600">
+          {vehicle.purchasePriceIncludingTax && (
+            <span>¥{vehicle.purchasePriceIncludingTax.toLocaleString()}</span>
+          )}
+          {vehicle.purchaseDate && (
+            <span className="whitespace-nowrap">購入: {new Date(vehicle.purchaseDate).toLocaleDateString('ja-JP')}</span>
+          )}
         </div>
       </div>
     </div>
