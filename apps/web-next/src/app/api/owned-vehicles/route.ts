@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
       const condition = searchParams.get('condition')
       const search = searchParams.get('search')
       const isIndependent = searchParams.get('isIndependent')
+      const brand = searchParams.get('brand')
+      const type = searchParams.get('type')
+      const tags = searchParams.get('tags')
+      const tagOperator = searchParams.get('tag_operator') || 'OR'
       const page = parseInt(searchParams.get('page') || '1')
       const limit = parseInt(searchParams.get('limit') || '100')
       const offset = (page - 1) * limit
@@ -46,6 +50,48 @@ export async function GET(request: NextRequest) {
         // 製品リンク済みのみ: independentVehicle が存在しない
         where.independentVehicle = null
       }
+
+      // メーカーフィルタ（製品または独立車両のメーカー）
+      if (brand) {
+        where.OR = [
+          { product: { brand } },
+          { independentVehicle: { brand } }
+        ]
+      }
+
+      // 種別フィルタ（製品の種別のみ）
+      if (type) {
+        where.product = { type }
+      }
+
+      // タグフィルタ（製品のタグ）
+      if (tags) {
+        const tagIds = tags.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+        if (tagIds.length > 0) {
+          if (tagOperator === 'AND') {
+            // AND: すべてのタグを持つ製品
+            where.product = {
+              ...where.product as object,
+              productTags: {
+                every: {
+                  tagId: { in: tagIds }
+                }
+              }
+            }
+          } else {
+            // OR: いずれかのタグを持つ製品
+            where.product = {
+              ...where.product as object,
+              productTags: {
+                some: {
+                  tagId: { in: tagIds }
+                }
+              }
+            }
+          }
+        }
+      }
+
       if (search) {
         where.OR = [
           { managementId: { contains: search, mode: 'insensitive' } },

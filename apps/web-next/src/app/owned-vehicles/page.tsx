@@ -8,6 +8,7 @@ import OwnedVehicleListItem from '@/components/OwnedVehicleListItem'
 import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
 import AuthGuard from '@/components/AuthGuard'
+import TagFilter from '@/components/TagFilter'
 import { useViewMode } from '@/hooks/useViewMode'
 
 interface OwnedVehicle {
@@ -52,6 +53,10 @@ export default function OwnedVehiclesPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [conditionFilter, setConditionFilter] = useState('')
   const [independentFilter, setIndependentFilter] = useState('')
+  const [brand, setBrand] = useState('')
+  const [type, setType] = useState('')
+  const [selectedTags, setSelectedTags] = useState<number[]>([])
+  const [tagOperator, setTagOperator] = useState<'AND' | 'OR'>('OR')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<OwnedVehiclesResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
@@ -67,6 +72,12 @@ export default function OwnedVehiclesPage() {
       if (statusFilter) params.append('status', statusFilter)
       if (conditionFilter) params.append('condition', conditionFilter)
       if (independentFilter) params.append('isIndependent', independentFilter)
+      if (brand) params.append('brand', brand)
+      if (type) params.append('type', type)
+      if (selectedTags.length > 0) {
+        params.append('tags', selectedTags.join(','))
+        params.append('tag_operator', tagOperator)
+      }
       params.append('page', page.toString())
       params.append('limit', '100')
 
@@ -93,7 +104,7 @@ export default function OwnedVehiclesPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter, conditionFilter, independentFilter, page, session, status])
+  }, [search, statusFilter, conditionFilter, independentFilter, brand, type, selectedTags, tagOperator, page, session, status])
 
   useEffect(() => {
     fetchVehicles()
@@ -105,10 +116,13 @@ export default function OwnedVehiclesPage() {
     setStatusFilter('')
     setConditionFilter('')
     setIndependentFilter('')
+    setBrand('')
+    setType('')
+    setSelectedTags([])
     setPage(1)
   }
 
-  const hasActiveFilters = search || statusFilter || conditionFilter || independentFilter
+  const hasActiveFilters = search || statusFilter || conditionFilter || independentFilter || brand || type || selectedTags.length > 0
 
   const handleVehicleClick = (vehicleId: number) => {
     router.push(`/owned-vehicles/${vehicleId}`)
@@ -173,6 +187,53 @@ export default function OwnedVehiclesPage() {
             <option value="true">独立車両のみ</option>
             <option value="false">製品リンク済みのみ</option>
           </select>
+        </div>
+
+        {/* メーカーフィルタ */}
+        <div className="mb-6">
+          <div className="text-sm font-semibold text-gray-700 mb-3">メーカー</div>
+          <div className="space-y-2">
+            {['KATO', 'TOMIX', 'マイクロエース', 'グリーンマックス', 'モデモ'].map((b) => (
+              <label key={b} className="flex items-center text-sm">
+                <input
+                  type="radio"
+                  name="brand"
+                  checked={brand === b}
+                  onChange={() => setBrand(brand === b ? '' : b)}
+                  className="mr-2"
+                />
+                {b}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* 種別フィルタ */}
+        <div className="mb-6">
+          <div className="text-sm font-semibold text-gray-700 mb-3">種別</div>
+          <div className="space-y-2">
+            {['セット', '単品', 'セット単品'].map((t) => (
+              <label key={t} className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  checked={type === t}
+                  onChange={() => setType(type === t ? '' : t)}
+                  className="mr-2"
+                />
+                {t}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* タグフィルタ */}
+        <div className="mb-6">
+          <TagFilter
+            selectedTags={selectedTags}
+            operator={tagOperator}
+            onTagsChange={setSelectedTags}
+            onOperatorChange={setTagOperator}
+          />
         </div>
 
         {/* フィルタリセット */}
