@@ -10,9 +10,11 @@ export default function Navigation() {
   const pathname = usePathname()
   const { isAdmin } = useAdmin()
 
-  const navItems = [
-    { href: '/dashboard', label: 'ダッシュボード' },
+  const publicNavItems = [
     { href: '/products', label: '製品一覧' },
+  ]
+
+  const userNavItems = [
     { href: '/owned-vehicles', label: '保有車両' },
   ]
 
@@ -21,27 +23,41 @@ export default function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
-            <Link href="/" className="text-xl font-bold text-white">
-              鉄道模型管理
+            <Link href="/" className="text-lg font-bold text-white hover:text-blue-200 transition-colors">
+              Nゲージ鉄道模型データベース
             </Link>
 
-            {session && (
-              <div className="hidden md:flex space-x-6">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      pathname === item.href
-                        ? 'bg-[#3498db] text-white'
-                        : 'text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            )}
+            <div className="hidden md:flex space-x-6">
+              {/* 公開ナビゲーション */}
+              {publicNavItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    pathname === item.href
+                      ? 'bg-[#3498db] text-white'
+                      : 'text-white hover:bg-white/10'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+
+              {/* ユーザー専用ナビゲーション */}
+              {session && userNavItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    pathname === item.href
+                      ? 'bg-[#3498db] text-white'
+                      : 'text-white hover:bg-white/10'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center space-x-4">
