@@ -70,6 +70,7 @@ export default function OwnedVehiclesPage() {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<OwnedVehiclesResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
 
   const fetchVehicles = useCallback(async () => {
     if (status === 'loading') return
@@ -180,9 +181,28 @@ export default function OwnedVehiclesPage() {
 
   return (
     <AuthGuard requireAuth={true}>
-    <div className="flex min-h-screen bg-gray-50">
-      {/* サイドバー（フィルタ） */}
-      <aside className="w-72 bg-gray-50 border-r border-gray-200 p-6 overflow-y-auto">
+    <div className="min-h-screen bg-gray-50">
+      {/* モバイル用フィルタボタン */}
+      <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+        <button
+          onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+          className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
+          </svg>
+          フィルタ {hasActiveFilters && <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">●</span>}
+        </button>
+      </div>
+
+      <div className="flex">
+        {/* サイドバー（フィルタ） */}
+        <aside className={`
+          w-72 bg-gray-50 border-r border-gray-200 p-6 overflow-y-auto
+          lg:block
+          ${isMobileFilterOpen ? 'block' : 'hidden'}
+          lg:relative absolute top-0 left-0 h-full z-10 lg:z-auto
+        `}>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">検索・フィルタ</h3>
 
         {/* 検索ボックス */}
@@ -297,55 +317,74 @@ export default function OwnedVehiclesPage() {
             フィルタをクリア
           </button>
         )}
+
+        {/* モバイル用閉じるボタン */}
+        <div className="lg:hidden mt-6">
+          <button
+            onClick={() => setIsMobileFilterOpen(false)}
+            className="w-full px-4 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+          >
+            フィルタを閉じる
+          </button>
+        </div>
       </aside>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-3 lg:p-6">
         {/* ヘッダー */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">保有車両</h1>
-            {pagination && (
-              <div className="text-sm text-gray-600 mt-1">
-                {pagination.total}両中 {(page - 1) * pagination.limit + 1}-{Math.min(page * pagination.limit, pagination.total)}両を表示
-              </div>
-            )}
-          </div>
-          <div className="flex items-center space-x-3">
-            {/* ソート選択 */}
-            <div className="flex items-center space-x-2">
-              <label className="text-sm text-gray-700">並び順:</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-1 text-sm"
-              >
-                <option value="purchaseDate">購入日</option>
-                <option value="name">名称</option>
-                <option value="managementId">管理ID</option>
-                <option value="category">分類順</option>
-              </select>
-              <button
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
-                title={sortOrder === 'asc' ? '昇順' : '降順'}
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </button>
+        <div className="mb-6">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+            <div>
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900">保有車両</h1>
+              {pagination && (
+                <div className="text-sm text-gray-600 mt-1">
+                  {pagination.total}両中 {(page - 1) * pagination.limit + 1}-{Math.min(page * pagination.limit, pagination.total)}両を表示
+                </div>
+              )}
             </div>
-            <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-            <button
-              onClick={() => router.push('/owned-vehicles/new')}
-              className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
-            >
-              車両追加
-            </button>
-            <button
-              onClick={() => router.push('/import')}
-              className="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
-            >
-              CSVインポート
-            </button>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* ソート選択 */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-700 whitespace-nowrap">並び順:</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 sm:flex-none"
+                >
+                  <option value="purchaseDate">購入日</option>
+                  <option value="name">名称</option>
+                  <option value="managementId">管理ID</option>
+                  <option value="category">分類順</option>
+                </select>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
+                  title={sortOrder === 'asc' ? '昇順' : '降順'}
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* 表示形式切り替え */}
+                <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+
+                {/* ボタン群 */}
+                <button
+                  onClick={() => router.push('/owned-vehicles/new')}
+                  className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 whitespace-nowrap"
+                >
+                  車両追加
+                </button>
+                <button
+                  onClick={() => router.push('/import')}
+                  className="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 whitespace-nowrap"
+                >
+                  CSVインポート
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -419,6 +458,7 @@ export default function OwnedVehiclesPage() {
           </>
         )}
       </main>
+      </div>
     </div>
     </AuthGuard>
   )

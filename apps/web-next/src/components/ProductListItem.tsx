@@ -36,7 +36,8 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
       className="bg-white rounded shadow hover:shadow-md transition-shadow cursor-pointer p-3 mb-2"
       onClick={onClick}
     >
-      <div className="flex gap-3 items-center">
+      {/* デスクトップ: 横並び */}
+      <div className="hidden sm:flex gap-3 items-center">
         {/* 画像 */}
         <div className="w-16 h-11 flex-shrink-0">
           {product.imageUrls && product.imageUrls.length > 0 ? (
@@ -79,7 +80,7 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
                 ''
               }
             </span>
-            
+
             {product.priceIncludingTax && (
               <>
               <span>|</span>
@@ -102,15 +103,87 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
           </div>
         </div>
 
-        {/* 価格と保有数 */}
+        {/* 保有数 */}
         <div className="flex items-center gap-3 flex-shrink-0 text-xs text-gray-600">
-          
           {product._count && (
             product._count.ownedVehicles > 0 &&
             <span className="whitespace-nowrap">保有: {product._count.ownedVehicles}</span>
           )}
         </div>
       </div>
+
+      {/* モバイル: 縦積み */}
+      <div className="sm:hidden">
+        <div className="flex gap-3 mb-2">
+          {/* 画像 */}
+          <div className="w-20 h-15 flex-shrink-0">
+            {product.imageUrls && product.imageUrls.length > 0 ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={product.imageUrls[0]}
+                alt={product.name}
+                className="w-20 h-15 object-contain bg-gray-100 rounded"
+              />
+            ) : (
+              <div className="w-20 h-15 bg-gray-200 rounded flex items-center justify-center">
+                <span className="text-gray-400 text-[10px]">画像なし</span>
+              </div>
+            )}
+          </div>
+
+          {/* タイトルと基本情報 */}
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
+              {product.name}
+            </div>
+            <div className="text-xs text-gray-600 mb-1">
+              <span className="font-medium">{product.brand}</span>
+              {product.productCode && (
+                <>
+                  <span className="mx-1">|</span>
+                  <span>{product.productCode}</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                product.type === 'SET' ? 'bg-red-100 text-red-700' :
+                product.type === 'SET_SINGLE' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-blue-100 text-blue-700'
+              }`}>
+                {
+                  product.type === 'SINGLE' ? '単品' :
+                  product.type === 'SET' ? 'セット' :
+                  product.type === 'SET_SINGLE' ? 'セット単品' :
+                  ''
+                }
+              </span>
+              {product.priceIncludingTax && (
+                <span className="text-xs text-gray-600">
+                  ¥{product.priceIncludingTax.toLocaleString()}
+                </span>
+              )}
+              {displayTags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                {displayTags.map((pt) => (
+                  <span key={pt.tag.id} className={`px-1.5 py-0.5 rounded text-[10px] ${getCategoryColor(pt.tag.category)}`}>
+                  {pt.tag.name}
+                  </span>
+                ))}
+                </div>
+              )}
+              
+
+              {product._count && product._count.ownedVehicles > 0 && (
+                <span className="text-xs text-gray-600">
+                  保有: {product._count.ownedVehicles}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
+          
