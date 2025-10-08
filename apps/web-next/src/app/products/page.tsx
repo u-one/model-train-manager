@@ -6,9 +6,10 @@ import { useSession } from 'next-auth/react'
 import ProductCard from '@/components/ProductCard'
 import ProductListItem from '@/components/ProductListItem'
 import ViewModeToggle from '@/components/ViewModeToggle'
-import ItemsContainer from '@/components/ItemsContainer'
 import TagFilter from '@/components/TagFilter'
+import BulkTagEditDialog from '@/components/BulkTagEditDialog'
 import { useViewMode } from '@/hooks/useViewMode'
+import { Tags } from 'lucide-react'
 
 interface Tag {
   id: number
@@ -58,6 +59,8 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<ProductsResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [showBulkTagDialog, setShowBulkTagDialog] = useState(false)
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
@@ -96,6 +99,30 @@ export default function ProductsPage() {
 
   const handleProductClick = (productId: number) => {
     router.push(`/products/${productId}`)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === products.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(products.map(p => p.id)))
+    }
+  }
+
+  const handleSelectProduct = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation()
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const handleBulkTagComplete = () => {
+    setSelectedIds(new Set())
+    fetchProducts()
   }
 
   return (
@@ -240,6 +267,34 @@ export default function ProductsPage() {
           </div>
         </div>
 
+        {/* 一括操作ツールバー */}
+        {session && products.length > 0 && (
+          <div className="mb-4 flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === products.length && products.length > 0}
+                  onChange={handleSelectAll}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="text-sm text-gray-700">
+                  全選択 ({selectedIds.size > 0 ? `${selectedIds.size}件選択中` : ''})
+                </span>
+              </label>
+            </div>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={() => setShowBulkTagDialog(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                <Tags className="w-4 h-4" />
+                <span>一括タグ編集</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
@@ -247,27 +302,70 @@ export default function ProductsPage() {
           </div>
         ) : (
           <>
-            <ItemsContainer
-              items={products}
-              viewMode={viewMode}
-              renderGridItem={(product) => (
-                <ProductCard
-                  product={product}
-                  onClick={() => handleProductClick(product.id)}
-                />
-              )}
-              renderListItem={(product) => (
-                <ProductListItem
-                  product={product}
-                  onClick={() => handleProductClick(product.id)}
-                />
-              )}
-              emptyState={
-                <div className="text-center py-12">
-                  <p className="text-gray-500">製品が見つかりませんでした</p>
-                </div>
-              }
-            />
+            {viewMode === 'list' ? (
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                {products.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">製品が見つかりませんでした</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {products.map((product) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center hover:bg-gray-50 transition-colors"
+                      >
+                        {session && (
+                          <div className="pl-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(product.id)}
+                              onChange={(e) => handleSelectProduct(product.id, e)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 cursor-pointer" onClick={() => handleProductClick(product.id)}>
+                          <ProductListItem
+                            product={product}
+                            onClick={() => {}}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {products.length === 0 ? (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-gray-500">製品が見つかりませんでした</p>
+                  </div>
+                ) : (
+                  products.map((product) => (
+                    <div key={product.id} className="relative">
+                      {session && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(product.id)}
+                            onChange={(e) => handleSelectProduct(product.id, e)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded shadow-sm"
+                          />
+                        </div>
+                      )}
+                      <ProductCard
+                        product={product}
+                        onClick={() => handleProductClick(product.id)}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             {/* ページネーション */}
             {pagination && pagination.totalPages > 1 && (
@@ -296,6 +394,15 @@ export default function ProductsPage() {
           </>
         )}
       </main>
+
+      {/* 一括タグ編集ダイアログ */}
+      {showBulkTagDialog && (
+        <BulkTagEditDialog
+          selectedProductIds={Array.from(selectedIds)}
+          onClose={() => setShowBulkTagDialog(false)}
+          onComplete={handleBulkTagComplete}
+        />
+      )}
     </div>
   )
 }
