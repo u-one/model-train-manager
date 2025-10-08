@@ -297,7 +297,7 @@ function NewProductForm() {
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                 >
                   {PRODUCT_TYPES.map((t) => (
-                    <option value={t.value}>{t.label}</option>
+                    <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
                 {form.formState.errors.type && (

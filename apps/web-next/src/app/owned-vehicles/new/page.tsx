@@ -114,20 +114,6 @@ export default function NewOwnedVehiclePage() {
     }
   }
 
-  const addImageUrl = () => {
-    setImageUrls([...imageUrls, ''])
-  }
-
-  const removeImageUrl = (index: number) => {
-    setImageUrls(imageUrls.filter((_, i) => i !== index))
-  }
-
-  const updateImageUrl = (index: number, value: string) => {
-    const newImageUrls = [...imageUrls]
-    newImageUrls[index] = value
-    setImageUrls(newImageUrls)
-  }
-
   if (loadingProducts) {
     return (
       <AuthGuard requireAuth={true}>

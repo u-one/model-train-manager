@@ -10,7 +10,7 @@ import TagFilter from '@/components/TagFilter'
 import BulkTagEditDialog from '@/components/BulkTagEditDialog'
 import { useViewMode } from '@/hooks/useViewMode'
 import { Tags } from 'lucide-react'
-import { PRODUCT_TYPES, PRODUCT_TYPE_SET_SINGLE, getProductTypeLabel } from '@/constants/productTypes'
+import { PRODUCT_TYPES, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
 
 interface Tag {
   id: number

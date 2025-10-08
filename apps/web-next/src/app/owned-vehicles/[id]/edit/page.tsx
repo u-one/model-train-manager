@@ -213,21 +213,7 @@ export default function EditOwnedVehiclePage({ params }: { params: Promise<{ id:
       setIsSubmitting(false)
     }
   }
-
-  const addImageUrl = () => {
-    setImageUrls([...imageUrls, ''])
-  }
-
-  const removeImageUrl = (index: number) => {
-    setImageUrls(imageUrls.filter((_, i) => i !== index))
-  }
-
-  const updateImageUrl = (index: number, value: string) => {
-    const newImageUrls = [...imageUrls]
-    newImageUrls[index] = value
-    setImageUrls(newImageUrls)
-  }
-
+  
   if (status === 'loading' || loading) {
     return (
       <AuthGuard requireAuth={true}>

@@ -1,5 +1,5 @@
 import { getCategoryColor } from '@/constants/tags'
-import { getProductTypeLabel, getProductTypeColor, PRODUCT_TYPE_SINGLE, PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
+import { getProductTypeLabel, getProductTypeColor } from '@/constants/productTypes'
 
 interface Tag {
   id: number
@@ -86,7 +86,7 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
             {displayTags.length > 0 && (
               <>
                 <span>|</span>
-                {displayTags.map((pt, idx) => (
+                {displayTags.map((pt) => (
                   <span key={pt.tag.id} className={`px-1.5 py-0.5 rounded text-[10px] ${getCategoryColor(pt.tag.category)}`}>
                     {pt.tag.name}
                   </span>
