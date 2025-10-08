@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
     const tagsParam = searchParams.get('tags')
     const tagOperator = searchParams.get('tag_operator') || 'OR'
     const excludeTagsParam = searchParams.get('exclude_tags')
+    // カテゴリ別「なし」条件
+    const noTagsCategories = searchParams.get('no_tags_categories')?.split(',') || []
 
     // ログインユーザーを取得
     let currentUserId = null
@@ -54,35 +56,66 @@ export async function GET(request: NextRequest) {
     const tagIds = tagsParam ? tagsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : []
     const excludeTagIds = excludeTagsParam ? excludeTagsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : []
 
+    // カテゴリ別「なし」条件とタグフィルタを組み合わせる
+    const tagConditions: Record<string, unknown>[] = []
+
+    // 通常のタグフィルタ
     if (tagIds.length > 0) {
       if (tagOperator === 'AND') {
         // AND検索: 指定されたすべてのタグを持つ製品
-        where.productTags = {
-          some: {
-            tagId: { in: tagIds }
+        tagConditions.push({
+          productTags: {
+            some: {
+              tagId: { in: tagIds }
+            }
           }
-        }
-        // ANDの場合は、全てのタグを持つ製品のみを取得する必要があるため、
-        // havingを使った集計が必要だが、Prismaでは複雑なので一度取得してフィルタする
+        })
+        // ANDの場合は後でフィルタする
       } else {
         // OR検索: 指定されたタグのいずれかを持つ製品
-        where.productTags = {
-          some: {
-            tagId: { in: tagIds }
+        tagConditions.push({
+          productTags: {
+            some: {
+              tagId: { in: tagIds }
+            }
           }
-        }
+        })
+      }
+    }
+
+    // カテゴリ別「なし」条件
+    if (noTagsCategories.length > 0) {
+      for (const category of noTagsCategories) {
+        tagConditions.push({
+          NOT: {
+            productTags: {
+              some: {
+                tag: {
+                  category: category
+                }
+              }
+            }
+          }
+        })
       }
     }
 
     // 除外タグの処理
     if (excludeTagIds.length > 0) {
-      where.NOT = {
-        productTags: {
-          some: {
-            tagId: { in: excludeTagIds }
+      tagConditions.push({
+        NOT: {
+          productTags: {
+            some: {
+              tagId: { in: excludeTagIds }
+            }
           }
         }
-      }
+      })
+    }
+
+    // 条件を統合
+    if (tagConditions.length > 0) {
+      where.AND = tagConditions
     }
 
     // ソート条件の構築
@@ -155,8 +188,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: tagOperator === 'AND' && tagIds.length > 0 ? filteredProducts.length : total,
-        totalPages: Math.ceil((tagOperator === 'AND' && tagIds.length > 0 ? filteredProducts.length : total) / limit)
+        total: (tagOperator === 'AND' && tagIds.length > 0) ? filteredProducts.length : total,
+        totalPages: Math.ceil(((tagOperator === 'AND' && tagIds.length > 0) ? filteredProducts.length : total) / limit)
       }
     })
   } catch (error) {

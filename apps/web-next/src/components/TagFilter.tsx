@@ -17,8 +17,10 @@ interface TagCategory {
 interface TagFilterProps {
   selectedTags: number[]
   operator: 'AND' | 'OR'
+  noTagsCategories: string[]
   onTagsChange: (tags: number[]) => void
   onOperatorChange: (operator: 'AND' | 'OR') => void
+  onNoTagsCategoriesChange: (categories: string[]) => void
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -31,8 +33,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function TagFilter({
   selectedTags,
   operator,
+  noTagsCategories,
   onTagsChange,
-  onOperatorChange
+  onOperatorChange,
+  onNoTagsCategoriesChange
 }: TagFilterProps) {
   const [tags, setTags] = useState<Tag[]>([])
   const [categories, setCategories] = useState<TagCategory[]>([])
@@ -68,6 +72,13 @@ export default function TagFilter({
   }
 
   const handleTagToggle = (tagId: number) => {
+    // 該当タグのカテゴリを取得
+    const tag = tags.find(t => t.id === tagId)
+    if (tag && noTagsCategories.includes(tag.category)) {
+      // そのカテゴリの「なし」が選択されている場合は解除
+      onNoTagsCategoriesChange(noTagsCategories.filter(cat => cat !== tag.category))
+    }
+
     if (selectedTags.includes(tagId)) {
       onTagsChange(selectedTags.filter(id => id !== tagId))
     } else {
@@ -77,6 +88,19 @@ export default function TagFilter({
 
   const handleClearAll = () => {
     onTagsChange([])
+    onNoTagsCategoriesChange([])
+  }
+
+  const handleCategoryNoTagsToggle = (category: string) => {
+    if (noTagsCategories.includes(category)) {
+      // 該当カテゴリの「なし」を解除
+      onNoTagsCategoriesChange(noTagsCategories.filter(cat => cat !== category))
+    } else {
+      // 該当カテゴリの「なし」を追加し、該当カテゴリのタグ選択を解除
+      onNoTagsCategoriesChange([...noTagsCategories, category])
+      const categoryTagIds = tags.filter(tag => tag.category === category).map(tag => tag.id)
+      onTagsChange(selectedTags.filter(tagId => !categoryTagIds.includes(tagId)))
+    }
   }
 
   const toggleCategory = (category: string) => {
@@ -131,12 +155,12 @@ export default function TagFilter({
           </div>
 
           {/* クリアボタン */}
-          {selectedTags.length > 0 && (
+          {(selectedTags.length > 0 || noTagsCategories.length > 0) && (
             <button
               onClick={handleClearAll}
               className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
             >
-              クリア ({selectedTags.length})
+              クリア ({selectedTags.length + noTagsCategories.length})
             </button>
           )}
         </div>
@@ -148,6 +172,8 @@ export default function TagFilter({
           const categoryTags = getTagsByCategory(categoryInfo.category)
           const isExpanded = expandedCategories.has(categoryInfo.category)
           const selectedCount = categoryTags.filter(tag => selectedTags.includes(tag.id)).length
+          const hasNoTagsSelected = noTagsCategories.includes(categoryInfo.category)
+          const isDisabled = hasNoTagsSelected
 
           return (
             <div key={categoryInfo.category} className="border-b border-gray-200 last:border-b-0 pb-3 last:pb-0">
@@ -159,7 +185,12 @@ export default function TagFilter({
                   <span className="text-sm font-medium text-gray-900">
                     {CATEGORY_LABELS[categoryInfo.category] || categoryInfo.category}
                   </span>
-                  {selectedCount > 0 && (
+                  {hasNoTagsSelected && (
+                    <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded">
+                      なし
+                    </span>
+                  )}
+                  {selectedCount > 0 && !hasNoTagsSelected && (
                     <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">
                       {selectedCount}
                     </span>
@@ -179,20 +210,37 @@ export default function TagFilter({
 
               {isExpanded && (
                 <div className="mt-2 space-y-1 px-2">
-                  {categoryTags.map(tag => (
-                    <label
-                      key={tag.id}
-                      className="flex items-center space-x-2 py-1 px-2 hover:bg-gray-50 rounded cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedTags.includes(tag.id)}
-                        onChange={() => handleTagToggle(tag.id)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span className="text-sm text-gray-700">{tag.name}</span>
-                    </label>
-                  ))}
+                  {/* カテゴリ別「なし」オプション */}
+                  <label className="flex items-center space-x-2 py-1 px-2 hover:bg-gray-50 rounded cursor-pointer border-b border-gray-100 mb-2 pb-2">
+                    <input
+                      type="checkbox"
+                      checked={hasNoTagsSelected}
+                      onChange={() => handleCategoryNoTagsToggle(categoryInfo.category)}
+                      className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">なし</span>
+                    <span className="text-xs text-gray-500">
+                      （{CATEGORY_LABELS[categoryInfo.category]}が未設定の製品）
+                    </span>
+                  </label>
+
+                  {/* タグ一覧 */}
+                  <div className={isDisabled ? 'opacity-50 pointer-events-none' : ''}>
+                    {categoryTags.map(tag => (
+                      <label
+                        key={tag.id}
+                        className="flex items-center space-x-2 py-1 px-2 hover:bg-gray-50 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTags.includes(tag.id)}
+                          onChange={() => handleTagToggle(tag.id)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-700">{tag.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -201,7 +249,14 @@ export default function TagFilter({
       </div>
 
       {/* ヘルプテキスト */}
-      {selectedTags.length > 1 && (
+      {noTagsCategories.length > 0 && (
+        <div className="mt-4 p-2 bg-yellow-50 border border-yellow-200 rounded">
+          <p className="text-xs text-yellow-800">
+            選択カテゴリでタグが未設定の製品のみを表示中
+          </p>
+        </div>
+      )}
+      {noTagsCategories.length === 0 && selectedTags.length > 1 && (
         <div className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded">
           <p className="text-xs text-blue-800">
             {operator === 'OR'

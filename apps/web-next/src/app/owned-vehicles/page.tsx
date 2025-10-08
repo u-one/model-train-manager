@@ -64,6 +64,7 @@ export default function OwnedVehiclesPage() {
   const [type, setType] = useState('')
   const [selectedTags, setSelectedTags] = useState<number[]>([])
   const [tagOperator, setTagOperator] = useState<'AND' | 'OR'>('OR')
+  const [noTagsCategories, setNoTagsCategories] = useState<string[]>([])
   const [sortBy, setSortBy] = useState('purchaseDate')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
@@ -152,7 +153,7 @@ export default function OwnedVehiclesPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter, conditionFilter, independentFilter, brand, type, selectedTags, tagOperator, sortBy, sortOrder, page, session, status])
+  }, [search, statusFilter, conditionFilter, independentFilter, brand, type, selectedTags, tagOperator, noTagsCategories, sortBy, sortOrder, page, session, status])
 
   useEffect(() => {
     fetchVehicles()
@@ -167,10 +168,11 @@ export default function OwnedVehiclesPage() {
     setBrand('')
     setType('')
     setSelectedTags([])
+    setNoTagsCategories([])
     setPage(1)
   }
 
-  const hasActiveFilters = search || statusFilter || conditionFilter || independentFilter || brand || type || selectedTags.length > 0
+  const hasActiveFilters = search || statusFilter || conditionFilter || independentFilter || brand || type || selectedTags.length > 0 || noTagsCategories.length > 0
 
   const handleVehicleClick = (vehicleId: number) => {
     router.push(`/owned-vehicles/${vehicleId}`)
@@ -279,8 +281,10 @@ export default function OwnedVehiclesPage() {
           <TagFilter
             selectedTags={selectedTags}
             operator={tagOperator}
+            noTagsCategories={noTagsCategories}
             onTagsChange={setSelectedTags}
             onOperatorChange={setTagOperator}
+            onNoTagsCategoriesChange={setNoTagsCategories}
           />
         </div>
 

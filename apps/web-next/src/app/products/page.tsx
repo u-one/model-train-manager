@@ -54,6 +54,7 @@ export default function ProductsPage() {
   const [showSetSingle, setShowSetSingle] = useState(false) // セット単品デフォルト非表示
   const [selectedTags, setSelectedTags] = useState<number[]>([])
   const [tagOperator, setTagOperator] = useState<'AND' | 'OR'>('OR')
+  const [noTagsCategories, setNoTagsCategories] = useState<string[]>([])
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(1)
@@ -74,6 +75,9 @@ export default function ProductsPage() {
         params.append('tags', selectedTags.join(','))
         params.append('tag_operator', tagOperator)
       }
+      if (noTagsCategories.length > 0) {
+        params.append('no_tags_categories', noTagsCategories.join(','))
+      }
       params.append('sortBy', sortBy)
       params.append('sortOrder', sortOrder)
       params.append('page', page.toString())
@@ -90,7 +94,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, brand, type, showSetSingle, selectedTags, tagOperator, sortBy, sortOrder, page])
+  }, [search, brand, type, showSetSingle, selectedTags, tagOperator, noTagsCategories, sortBy, sortOrder, page])
 
   useEffect(() => {
     fetchProducts()
@@ -190,13 +194,15 @@ export default function ProductsPage() {
           <TagFilter
             selectedTags={selectedTags}
             operator={tagOperator}
+            noTagsCategories={noTagsCategories}
             onTagsChange={setSelectedTags}
             onOperatorChange={setTagOperator}
+            onNoTagsCategoriesChange={setNoTagsCategories}
           />
         </div>
 
         {/* フィルタリセット */}
-        {(search || brand || type || showSetSingle || selectedTags.length > 0) && (
+        {(search || brand || type || showSetSingle || selectedTags.length > 0 || noTagsCategories.length > 0) && (
           <button
             onClick={() => {
               setSearch('')
@@ -204,6 +210,7 @@ export default function ProductsPage() {
               setType('')
               setShowSetSingle(false)
               setSelectedTags([])
+              setNoTagsCategories([])
               setPage(1)
             }}
             className="w-full px-4 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
