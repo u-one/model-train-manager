@@ -159,13 +159,13 @@ export async function GET(request: NextRequest) {
               tag: true
             }
           },
-          _count: {
+          _count: currentUserId ? {
             select: {
-              ownedVehicles: currentUserId ? {
+              ownedVehicles: {
                 where: { userId: currentUserId }
-              } : true
+              }
             }
-          }
+          } : undefined
         },
         orderBy,
         skip: offset,

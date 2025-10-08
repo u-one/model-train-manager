@@ -29,7 +29,7 @@ interface Product {
   type: string
   priceIncludingTax: number | null
   imageUrls: string[]
-  _count: { ownedVehicles: number }
+  _count?: { ownedVehicles: number }
   productTags?: ProductTag[]
 }
 
