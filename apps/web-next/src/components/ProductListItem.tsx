@@ -60,18 +60,30 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
           </div>
           <div className="text-xs text-gray-600 flex items-center gap-2 flex-wrap">
             <span className="font-medium">{product.brand}</span>
-            <span>|</span>
-            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              product.type === 'セット' ? 'bg-red-100 text-red-700' :
-              product.type === 'セット単品' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-blue-100 text-blue-700'
-            }`}>
-              {product.type}
-            </span>
             {product.productCode && (
               <>
                 <span>|</span>
                 <span>{product.productCode}</span>
+              </>
+            )}
+            <span>|</span>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+              product.type === 'SET' ? 'bg-red-100 text-red-700' :
+              product.type === 'SET_SINGLE' ? 'bg-yellow-100 text-yellow-700' :
+              'bg-blue-100 text-blue-700'
+            }`}>
+              {
+                product.type === 'SINGLE' ? '単品' :
+                product.type === 'SET' ? 'セット' :
+                product.type === 'SET_SINGLE' ? 'セット単品' :
+                ''
+              }
+            </span>
+            
+            {product.priceIncludingTax && (
+              <>
+              <span>|</span>
+              <span>¥{product.priceIncludingTax.toLocaleString()}</span>
               </>
             )}
             {displayTags.length > 0 && (
@@ -92,11 +104,10 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
 
         {/* 価格と保有数 */}
         <div className="flex items-center gap-3 flex-shrink-0 text-xs text-gray-600">
-          {product.priceIncludingTax && (
-            <span>¥{product.priceIncludingTax.toLocaleString()}</span>
-          )}
+          
           {product._count && (
-            <span className="whitespace-nowrap">保有: {product._count.ownedVehicles}両</span>
+            product._count.ownedVehicles > 0 &&
+            <span className="whitespace-nowrap">保有: {product._count.ownedVehicles}</span>
           )}
         </div>
       </div>

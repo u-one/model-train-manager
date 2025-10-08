@@ -53,17 +53,28 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
       <div className="space-y-2">
         <div className="flex justify-between items-start">
-          <span className="text-sm text-gray-600 font-medium">{product.brand}</span>
+          <span className="text-sm text-gray-600 font-medium">{product.brand}
+            &nbsp;
+            {product.productCode}
+          </span>
           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-            {product.type}
+            {
+              product.type === 'SINGLE' ? '単品' :
+              product.type === 'SET' ? 'セット' :
+              product.type === 'SET_SINGLE' ? 'セット単品' :
+              ''
+            }
           </span>
         </div>
-
-        {product.productCode && (
-          <p className="text-sm text-gray-500">{product.productCode}</p>
-        )}
+        
 
         <h3 className="font-medium text-gray-900 line-clamp-2">{product.name}</h3>
+
+        <div className="flex flex-wrap gap-1">
+            <span className="text-sm font-medium text-gray-900">
+              ¥{product.priceIncludingTax ? product.priceIncludingTax.toLocaleString() : ' - '}
+            </span>
+        </div>
 
         {/* タグバッジ */}
         {displayTags.length > 0 && (
@@ -85,11 +96,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         )}
 
         <div className="flex justify-between items-center">
-          {product.priceIncludingTax && (
-            <span className="text-lg font-semibold text-gray-900">
-              ¥{product.priceIncludingTax.toLocaleString()}
-            </span>
-          )}
+          
 
           {product._count && (
             <span className="text-sm text-gray-600">
