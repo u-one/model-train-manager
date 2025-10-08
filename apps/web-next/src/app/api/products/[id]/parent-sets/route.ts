@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE, PRODUCT_TYPE_SINGLE } from '@/constants/productTypes'
 
 // 製品が所属するセット一覧取得
 export async function GET(
@@ -43,11 +44,11 @@ export async function GET(
     }> = []
 
     // パターン1: SET_SINGLEタイプで、parentCodeが設定されている場合
-    if (product.type === 'SET_SINGLE' && product.parentCode) {
+    if (product.type === PRODUCT_TYPE_SET_SINGLE && product.parentCode) {
       const parentSet = await prisma.product.findFirst({
         where: {
           productCode: product.parentCode,
-          type: 'SET'
+          type: PRODUCT_TYPE_SET
         },
         include: {
           realVehicles: true,
@@ -63,11 +64,11 @@ export async function GET(
     // パターン2: 単品製品が複数のセットで使用されている場合
     // この場合は、この製品のproductCodeをparentCodeとして持つSET_SINGLEを探し、
     // さらにそのparentCodeでセットを特定する
-    if (product.type === 'SINGLE') {
+    if (product.type === PRODUCT_TYPE_SINGLE) {
       const usageInSets = await prisma.product.findMany({
         where: {
           productCode: product.productCode,
-          type: 'SET_SINGLE',
+          type: PRODUCT_TYPE_SET_SINGLE,
           parentCode: { not: null }
         },
         select: { parentCode: true }
@@ -79,7 +80,7 @@ export async function GET(
         const sets = await prisma.product.findMany({
           where: {
             productCode: { in: setProductCodes },
-            type: 'SET'
+            type: PRODUCT_TYPE_SET
           },
           include: {
             realVehicles: true,

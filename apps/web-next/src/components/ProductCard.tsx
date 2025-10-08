@@ -1,4 +1,5 @@
 import { getCategoryColor } from '@/constants/tags'
+import { getProductTypeLabel, getProductTypeColor } from '@/constants/productTypes'
 
 interface Tag {
   id: number
@@ -57,13 +58,8 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
             &nbsp;
             {product.productCode}
           </span>
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-            {
-              product.type === 'SINGLE' ? '単品' :
-              product.type === 'SET' ? 'セット' :
-              product.type === 'SET_SINGLE' ? 'セット単品' :
-              ''
-            }
+          <span className={`text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded ${getProductTypeColor(product.type)}`}>
+            {getProductTypeLabel(product.type)}
           </span>
         </div>
         

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
       where.type = type
     } else if (excludeSetSingle) {
       // typeが指定されていない場合のみexcludeSetSingleを適用
-      where.type = { not: 'SET_SINGLE' }
+      where.type = { not: PRODUCT_TYPE_SET_SINGLE }
     }
     if (search) {
       where.OR = [

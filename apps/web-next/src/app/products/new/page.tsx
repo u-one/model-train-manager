@@ -8,6 +8,8 @@ import ProductFormTagSelector from '@/components/ProductFormTagSelector'
 import ImageUploader from '@/components/ImageUploader'
 // import { Input } from '@/components/ui' // 未使用
 import { productFormSchema, defaultProductValues, type ProductFormData } from '@/lib/validations/product'
+import { PRODUCT_TYPES, PRODUCT_TYPE_VALUES, PRODUCT_TYPE_SINGLE, PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
+
 
 function NewProductForm() {
   const router = useRouter()
@@ -60,8 +62,8 @@ function NewProductForm() {
     const brand = searchParams.get('brand')
     const fromIndependent = searchParams.get('fromIndependent')
 
-    if (type && ['SINGLE', 'SET', 'SET_SINGLE'].includes(type)) {
-      form.setValue('type', type as 'SINGLE' | 'SET' | 'SET_SINGLE')
+    if (type && PRODUCT_TYPE_VALUES.includes(type)) {
+      form.setValue('type', type as typeof PRODUCT_TYPE_SINGLE | typeof PRODUCT_TYPE_SET | typeof PRODUCT_TYPE_SET_SINGLE )
     }
     if (parentCode) {
       form.setValue('parentCode', parentCode)
@@ -88,7 +90,7 @@ function NewProductForm() {
 
   // セット単品の場合、価格フィールドを無効化
   const productType = form.watch('type')
-  const isSetSingle = productType === 'SET_SINGLE'
+  const isSetSingle = productType === PRODUCT_TYPE_SET_SINGLE
 
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true)
@@ -254,7 +256,7 @@ function NewProductForm() {
               </div>
 
               {/* セット単品の場合のみ親品番を表示 */}
-              {form.watch('type') === 'SET_SINGLE' && (
+              {form.watch('type') === PRODUCT_TYPE_SET_SINGLE && (
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-1">
                     親セット品番
@@ -271,7 +273,7 @@ function NewProductForm() {
                 </div>
               )}
 
-              <div className={form.watch('type') === 'SET_SINGLE' ? "md:col-span-1" : "md:col-span-2"}>
+              <div className={form.watch('type') === PRODUCT_TYPE_SET_SINGLE ? "md:col-span-1" : "md:col-span-2"}>
                 <label className="block text-sm font-medium text-gray-900 mb-1">
                   製品名 *
                 </label>
@@ -294,9 +296,9 @@ function NewProductForm() {
                   {...form.register('type')}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                 >
-                  <option value="SINGLE">単品</option>
-                  <option value="SET">セット</option>
-                  <option value="SET_SINGLE">セット単品</option>
+                  {PRODUCT_TYPES.map((t) => (
+                    <option value={t.value}>{t.label}</option>
+                  ))}
                 </select>
                 {form.formState.errors.type && (
                   <p className="text-red-500 text-sm mt-1">{form.formState.errors.type.message}</p>

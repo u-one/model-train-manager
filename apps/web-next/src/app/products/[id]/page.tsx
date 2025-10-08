@@ -10,6 +10,7 @@ import ItemsContainer from '@/components/ItemsContainer'
 import ImageGallery from '@/components/ImageGallery'
 import { useViewMode } from '@/hooks/useViewMode'
 import { getCategoryColor } from '@/constants/tags'
+import { PRODUCT_TYPE_SINGLE, PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
 
 interface Product {
   id: number
@@ -81,7 +82,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           }
 
           // 構成車両やセット単品の場合、所属セットを取得
-          if (data.type === 'SET_SINGLE' || data.type === 'SINGLE') {
+          if (data.type === PRODUCT_TYPE_SET_SINGLE || data.type === PRODUCT_TYPE_SINGLE) {
             const parentSetsResponse = await fetch(`/api/products/${resolvedParams.id}/parent-sets`)
             if (parentSetsResponse.ok) {
               const parentSetsData = await parentSetsResponse.json()
@@ -285,7 +286,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* セット構成車両 */}
-      {product.type === 'SET' && (
+      {product.type === PRODUCT_TYPE_SET && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-900">
@@ -295,7 +296,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <ViewModeToggle viewMode={setComponentsViewMode} onViewModeChange={setSetComponentsViewMode} />
               {session && (
                 <button
-                  onClick={() => router.push(`/products/new?type=SET_SINGLE&parentCode=${product.productCode}&brand=${encodeURIComponent(product.brand)}`)}
+                  onClick={() => router.push(`/products/new?type=${PRODUCT_TYPE_SET_SINGLE}&parentCode=${product.productCode}&brand=${encodeURIComponent(product.brand)}`)}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   + セット単品を追加
@@ -329,7 +330,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* 所属セット */}
-      {(product.type === 'SET_SINGLE' || product.type === 'SINGLE') && parentSets.length > 0 && (
+      {(product.type === PRODUCT_TYPE_SET_SINGLE || product.type === PRODUCT_TYPE_SINGLE) && parentSets.length > 0 && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             所属セット ({parentSets.length}件)

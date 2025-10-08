@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
 
 // セットの構成車両一覧取得
 export async function GET(
@@ -16,7 +17,7 @@ export async function GET(
       select: { productCode: true, type: true }
     })
 
-    if (!setProduct || setProduct.type !== 'SET') {
+    if (!setProduct || setProduct.type !== PRODUCT_TYPE_SET) {
       return NextResponse.json({ error: 'Product is not a set' }, { status: 400 })
     }
 
@@ -24,7 +25,7 @@ export async function GET(
     const components = await prisma.product.findMany({
       where: {
         parentCode: setProduct.productCode,
-        type: 'SET_SINGLE'
+        type: PRODUCT_TYPE_SET_SINGLE
       },
       include: {
         realVehicles: true,
@@ -56,7 +57,7 @@ export async function POST(
       select: { productCode: true, type: true }
     })
 
-    if (!setProduct || setProduct.type !== 'SET') {
+    if (!setProduct || setProduct.type !== PRODUCT_TYPE_SET) {
       return NextResponse.json({ error: 'Product is not a set' }, { status: 400 })
     }
 
@@ -64,7 +65,7 @@ export async function POST(
     const component = await prisma.product.create({
       data: {
         ...componentData,
-        type: 'SET_SINGLE',
+        type: PRODUCT_TYPE_SET_SINGLE,
         parentCode: setProduct.productCode
       },
       include: {

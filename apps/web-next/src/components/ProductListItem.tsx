@@ -1,4 +1,5 @@
 import { getCategoryColor } from '@/constants/tags'
+import { getProductTypeLabel, getProductTypeColor, PRODUCT_TYPE_SINGLE, PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
 
 interface Tag {
   id: number
@@ -69,15 +70,10 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
             )}
             <span>|</span>
             <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              product.type === 'SET' ? 'bg-red-100 text-red-700' :
-              product.type === 'SET_SINGLE' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-blue-100 text-blue-700'
+              getProductTypeColor(product.type)
             }`}>
               {
-                product.type === 'SINGLE' ? '単品' :
-                product.type === 'SET' ? 'セット' :
-                product.type === 'SET_SINGLE' ? 'セット単品' :
-                ''
+                getProductTypeLabel(product.type)
               }
             </span>
 
@@ -146,17 +142,8 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                product.type === 'SET' ? 'bg-red-100 text-red-700' :
-                product.type === 'SET_SINGLE' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-blue-100 text-blue-700'
-              }`}>
-                {
-                  product.type === 'SINGLE' ? '単品' :
-                  product.type === 'SET' ? 'セット' :
-                  product.type === 'SET_SINGLE' ? 'セット単品' :
-                  ''
-                }
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${getProductTypeColor(product.type)}`}>
+                {getProductTypeLabel(product.type)}
               </span>
               {product.priceIncludingTax && (
                 <span className="text-xs text-gray-600">

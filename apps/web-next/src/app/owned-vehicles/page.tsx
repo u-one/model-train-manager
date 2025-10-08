@@ -10,6 +10,7 @@ import ItemsContainer from '@/components/ItemsContainer'
 import AuthGuard from '@/components/AuthGuard'
 import TagFilter from '@/components/TagFilter'
 import { useViewMode } from '@/hooks/useViewMode'
+import { PRODUCT_TYPES } from '@/constants/productTypes'
 
 interface OwnedVehicle {
   id: number
@@ -263,7 +264,7 @@ export default function OwnedVehiclesPage() {
         <div className="mb-6">
           <div className="text-sm font-semibold text-gray-700 mb-3">メーカー</div>
           <div className="space-y-2">
-            {['KATO', 'TOMIX', 'マイクロエース', 'グリーンマックス', 'モデモ'].map((b) => (
+            {['KATO', 'TOMIX', 'マイクロエース', 'グリーンマックス'].map((b) => (
               <label key={b} className="flex items-center text-sm">
                 <input
                   type="radio"
@@ -282,15 +283,15 @@ export default function OwnedVehiclesPage() {
         <div className="mb-6">
           <div className="text-sm font-semibold text-gray-700 mb-3">種別</div>
           <div className="space-y-2">
-            {['セット', '単品', 'セット単品'].map((t) => (
-              <label key={t} className="flex items-center text-sm">
+            {PRODUCT_TYPES.map((t) => (
+              <label key={t.value} className="flex items-center text-sm">
                 <input
                   type="checkbox"
-                  checked={type === t}
-                  onChange={() => setType(type === t ? '' : t)}
+                  checked={type === t.value}
+                  onChange={() => setType(type === t.value ? '' : t.value)}
                   className="mr-2"
                 />
-                {t}
+                {t.label}
               </label>
             ))}
           </div>

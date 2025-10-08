@@ -1,3 +1,5 @@
+import { getProductTypeLabel, getProductTypeColor } from '@/constants/productTypes'
+
 interface OwnedVehicle {
   id: number
   managementId: string
@@ -96,7 +98,7 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
             {vehicle.product?.type && (
               <>
                 <span>|</span>
-                <span>{vehicle.product.type}</span>
+                <span className={`px-1.5 py-0.5 rounded font-semibold text-[10px] ${getProductTypeColor(vehicle.product.type)}`}>{getProductTypeLabel(vehicle.product.type)}</span>
               </>
             )}
             {vehicle.independentVehicle?.vehicleType && (
@@ -138,7 +140,7 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
               </>
             )}
             <span>|</span>
-            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusColors[vehicle.currentStatus] || 'bg-gray-100 text-gray-800'}`}>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] ${statusColors[vehicle.currentStatus] || 'bg-gray-100 text-gray-800'}`}>
               {statusLabels[vehicle.currentStatus] || vehicle.currentStatus}
             </span>
             <span>|</span>

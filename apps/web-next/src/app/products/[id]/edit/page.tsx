@@ -8,6 +8,8 @@ import { Input, Select } from '@/components/ui'
 import ProductFormTagSelector from '@/components/ProductFormTagSelector'
 import ImageUploader from '@/components/ImageUploader'
 import { productFormSchema, type ProductFormData } from '@/lib/validations/product'
+import { PRODUCT_TYPES, PRODUCT_TYPE_SINGLE, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
+
 
 interface Product {
   id: number
@@ -48,7 +50,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       brand: '',
       productCode: '',
       name: '',
-      type: 'SINGLE',
+      type: PRODUCT_TYPE_SINGLE,
       releaseYear: undefined,
       priceExcludingTax: undefined,
       priceIncludingTax: undefined,
@@ -65,7 +67,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
   // セット単品の場合、価格フィールドを無効化
   const productType = form.watch('type')
-  const isSetSingle = productType === 'SET_SINGLE'
+  const isSetSingle = productType === PRODUCT_TYPE_SET_SINGLE
 
   // 製品データを取得
   useEffect(() => {
@@ -235,7 +237,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               />
 
               {/* セット単品の場合のみ親品番を表示 */}
-              {form.watch('type') === 'SET_SINGLE' && (
+              {form.watch('type') === PRODUCT_TYPE_SET_SINGLE && (
                 <Input
                   label="親セット品番"
                   {...form.register('parentCode')}
@@ -244,7 +246,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 />
               )}
 
-              <div className={form.watch('type') === 'SET_SINGLE' ? "md:col-span-1" : "md:col-span-2"}>
+              <div className={form.watch('type') === PRODUCT_TYPE_SET_SINGLE ? "md:col-span-1" : "md:col-span-2"}>
                 <Input
                   label="製品名"
                   required
@@ -262,9 +264,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   {...form.register('type')}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                 >
-                  <option value="SINGLE">単品</option>
-                  <option value="SET">セット</option>
-                  <option value="SET_SINGLE">セット単品</option>
+                  {PRODUCT_TYPES.map((t) => (
+                    <option value={t.value}>{t.label}</option>
+                  ))}
                 </select>
                 {form.formState.errors.type && (
                   <p className="text-red-500 text-sm mt-1">{form.formState.errors.type.message}</p>

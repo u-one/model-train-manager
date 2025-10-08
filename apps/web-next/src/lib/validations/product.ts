@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PRODUCT_TYPE_VALUES, PRODUCT_TYPE_SINGLE } from '@/constants/productTypes'  
 
 export const productFormSchema = z.object({
   // 基本情報
@@ -6,7 +7,7 @@ export const productFormSchema = z.object({
   productCode: z.string().optional(),
   parentCode: z.string().optional(),
   name: z.string().min(1, '製品名は必須です'),
-  type: z.enum(['SINGLE', 'SET', 'SET_SINGLE'], {
+  type: z.enum(PRODUCT_TYPE_VALUES, {
     message: 'タイプを選択してください'
   }),
   releaseYear: z.number().int().min(1900).max(2030).optional().or(z.nan()),
@@ -37,7 +38,7 @@ export const defaultProductValues: Partial<ProductFormData> = {
   productCode: '',
   parentCode: '',
   name: '',
-  type: 'SINGLE',
+  type: PRODUCT_TYPE_SINGLE,
   releaseYear: undefined,
   priceExcludingTax: undefined,
   priceIncludingTax: undefined,

@@ -10,6 +10,7 @@ import TagFilter from '@/components/TagFilter'
 import BulkTagEditDialog from '@/components/BulkTagEditDialog'
 import { useViewMode } from '@/hooks/useViewMode'
 import { Tags } from 'lucide-react'
+import { PRODUCT_TYPES, PRODUCT_TYPE_SET_SINGLE, getProductTypeLabel } from '@/constants/productTypes'
 
 interface Tag {
   id: number
@@ -191,21 +192,21 @@ export default function ProductsPage() {
         <div className="mb-6">
           <div className="text-sm font-semibold text-gray-700 mb-3">種別</div>
           <div className="space-y-2">
-            {['セット', '単品', 'セット単品'].map((t) => (
-              <label key={t} className="flex items-center text-sm">
+            {PRODUCT_TYPES.map((t) => (
+              <label key={t.value} className="flex items-center text-sm">
                 <input
                   type="checkbox"
-                  checked={type === t || (t === 'セット単品' && showSetSingle)}
+                  checked={type === t.value || (t.value === PRODUCT_TYPE_SET_SINGLE && showSetSingle)}
                   onChange={() => {
-                    if (t === 'セット単品') {
+                    if (t.value === PRODUCT_TYPE_SET_SINGLE) {
                       setShowSetSingle(!showSetSingle)
                     } else {
-                      setType(type === t ? '' : t)
+                      setType(type === t.value ? '' : t.value)
                     }
                   }}
                   className="mr-2"
                 />
-                {t}
+                {t.label}
               </label>
             ))}
           </div>
