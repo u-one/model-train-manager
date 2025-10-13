@@ -2,17 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { parseOwnedVehicleCSV } from '@/lib/csv-parser'
-import { createClient } from '@supabase/supabase-js'
-import { autoRegisterSetComponentsWithSupabase } from '@/lib/owned-vehicle-utils'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+import { prisma } from '@/lib/prisma'
+import { autoRegisterSetComponents } from '@/lib/owned-vehicle-utils'
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -42,11 +38,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', session.user?.email)
-      .single()
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
 
     if (!user) {
       return NextResponse.json({ error: 'ユーザーが見つかりません' }, { status: 404 })
@@ -67,12 +61,12 @@ export async function POST(request: NextRequest) {
       try {
         // 管理IDが空文字列でない場合のみ重複チェック
         if (vehicleData.managementId && vehicleData.managementId.trim() !== '') {
-          const { data: existingVehicle } = await supabase
-            .from('owned_vehicles')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('management_id', vehicleData.managementId)
-            .single()
+          const existingVehicle = await prisma.ownedVehicle.findFirst({
+            where: {
+              userId: user.id,
+              managementId: vehicleData.managementId
+            }
+          })
 
           if (existingVehicle) {
             importResults.errorCount++
@@ -82,22 +76,28 @@ export async function POST(request: NextRequest) {
         }
 
         let productId: number | null = null
-
         let independentVehicleData: {
           brand?: string | null
           productCode?: string | null
           name: string
+          vehicleType?: string | null
           description?: string
         } | null = null
 
         if (vehicleData.productBrand && vehicleData.productCode) {
           // メーカーと品番でマッチング
-          const { data: product } = await supabase
-            .from('products')
-            .select('id')
-            .ilike('brand', vehicleData.productBrand)
-            .ilike('product_code', vehicleData.productCode)
-            .single()
+          const product = await prisma.product.findFirst({
+            where: {
+              brand: {
+                equals: vehicleData.productBrand,
+                mode: 'insensitive'
+              },
+              productCode: {
+                equals: vehicleData.productCode,
+                mode: 'insensitive'
+              }
+            }
+          })
 
           if (product) {
             productId = product.id
@@ -111,31 +111,6 @@ export async function POST(request: NextRequest) {
             }
             console.log(`行 ${i + 2}: 製品が見つからないため独立車両として登録 (メーカー: ${vehicleData.productBrand}, 品番: ${vehicleData.productCode})`)
           }
-        } else if (vehicleData.productCode || vehicleData.productName) {
-          // 後方互換性：既存の品番・商品名マッチング
-          let productQuery = supabase.from('products').select('id')
-
-          if (vehicleData.productCode) {
-            productQuery = productQuery.eq('product_code', vehicleData.productCode)
-          }
-          if (vehicleData.productName) {
-            productQuery = productQuery.eq('name', vehicleData.productName)
-          }
-
-          const { data: product } = await productQuery.single()
-
-          if (product) {
-            productId = product.id
-          } else {
-            // 製品が見つからない場合は独立車両として登録
-            independentVehicleData = {
-              brand: vehicleData.independentBrand,
-              productCode: vehicleData.productCode,
-              name: vehicleData.productName || vehicleData.independentName || '(商品名不明)',
-              description: `CSVインポート時に製品が見つからなかったため独立車両として登録 (品番: ${vehicleData.productCode}, 商品名: ${vehicleData.productName})`
-            }
-            console.log(`行 ${i + 2}: 製品が見つからないため独立車両として登録 (品番: ${vehicleData.productCode}, 商品名: ${vehicleData.productName})`)
-          }
         } else {
           // 製品情報がない場合は独立車両として登録
           independentVehicleData = {
@@ -146,51 +121,33 @@ export async function POST(request: NextRequest) {
           console.log(`行 ${i + 2}: 製品情報なし、独立車両として登録`)
         }
 
-        const now = new Date().toISOString()
-        const { data: ownedVehicle, error: vehicleError } = await supabase
-          .from('owned_vehicles')
-          .insert({
-            user_id: user.id,
-            product_id: productId,
-            management_id: vehicleData.managementId,
-            current_status: vehicleData.currentStatus,
-            storage_condition: vehicleData.storageCondition,
-            purchase_date: vehicleData.purchaseDate,
-            purchase_price_including_tax: vehicleData.purchasePriceIncludingTax,
+        // 保有車両を作成（独立車両の場合は後で関連付け）
+        const ownedVehicle = await prisma.ownedVehicle.create({
+          data: {
+            userId: user.id,
+            productId: productId,
+            managementId: vehicleData.managementId,
+            currentStatus: vehicleData.currentStatus,
+            storageCondition: vehicleData.storageCondition,
+            purchaseDate: vehicleData.purchaseDate,
+            purchasePriceIncludingTax: vehicleData.purchasePriceIncludingTax,
             notes: vehicleData.notes,
-            image_urls: [],
-            created_at: now,
-            updated_at: now,
-          })
-          .select('id')
-          .single()
-
-        if (vehicleError) {
-          importResults.errorCount++
-          importResults.errors.push(`行 ${i + 2}: 保有車両登録エラー - ${vehicleError.message}`)
-          continue
-        }
+            imageUrls: []
+          }
+        })
 
         // 独立車両の場合は独立車両情報も登録
-        if (independentVehicleData && ownedVehicle) {
-          const { error: independentError } = await supabase
-            .from('independent_vehicles')
-            .insert({
-              owned_vehicle_id: ownedVehicle.id,
+        if (independentVehicleData) {
+          await prisma.independentVehicle.create({
+            data: {
+              ownedVehicleId: ownedVehicle.id,
               brand: independentVehicleData.brand,
-              product_code: independentVehicleData.productCode,
+              productCode: independentVehicleData.productCode,
               name: independentVehicleData.name,
-              vehicle_type: vehicleData.independentVehicleType,
-              description: independentVehicleData.description,
-              created_at: now,
-              updated_at: now,
-            })
-
-          if (independentError) {
-            importResults.errorCount++
-            importResults.errors.push(`行 ${i + 2}: 独立車両情報登録エラー - ${independentError.message}`)
-            continue
-          }
+              vehicleType: vehicleData.independentVehicleType || independentVehicleData.vehicleType,
+              description: independentVehicleData.description
+            }
+          })
 
           importResults.independentCount++
         } else {
@@ -200,23 +157,22 @@ export async function POST(request: NextRequest) {
         importResults.successCount++
 
         // セットの場合、構成車両も自動登録
-        if (productId && ownedVehicle) {
-          const { data: product } = await supabase
-            .from('products')
-            .select('name')
-            .eq('id', productId)
-            .single()
+        if (productId) {
+          // 製品情報を取得してセット構成車両を登録
+          const product = await prisma.product.findUnique({
+            where: { id: productId },
+            select: { name: true }
+          })
 
           if (product) {
-            await autoRegisterSetComponentsWithSupabase(
-              supabase,
+            await autoRegisterSetComponents(
               productId,
               user.id,
               product.name,
               vehicleData.managementId,
               vehicleData.currentStatus,
               vehicleData.storageCondition,
-              vehicleData.purchaseDate
+              vehicleData.purchaseDate as Date | null
             )
           }
         }

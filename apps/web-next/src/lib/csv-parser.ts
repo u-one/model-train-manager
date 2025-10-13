@@ -1,3 +1,5 @@
+import { StorageCondition, VehicleStatus } from "@prisma/client"
+
 export interface ParsedCSVResult<T> {
   data: T[]
   errors: string[]
@@ -30,8 +32,8 @@ export interface OwnedVehicleCSVRow {
   independentName: string | null
   independentBrand: string | null
   independentVehicleType: string | null
-  currentStatus: string // '正常' | '要修理' | '故障中'
-  storageCondition: string // 'ケースあり' | 'ケースなし'
+  currentStatus: VehicleStatus
+  storageCondition: StorageCondition
   purchaseDate: string | null
   purchasePriceIncludingTax: number | null
   notes: string | null
@@ -232,7 +234,7 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
   }
 
   // 最初の行は行番号なのでスキップ
-  const headerRowIndex = 1
+  const headerRowIndex = 0
   if (rows.length < 2) {
     errors.push('ヘッダー行が見つかりません')
     return { data, errors, skippedRows }
@@ -290,13 +292,13 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
     const managementId = getField(idIndex) || ''
 
     // ステータスは正常に設定（CSVには含まれていない）
-    const currentStatus = '正常'
+    const currentStatus = VehicleStatus.NORMAL
 
     // ケース有無の変換
     const caseInfo = getField(caseIndex)
-    let storageCondition = 'ケースあり'
+    let storageCondition: StorageCondition = StorageCondition.WITH_CASE
     if (caseInfo === 'ケースなし' || caseInfo === 'なし') {
-      storageCondition = 'ケースなし'
+      storageCondition = StorageCondition.WITHOUT_CASE
     }
 
     const purchasePriceStr = getField(purchasePriceInclIndex)
@@ -314,7 +316,7 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
           const day = parseInt(dateParts[2])
           const date = new Date(year, month - 1, day)
           if (!isNaN(date.getTime())) {
-            purchaseDate = date.toISOString().split('T')[0]
+            purchaseDate = date.toISOString()
           }
         }
       } catch {
