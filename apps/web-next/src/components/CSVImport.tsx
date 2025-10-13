@@ -17,7 +17,7 @@ interface CSVImportProps {
   endpoint: string
   onSuccess?: () => void
   enableChunkedUpload?: boolean  // チャンクアップロード有効化フラグ
-  chunkSize?: number             // チャンクサイズ（デフォルト50）
+  chunkSize?: number             // チャンクサイズ（デフォルト30）
 }
 
 export default function CSVImport({
@@ -25,7 +25,7 @@ export default function CSVImport({
   endpoint,
   onSuccess,
   enableChunkedUpload = false,
-  chunkSize = 50
+  chunkSize = 30
 }: CSVImportProps) {
   const [file, setFile] = useState<File | null>(null)
   const [csvContent, setCsvContent] = useState<string>('')
