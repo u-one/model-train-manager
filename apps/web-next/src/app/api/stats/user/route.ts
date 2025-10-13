@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ProductType } from '@prisma/client'
 
 export async function GET() {
   try {
@@ -37,7 +38,14 @@ export async function GET() {
     ] = await Promise.all([
       // 総保有車両数
       prisma.ownedVehicle.count({
-        where: { userId: user.id }
+        where: { 
+          userId: user.id,
+          product: {
+            OR: [
+              {type: ProductType.SET_SINGLE}, {type: ProductType.SINGLE}
+            ]
+          }
+         }
       }),
       // ステータス別保有車両数
       prisma.ownedVehicle.groupBy({
