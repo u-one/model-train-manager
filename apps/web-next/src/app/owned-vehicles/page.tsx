@@ -9,6 +9,7 @@ import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
 import AuthGuard from '@/components/AuthGuard'
 import TagFilter from '@/components/TagFilter'
+import ConfirmModal from '@/components/ConfirmModal'
 import { useViewMode } from '@/hooks/useViewMode'
 import { PRODUCT_TYPES } from '@/constants/productTypes'
 
@@ -72,6 +73,8 @@ export default function OwnedVehiclesPage() {
   const [pagination, setPagination] = useState<OwnedVehiclesResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchVehicles = useCallback(async () => {
     if (status === 'loading') return
@@ -178,6 +181,30 @@ export default function OwnedVehiclesPage() {
 
   const handleVehicleClick = (vehicleId: number) => {
     router.push(`/owned-vehicles/${vehicleId}`)
+  }
+
+  const handleDeleteAll = async () => {
+    setIsDeleting(true)
+    try {
+      const response = await fetch('/api/owned-vehicles/delete-all', {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`${data.deletedCount}両の保有車両と${data.deletedMaintenanceRecords}件の整備記録を削除しました`)
+        setShowDeleteAllModal(false)
+        fetchVehicles()
+      } else {
+        const error = await response.json()
+        alert(`削除に失敗しました: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Delete all error:', error)
+      alert('削除中にエラーが発生しました')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -384,6 +411,14 @@ export default function OwnedVehiclesPage() {
                 >
                   CSVインポート
                 </button>
+                {vehicles.length > 0 && (
+                  <button
+                    onClick={() => setShowDeleteAllModal(true)}
+                    className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 whitespace-nowrap"
+                  >
+                    全削除
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -460,6 +495,29 @@ export default function OwnedVehiclesPage() {
         )}
       </main>
       </div>
+
+      {/* 全削除確認モーダル */}
+      <ConfirmModal
+        isOpen={showDeleteAllModal}
+        title="全ての保有車両を削除"
+        message={
+          <>
+            <p className="text-gray-700">
+              この操作により、あなたの全ての保有車両（{pagination?.total || 0}両）と関連する整備記録が完全に削除されます。
+            </p>
+            <p className="text-red-600 font-semibold">
+              この操作は取り消せません！
+            </p>
+          </>
+        }
+        confirmText="全削除"
+        onConfirm={handleDeleteAll}
+        onCancel={() => setShowDeleteAllModal(false)}
+        confirmButtonText="削除実行"
+        isProcessing={isDeleting}
+        processingText="削除中..."
+        variant="danger"
+      />
     </div>
     </AuthGuard>
   )
