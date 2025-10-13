@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { parseOwnedVehicleCSV } from '@/lib/csv-parser'
 import { createClient } from '@supabase/supabase-js'
+import { autoRegisterSetComponentsWithSupabase } from '@/lib/owned-vehicle-utils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -197,6 +198,28 @@ export async function POST(request: NextRequest) {
         }
 
         importResults.successCount++
+
+        // セットの場合、構成車両も自動登録
+        if (productId && ownedVehicle) {
+          const { data: product } = await supabase
+            .from('products')
+            .select('name')
+            .eq('id', productId)
+            .single()
+
+          if (product) {
+            await autoRegisterSetComponentsWithSupabase(
+              supabase,
+              productId,
+              user.id,
+              product.name,
+              vehicleData.managementId,
+              vehicleData.currentStatus,
+              vehicleData.storageCondition,
+              vehicleData.purchaseDate
+            )
+          }
+        }
       } catch (error) {
         importResults.errorCount++
         importResults.errors.push(`行 ${i + 2}: 予期しないエラー - ${error instanceof Error ? error.message : 'Unknown error'}`)

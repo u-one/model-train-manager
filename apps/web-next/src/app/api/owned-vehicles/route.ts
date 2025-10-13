@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { processDateFields } from '@/lib/utils/date-utils'
 import { isAdminUser } from '@/lib/admin-auth'
+import { autoRegisterSetComponents } from '@/lib/owned-vehicle-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -332,6 +333,26 @@ export async function POST(request: NextRequest) {
         maintenanceRecords: true
       }
     })
+
+    // セットの場合、構成車両も自動登録
+    if (ownedVehicle.productId) {
+      const componentOwnedVehicles = await autoRegisterSetComponents(
+        ownedVehicle.productId,
+        user.id,
+        ownedVehicle.product?.name || '',
+        ownedVehicle.managementId,
+        ownedVehicleData.currentStatus || 'NORMAL',
+        ownedVehicleData.storageCondition || 'WITH_CASE',
+        ownedVehicleData.purchaseDate || null
+      )
+
+      if (componentOwnedVehicles.length > 0) {
+        return NextResponse.json({
+          ...ownedVehicle,
+          componentOwnedVehicles
+        }, { status: 201 })
+      }
+    }
 
     return NextResponse.json(ownedVehicle, { status: 201 })
   } catch (error) {

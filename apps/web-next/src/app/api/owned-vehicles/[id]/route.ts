@@ -48,7 +48,43 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Owned vehicle not found' }, { status: 404 })
     }
 
-    return NextResponse.json(ownedVehicle)
+    // セットの場合、構成車両の保有状況を取得
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let componentOwnedVehicles: any[] = []
+    if (ownedVehicle.product && ownedVehicle.product.type === 'SET' && ownedVehicle.product.productCode) {
+      // parentCodeがセットのproductCodeと一致する製品IDを取得
+      const componentProducts = await prisma.product.findMany({
+        where: {
+          parentCode: ownedVehicle.product.productCode,
+          type: 'SET_SINGLE'
+        },
+        select: { id: true }
+      })
+
+      const componentIds = componentProducts.map(p => p.id)
+
+      // このセットから登録された保有車両を取得
+      if (componentIds.length > 0) {
+        componentOwnedVehicles = await prisma.ownedVehicle.findMany({
+          where: {
+            userId: user.id,
+            productId: { in: componentIds },
+            notes: {
+              contains: `セット「${ownedVehicle.product.name}」(管理ID: ${ownedVehicle.managementId})`
+            }
+          },
+          include: {
+            product: true
+          },
+          orderBy: { createdAt: 'asc' }
+        })
+      }
+    }
+
+    return NextResponse.json({
+      ...ownedVehicle,
+      componentOwnedVehicles
+    })
   } catch (error) {
     console.error('Owned vehicle fetch error:', error)
     return NextResponse.json({ error: 'Failed to fetch owned vehicle' }, { status: 500 })

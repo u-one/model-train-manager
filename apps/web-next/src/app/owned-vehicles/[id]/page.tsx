@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import ImageGallery from '@/components/ImageGallery'
 
@@ -35,6 +36,15 @@ interface OwnedVehicle {
     description: string | null
   } | null
   maintenanceRecords: MaintenanceRecord[]
+  componentOwnedVehicles?: Array<{
+    id: number
+    managementId: string
+    product: {
+      id: number
+      name: string
+      brand: string
+    }
+  }>
 }
 
 interface MaintenanceRecord {
@@ -236,6 +246,17 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
               {vehicle.independentVehicle ? '車両情報（独立記録）' : '基本情報'}
             </h2>
             <div className="grid grid-cols-2 gap-4">
+              {vehicle.product && (
+                <div className="col-span-2">
+                  <span className="text-gray-600">製品情報:</span>
+                  <Link
+                    href={`/products/${vehicle.product.id}`}
+                    className="ml-2 text-blue-600 hover:text-blue-800 font-medium underline"
+                  >
+                    製品ページを表示 →
+                  </Link>
+                </div>
+              )}
               <div>
                 <span className="text-gray-600">ブランド:</span>
                 <span className="ml-2 font-medium">{brand}</span>
@@ -264,6 +285,37 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
               </div>
             </div>
           </div>
+
+          {/* セット構成車両 */}
+          {vehicle.componentOwnedVehicles && vehicle.componentOwnedVehicles.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">セット構成車両</h2>
+              <div className="text-sm text-gray-600 mb-4">
+                このセットに含まれる {vehicle.componentOwnedVehicles.length} 両の車両
+              </div>
+              <div className="space-y-3">
+                {vehicle.componentOwnedVehicles.map((componentVehicle) => (
+                  <Link
+                    key={componentVehicle.id}
+                    href={`/owned-vehicles/${componentVehicle.id}`}
+                    className="block border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">{componentVehicle.product.name}</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {componentVehicle.product.brand}
+                        </p>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        管理ID: {componentVehicle.managementId || '未設定'}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 購入情報 */}
           <div className="bg-white p-6 rounded-lg shadow">
