@@ -39,6 +39,8 @@ export default function ImportPage() {
             title="保有車両インポート"
             endpoint="/api/owned-vehicles/import"
             onSuccess={handleOwnedVehicleImportSuccess}
+            enableChunkedUpload={true}
+            chunkSize={50}
           />
         </div>
 
@@ -66,7 +68,8 @@ export default function ImportPage() {
                 ※ 管理IDはIDまたはNoを使用<br />
                 ※ ケース有無: 「ケースなし」以外は「ケースあり」として扱う<br />
                 ※ 購入日: YYYY/MM/DD形式<br />
-                ※ 1行目は行番号、2行目はヘッダー、3行目以降がデータ
+                ※ 1行目は行番号、2行目はヘッダー、3行目以降がデータ<br />
+                ※ 大量データ（50行以上）の場合、自動的にチャンク分割アップロードされます
               </p>
             </div>
           </div>

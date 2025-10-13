@@ -16,9 +16,17 @@ interface CSVImportProps {
   title: string
   endpoint: string
   onSuccess?: () => void
+  enableChunkedUpload?: boolean  // チャンクアップロード有効化フラグ
+  chunkSize?: number             // チャンクサイズ（デフォルト50）
 }
 
-export default function CSVImport({ title, endpoint, onSuccess }: CSVImportProps) {
+export default function CSVImport({
+  title,
+  endpoint,
+  onSuccess,
+  enableChunkedUpload = false,
+  chunkSize = 50
+}: CSVImportProps) {
   const [file, setFile] = useState<File | null>(null)
   const [csvContent, setCsvContent] = useState<string>('')
   const [importing, setImporting] = useState(false)
@@ -26,6 +34,13 @@ export default function CSVImport({ title, endpoint, onSuccess }: CSVImportProps
   const [error, setError] = useState<string | null>(null)
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [skippedRows, setSkippedRows] = useState<number[]>([])
+
+  // チャンクアップロード用の進捗状態
+  const [uploadProgress, setUploadProgress] = useState<{
+    current: number
+    total: number
+    percentage: number
+  } | null>(null)
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
@@ -49,7 +64,110 @@ export default function CSVImport({ title, endpoint, onSuccess }: CSVImportProps
     }
   }
 
-  const handleImport = async () => {
+  // CSVを行単位で分割する関数
+  const splitCSVIntoChunks = (content: string, size: number): string[] => {
+    const lines = content.split('\n')
+    const header = lines[0]
+    const dataLines = lines.slice(1).filter(line => line.trim())
+
+    const chunks: string[] = []
+    for (let i = 0; i < dataLines.length; i += size) {
+      const chunkLines = dataLines.slice(i, i + size)
+      const chunkCSV = [header, ...chunkLines].join('\n')
+      chunks.push(chunkCSV)
+    }
+
+    return chunks
+  }
+
+  // チャンクアップロード処理
+  const handleChunkedImport = async () => {
+    if (!csvContent) {
+      setError('CSVデータが読み込まれていません')
+      return
+    }
+
+    setImporting(true)
+    setError(null)
+    setResult(null)
+    setUploadProgress(null)
+
+    try {
+      const chunks = splitCSVIntoChunks(csvContent, chunkSize)
+      console.log(`CSVを${chunks.length}個のチャンクに分割しました（各${chunkSize}行）`)
+
+      const aggregatedResult: ImportResult = {
+        totalRows: 0,
+        successCount: 0,
+        linkedCount: 0,
+        independentCount: 0,
+        errorCount: 0,
+        errors: []
+      }
+
+      // チャンクを順次アップロード
+      for (let i = 0; i < chunks.length; i++) {
+        setUploadProgress({
+          current: i + 1,
+          total: chunks.length,
+          percentage: Math.round(((i + 1) / chunks.length) * 100)
+        })
+
+        const chunkBlob = new Blob([chunks[i]], { type: 'text/csv' })
+        const chunkFile = new File([chunkBlob], `chunk_${i + 1}.csv`, { type: 'text/csv' })
+
+        const formData = new FormData()
+        formData.append('file', chunkFile)
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          body: formData,
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          // エラーがあっても続行（部分的な成功を許容）
+          console.error(`チャンク ${i + 1} でエラー:`, data.error)
+          if (data.details) {
+            aggregatedResult.errors.push(...data.details.map((e: string) => `[チャンク${i + 1}] ${e}`))
+          } else {
+            aggregatedResult.errors.push(`[チャンク${i + 1}] ${data.error || 'インポート失敗'}`)
+          }
+          aggregatedResult.errorCount += chunkSize // 推定エラー数
+          continue
+        }
+
+        // 結果を集計
+        const chunkResult = data.results
+        aggregatedResult.totalRows += chunkResult.totalRows || 0
+        aggregatedResult.successCount += chunkResult.successCount || 0
+        aggregatedResult.linkedCount = (aggregatedResult.linkedCount || 0) + (chunkResult.linkedCount || 0)
+        aggregatedResult.independentCount = (aggregatedResult.independentCount || 0) + (chunkResult.independentCount || 0)
+        aggregatedResult.errorCount += chunkResult.errorCount || 0
+        if (chunkResult.errors && chunkResult.errors.length > 0) {
+          aggregatedResult.errors.push(...chunkResult.errors.map((e: string) => `[チャンク${i + 1}] ${e}`))
+        }
+
+        console.log(`チャンク ${i + 1}/${chunks.length} 完了`)
+      }
+
+      setResult(aggregatedResult)
+      setUploadProgress(null)
+      if (onSuccess) {
+        onSuccess()
+      }
+    } catch (err) {
+      setError('ネットワークエラーが発生しました')
+      console.error('Chunked import error:', err)
+      setUploadProgress(null)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // 通常のインポート処理
+  const handleNormalImport = async () => {
     if (!file) {
       setError('ファイルを選択してください')
       return
@@ -89,6 +207,14 @@ export default function CSVImport({ title, endpoint, onSuccess }: CSVImportProps
       console.error('Import error:', err)
     } finally {
       setImporting(false)
+    }
+  }
+
+  const handleImport = () => {
+    if (enableChunkedUpload) {
+      return handleChunkedImport()
+    } else {
+      return handleNormalImport()
     }
   }
 
@@ -154,6 +280,29 @@ export default function CSVImport({ title, endpoint, onSuccess }: CSVImportProps
             リセット
           </button>
         </div>
+
+        {/* 進捗バー */}
+        {uploadProgress && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-900">
+                アップロード中: {uploadProgress.current} / {uploadProgress.total} チャンク
+              </span>
+              <span className="text-sm font-medium text-blue-900">
+                {uploadProgress.percentage}%
+              </span>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2.5">
+              <div
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress.percentage}%` }}
+              ></div>
+            </div>
+            <p className="mt-2 text-xs text-blue-700">
+              ※ 各チャンクを順次アップロードしています。しばらくお待ちください。
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
