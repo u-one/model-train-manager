@@ -111,10 +111,16 @@ export async function GET(request: NextRequest) {
 
       switch (sortBy) {
         case 'purchaseDate':
-          // 購入日+登録順（購入日でソート、同じ場合は登録順）
+          // 購入日でソート（nullを最古として扱う）
+          // 昇順（古い順）: null（最古）→ 古い日付 → 新しい日付
+          // 降順（新しい順）: 新しい日付 → 古い日付 → null（最古）
           orderBy = [
-            { purchaseDate: sortOrder },
-            { createdAt: sortOrder }
+            {
+              purchaseDate: {
+                sort: sortOrder as 'asc' | 'desc',
+                nulls: sortOrder === 'asc' ? 'first' : 'last'
+              }
+            }
           ]
           break
         case 'name':
