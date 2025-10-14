@@ -132,6 +132,10 @@ export async function GET(request: NextRequest) {
           // 管理ID
           orderBy = { managementId: sortOrder }
           break
+        case 'createdAt':
+          // 登録順
+          orderBy = { createdAt: sortOrder }
+          break
         case 'category':
           // 分類順（製品タイプ→メーカー→品番）
           // 複雑なため、フロントエンドでソート

@@ -70,6 +70,7 @@ export default function OwnedVehiclesPage() {
   const [sortBy, setSortBy] = useState('purchaseDate')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(100)
   const [pagination, setPagination] = useState<OwnedVehiclesResponse['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
@@ -96,7 +97,7 @@ export default function OwnedVehiclesPage() {
       params.append('sortBy', sortBy)
       params.append('sortOrder', sortOrder)
       params.append('page', page.toString())
-      params.append('limit', '100')
+      params.append('limit', limit.toString())
 
       const response = await fetch(`/api/owned-vehicles?${params}`)
 
@@ -158,7 +159,7 @@ export default function OwnedVehiclesPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter, conditionFilter, independentFilter, brand, type, selectedTags, tagOperator, noTagsCategories, sortBy, sortOrder, page, session, status])
+  }, [search, statusFilter, conditionFilter, independentFilter, brand, type, selectedTags, tagOperator, noTagsCategories, sortBy, sortOrder, page, limit, session, status])
 
   useEffect(() => {
     fetchVehicles()
@@ -372,6 +373,27 @@ export default function OwnedVehiclesPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* 表示件数選択 */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-700 whitespace-nowrap">表示件数:</label>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value))
+                    setPage(1) // ページをリセット
+                  }}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value={10}>10件</option>
+                  <option value={25}>25件</option>
+                  <option value={50}>50件</option>
+                  <option value={100}>100件</option>
+                  <option value={200}>200件</option>
+                  <option value={500}>500件</option>
+                  <option value={1000}>1000件</option>
+                </select>
+              </div>
+
               {/* ソート選択 */}
               <div className="flex items-center space-x-2">
                 <label className="text-sm text-gray-700 whitespace-nowrap">並び順:</label>
@@ -381,6 +403,7 @@ export default function OwnedVehiclesPage() {
                   className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 sm:flex-none"
                 >
                   <option value="purchaseDate">購入日</option>
+                  <option value="createdAt">登録順</option>
                   <option value="name">名称</option>
                   <option value="managementId">管理ID</option>
                   <option value="category">分類順</option>
@@ -470,23 +493,107 @@ export default function OwnedVehiclesPage() {
             {/* ページネーション */}
             {pagination && pagination.totalPages > 1 && (
               <div className="flex justify-center mt-8">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
+                  {/* 最初のページ */}
+                  <button
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ««
+                  </button>
+
+                  {/* 前のページ */}
                   <button
                     onClick={() => setPage(page - 1)}
                     disabled={page === 1}
-                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                    className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                   >
                     ‹
                   </button>
-                  <span className="px-4 py-2 text-gray-900 font-medium">
-                    {page} / {pagination.totalPages}
-                  </span>
+
+                  {/* ページ番号ボタン */}
+                  {(() => {
+                    const totalPages = pagination.totalPages
+                    const currentPage = page
+                    const pageButtons = []
+
+                    // 表示するページ番号の範囲を計算
+                    const startPage = Math.max(1, currentPage - 2)
+                    const endPage = Math.min(totalPages, currentPage + 2)
+
+                    // 最初のページを常に表示
+                    if (startPage > 1) {
+                      pageButtons.push(
+                        <button
+                          key={1}
+                          onClick={() => setPage(1)}
+                          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                        >
+                          1
+                        </button>
+                      )
+                      if (startPage > 2) {
+                        pageButtons.push(
+                          <span key="ellipsis-start" className="px-2 text-gray-500">...</span>
+                        )
+                      }
+                    }
+
+                    // 中間のページ番号
+                    for (let i = startPage; i <= endPage; i++) {
+                      pageButtons.push(
+                        <button
+                          key={i}
+                          onClick={() => setPage(i)}
+                          className={`px-3 py-2 border rounded text-sm transition-colors ${
+                            i === currentPage
+                              ? 'bg-blue-600 text-white border-blue-600 font-medium'
+                              : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                          }`}
+                        >
+                          {i}
+                        </button>
+                      )
+                    }
+
+                    // 最後のページを常に表示
+                    if (endPage < totalPages) {
+                      if (endPage < totalPages - 1) {
+                        pageButtons.push(
+                          <span key="ellipsis-end" className="px-2 text-gray-500">...</span>
+                        )
+                      }
+                      pageButtons.push(
+                        <button
+                          key={totalPages}
+                          onClick={() => setPage(totalPages)}
+                          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                        >
+                          {totalPages}
+                        </button>
+                      )
+                    }
+
+                    return pageButtons
+                  })()}
+
+                  {/* 次のページ */}
                   <button
                     onClick={() => setPage(page + 1)}
                     disabled={page === pagination.totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                    className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                   >
                     ›
+                  </button>
+
+                  {/* 最後のページ */}
+                  <button
+                    onClick={() => setPage(pagination.totalPages)}
+                    disabled={page === pagination.totalPages}
+                    className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    »»
                   </button>
                 </div>
               </div>
