@@ -132,6 +132,11 @@ export async function GET(request: NextRequest) {
           // 管理ID
           orderBy = { managementId: sortOrder }
           break
+        case 'productCode':
+          // 品番順（製品品番または独立車両品番）
+          // 複数テーブルの条件付きソートのため、フロントエンドでソート
+          orderBy = { createdAt: sortOrder }
+          break
         case 'createdAt':
           // 登録順
           orderBy = { createdAt: sortOrder }

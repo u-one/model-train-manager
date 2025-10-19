@@ -110,7 +110,7 @@ export default function OwnedVehiclesPage() {
         const data: OwnedVehiclesResponse = await response.json()
         let sortedVehicles = data.ownedVehicles || []
 
-        // クライアント側でソート（名称と分類順）
+        // クライアント側でソート（名称、品番、分類順）
         if (sortBy === 'name') {
           sortedVehicles = [...sortedVehicles].sort((a, b) => {
             const nameA = (a.product?.name || a.independentVehicle?.name || '').toLowerCase()
@@ -118,6 +118,23 @@ export default function OwnedVehiclesPage() {
             return sortOrder === 'asc'
               ? nameA.localeCompare(nameB)
               : nameB.localeCompare(nameA)
+          })
+        } else if (sortBy === 'productCode') {
+          sortedVehicles = [...sortedVehicles].sort((a, b) => {
+            // 品番順：メーカー → 品番
+            const brandA = a.product?.brand || a.independentVehicle?.brand || ''
+            const brandB = b.product?.brand || b.independentVehicle?.brand || ''
+            const codeA = a.product?.productCode || ''
+            const codeB = b.product?.productCode || ''
+
+            if (brandA !== brandB) {
+              return sortOrder === 'asc'
+                ? brandA.localeCompare(brandB)
+                : brandB.localeCompare(brandA)
+            }
+            return sortOrder === 'asc'
+              ? codeA.localeCompare(codeB)
+              : codeB.localeCompare(codeA)
           })
         } else if (sortBy === 'category') {
           sortedVehicles = [...sortedVehicles].sort((a, b) => {
@@ -406,6 +423,7 @@ export default function OwnedVehiclesPage() {
                   <option value="createdAt">登録順</option>
                   <option value="name">名称</option>
                   <option value="managementId">管理ID</option>
+                  <option value="productCode">品番</option>
                   <option value="category">分類順</option>
                 </select>
                 <button
