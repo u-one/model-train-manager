@@ -8,6 +8,7 @@ import ProductListItem from '@/components/ProductListItem'
 import ViewModeToggle from '@/components/ViewModeToggle'
 import TagFilter from '@/components/TagFilter'
 import BulkTagEditDialog from '@/components/BulkTagEditDialog'
+import Pagination from '@/components/Pagination'
 import { useViewMode } from '@/hooks/useViewMode'
 import { Tags } from 'lucide-react'
 import { PRODUCT_TYPES, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
@@ -417,28 +418,12 @@ export default function ProductsPage() {
             )}
 
             {/* ページネーション */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex justify-center mt-8">
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    ‹
-                  </button>
-                  <span className="px-4 py-2 text-gray-900 font-medium">
-                    {page} / {pagination.totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage(page + 1)}
-                    disabled={page === pagination.totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    ›
-                  </button>
-                </div>
-              </div>
+            {pagination && (
+              <Pagination
+                currentPage={page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+              />
             )}
           </>
         )}
