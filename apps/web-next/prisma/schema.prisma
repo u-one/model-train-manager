@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,24 +8,21 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ユーザーテーブル
 model User {
   id              Int            @id @default(autoincrement())
   email           String         @unique
   name            String
   image           String?
-  password        String?
   emailVerified   DateTime?      @map("email_verified")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
-  // リレーション
+  password        String?
   ownedVehicles   OwnedVehicle[]
   createdProducts Product[]      @relation("UserCreatedProducts")
 
   @@map("users")
 }
 
-// 製品マスタテーブル
 model Product {
   id                Int            @id @default(autoincrement())
   brand             String         @db.VarChar(100)
@@ -43,18 +37,16 @@ model Product {
   description       String?
   tags              String[]
   vehicleCount      Int            @default(1) @map("vehicle_count")
-  imageUrls         String[]       @default([]) @map("image_urls")
   url               String?        @db.VarChar(500)
   icon              String?        @db.VarChar(100)
   createdByUserId   Int?           @map("created_by_user_id")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
-
-  // リレーション
-  createdByUser     User?          @relation("UserCreatedProducts", fields: [createdByUserId], references: [id])
-  realVehicles      RealVehicle[]
+  imageUrls         String[]       @default([]) @map("image_urls")
   ownedVehicles     OwnedVehicle[]
   productTags       ProductTag[]
+  createdByUser     User?          @relation("UserCreatedProducts", fields: [createdByUserId], references: [id])
+  realVehicles      RealVehicle[]
 
   @@index([brand])
   @@index([productCode])
@@ -63,7 +55,6 @@ model Product {
   @@map("products")
 }
 
-// 実車情報テーブル
 model RealVehicle {
   id                Int      @id @default(autoincrement())
   productId         Int      @map("product_id")
@@ -74,45 +65,33 @@ model RealVehicle {
   notes             String?
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
-
-  // リレーション
   product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@map("real_vehicles")
 }
 
-// 保有車両テーブル
 model OwnedVehicle {
   id                        Int                 @id @default(autoincrement())
   userId                    Int                 @map("user_id")
   managementId              String              @map("management_id") @db.VarChar(100)
   productId                 Int?                @map("product_id")
-
-  // 購入情報
   purchaseDate              DateTime?           @map("purchase_date") @db.Date
   purchasePriceExcludingTax Int?                @map("purchase_price_excluding_tax")
   purchasePriceIncludingTax Int?                @map("purchase_price_including_tax")
   purchaseStore             String?             @map("purchase_store") @db.VarChar(200)
   purchaseCondition         PurchaseCondition?  @map("purchase_condition")
-  
-  // 現在の状態
   currentStatus             VehicleStatus       @default(NORMAL) @map("current_status")
   storageCondition          StorageCondition    @default(WITH_CASE) @map("storage_condition")
-  
-  // その他
   maintenanceNotes          String?             @map("maintenance_notes")
   notes                     String?
   imageUrls                 String[]            @map("image_urls")
-
   createdAt                 DateTime            @default(now()) @map("created_at")
   updatedAt                 DateTime            @updatedAt @map("updated_at")
-
-  // リレーション
-  user                      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product                   Product?            @relation(fields: [productId], references: [id])
   independentVehicle        IndependentVehicle?
   maintenanceRecords        MaintenanceRecord[]
+  product                   Product?            @relation(fields: [productId], references: [id])
+  user                      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([productId])
@@ -120,7 +99,6 @@ model OwnedVehicle {
   @@map("owned_vehicles")
 }
 
-// 独立記録車両テーブル
 model IndependentVehicle {
   id             Int          @id @default(autoincrement())
   ownedVehicleId Int          @unique @map("owned_vehicle_id")
@@ -131,15 +109,12 @@ model IndependentVehicle {
   description    String?
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
-
-  // リレーション
   ownedVehicle   OwnedVehicle @relation(fields: [ownedVehicleId], references: [id], onDelete: Cascade)
 
   @@index([ownedVehicleId])
   @@map("independent_vehicles")
 }
 
-// 整備記録テーブル
 model MaintenanceRecord {
   id              Int          @id @default(autoincrement())
   ownedVehicleId  Int          @map("owned_vehicle_id")
@@ -147,8 +122,6 @@ model MaintenanceRecord {
   content         String
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
-  
-  // リレーション
   ownedVehicle    OwnedVehicle @relation(fields: [ownedVehicleId], references: [id], onDelete: Cascade)
 
   @@index([ownedVehicleId])
@@ -156,7 +129,33 @@ model MaintenanceRecord {
   @@map("maintenance_records")
 }
 
-// Enum定義
+model Tag {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(50)
+  category    String       @db.VarChar(30)
+  description String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  productTags ProductTag[]
+
+  @@index([category])
+  @@index([name])
+  @@map("tags")
+}
+
+model ProductTag {
+  productId Int      @map("product_id")
+  tagId     Int      @map("tag_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+  @@index([productId])
+  @@index([tagId])
+  @@map("product_tags")
+}
+
 enum ProductType {
   SINGLE     @map("単品")
   SET        @map("セット")
@@ -177,37 +176,4 @@ enum VehicleStatus {
 enum StorageCondition {
   WITH_CASE    @map("ケースあり")
   WITHOUT_CASE @map("ケースなし")
-}
-
-// タグテーブル
-model Tag {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique @db.VarChar(50)
-  category    String       @db.VarChar(30)
-  description String?      @db.Text
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-
-  // リレーション
-  productTags ProductTag[]
-
-  @@index([category])
-  @@index([name])
-  @@map("tags")
-}
-
-// 製品タグ中間テーブル
-model ProductTag {
-  productId Int      @map("product_id")
-  tagId     Int      @map("tag_id")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // リレーション
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([productId, tagId])
-  @@index([productId])
-  @@index([tagId])
-  @@map("product_tags")
 }
