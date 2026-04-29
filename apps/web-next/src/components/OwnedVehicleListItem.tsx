@@ -1,55 +1,12 @@
 import { getProductTypeLabel, getProductTypeColor } from '@/constants/productTypes'
-
-interface OwnedVehicle {
-  id: number
-  managementId: string
-  currentStatus: string
-  storageCondition: string
-  purchaseDate: string | null
-  purchasePriceIncludingTax: number | null
-  notes: string | null
-  imageUrls: string[]
-  product?: {
-    id: number
-    name: string
-    brand: string
-    productCode: string | null
-    type: string
-    productTags?: {
-      tag: {
-        id: number
-        name: string
-        category: string
-      }
-    }[]
-  } | null
-  independentVehicle?: {
-    name: string
-    brand: string | null
-    vehicleType: string | null
-  } | null
-}
+import { OwnedVehicle } from '@/types/domain'
+import { conditionLabels } from '@/constants/vehicle'
+import VehicleImage from '@/components/shared/VehicleImage'
+import StatusBadge from '@/components/shared/StatusBadge'
 
 interface OwnedVehicleListItemProps {
   vehicle: OwnedVehicle
   onClick?: () => void
-}
-
-const statusLabels: Record<string, string> = {
-  NORMAL: '正常',
-  NEEDS_REPAIR: '要修理',
-  BROKEN: '故障中'
-}
-
-const statusColors: Record<string, string> = {
-  NORMAL: 'bg-green-100 text-green-800',
-  NEEDS_REPAIR: 'bg-yellow-100 text-yellow-800',
-  BROKEN: 'bg-red-100 text-red-800'
-}
-
-const conditionLabels: Record<string, string> = {
-  WITH_CASE: 'ケースあり',
-  WITHOUT_CASE: 'ケースなし'
 }
 
 export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleListItemProps) {
@@ -65,18 +22,12 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
       <div className="flex gap-3">
         {/* 画像 - 64px × 44px */}
         <div className="w-16 h-11 flex-shrink-0">
-          {vehicle.imageUrls.length > 0 ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={vehicle.imageUrls[0]}
-              alt={vehicleName}
-              className="w-16 h-11 object-contain bg-gray-100 rounded"
-            />
-          ) : (
-            <div className="w-16 h-11 bg-gray-200 rounded flex items-center justify-center">
-              <span className="text-gray-400 text-[10px]">画像なし</span>
-            </div>
-          )}
+          <VehicleImage
+            imageUrl={vehicle.imageUrls?.[0]}
+            alt={vehicleName}
+            className="w-16 h-11 object-contain"
+            size="sm"
+          />
         </div>
 
         {/* 車両情報 - 3行構成 */}
@@ -140,9 +91,7 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
               </>
             )}
             <span>|</span>
-            <span className={`px-1.5 py-0.5 rounded text-[10px] ${statusColors[vehicle.currentStatus] || 'bg-gray-100 text-gray-800'}`}>
-              {statusLabels[vehicle.currentStatus] || vehicle.currentStatus}
-            </span>
+            <StatusBadge status={vehicle.currentStatus} size="sm" />
             <span>|</span>
             <span>{conditionLabels[vehicle.storageCondition] || vehicle.storageCondition}</span>
           </div>

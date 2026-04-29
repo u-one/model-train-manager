@@ -1,27 +1,7 @@
 import { getCategoryColor } from '@/constants/tags'
 import { getProductTypeLabel, getProductTypeColor } from '@/constants/productTypes'
-
-interface Tag {
-  id: number
-  name: string
-  category: string
-}
-
-interface ProductTag {
-  tag: Tag
-}
-
-interface Product {
-  id: number
-  brand: string
-  productCode: string | null
-  name: string
-  type: string
-  priceIncludingTax: number | null
-  imageUrls: string[]
-  _count?: { ownedVehicles: number }
-  productTags?: ProductTag[]
-}
+import { Product } from '@/types/domain'
+import VehicleImage from '@/components/shared/VehicleImage'
 
 interface ProductCardProps {
   product: Product
@@ -37,19 +17,12 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer p-4"
       onClick={onClick}
     >
-      <div className="aspect-w-16 aspect-h-9 mb-3">
-        {product.imageUrls && product.imageUrls.length > 0 ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.imageUrls[0]}
-            alt={product.name}
-            className="w-full h-32 object-contain bg-gray-100 rounded"
-          />
-        ) : (
-          <div className="w-full h-32 bg-gray-200 rounded flex items-center justify-center">
-            <span className="text-gray-400">画像なし</span>
-          </div>
-        )}
+      <div className="aspect-w-16 aspect-h-9 mb-3 h-32">
+        <VehicleImage
+          imageUrl={product.imageUrls?.[0]}
+          alt={product.name}
+          className="w-full h-full object-contain"
+        />
       </div>
 
       <div className="space-y-2">
@@ -62,14 +35,14 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
             {getProductTypeLabel(product.type)}
           </span>
         </div>
-        
+
 
         <h3 className="font-medium text-gray-900 line-clamp-2">{product.name}</h3>
 
         <div className="flex flex-wrap gap-1">
-            <span className="text-sm font-medium text-gray-900">
-              ¥{product.priceIncludingTax ? product.priceIncludingTax.toLocaleString() : ' - '}
-            </span>
+          <span className="text-sm font-medium text-gray-900">
+            ¥{product.priceIncludingTax ? product.priceIncludingTax.toLocaleString() : ' - '}
+          </span>
         </div>
 
         {/* タグバッジ */}
@@ -92,7 +65,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         )}
 
         <div className="flex justify-between items-center">
-          
+
 
           {product._count && (
             <span className="text-sm text-gray-600">

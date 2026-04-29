@@ -1,27 +1,7 @@
 import { getCategoryColor } from '@/constants/tags'
 import { getProductTypeLabel, getProductTypeColor } from '@/constants/productTypes'
-
-interface Tag {
-  id: number
-  name: string
-  category: string
-}
-
-interface ProductTag {
-  tag: Tag
-}
-
-interface Product {
-  id: number
-  brand: string
-  productCode: string | null
-  name: string
-  type: string
-  priceIncludingTax: number | null
-  imageUrls: string[]
-  _count?: { ownedVehicles: number }
-  productTags?: ProductTag[]
-}
+import { Product } from '@/types/domain'
+import VehicleImage from '@/components/shared/VehicleImage'
 
 interface ProductListItemProps {
   product: Product
@@ -41,18 +21,12 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
       <div className="hidden sm:flex gap-3 items-center">
         {/* 画像 */}
         <div className="w-16 h-11 flex-shrink-0">
-          {product.imageUrls && product.imageUrls.length > 0 ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={product.imageUrls[0]}
-              alt={product.name}
-              className="w-16 h-11 object-contain bg-gray-100 rounded"
-            />
-          ) : (
-            <div className="w-16 h-11 bg-gray-200 rounded flex items-center justify-center">
-              <span className="text-gray-400 text-[10px]">画像なし</span>
-            </div>
-          )}
+          <VehicleImage
+            imageUrl={product.imageUrls?.[0]}
+            alt={product.name}
+            className="w-16 h-11 object-contain"
+            size="sm"
+          />
         </div>
 
         {/* 製品情報 */}
@@ -69,9 +43,8 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
               </>
             )}
             <span>|</span>
-            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              getProductTypeColor(product.type)
-            }`}>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${getProductTypeColor(product.type)
+              }`}>
               {
                 getProductTypeLabel(product.type)
               }
@@ -79,8 +52,8 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
 
             {product.priceIncludingTax && (
               <>
-              <span>|</span>
-              <span>¥{product.priceIncludingTax.toLocaleString()}</span>
+                <span>|</span>
+                <span>¥{product.priceIncludingTax.toLocaleString()}</span>
               </>
             )}
             {displayTags.length > 0 && (
@@ -113,18 +86,12 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
         <div className="flex gap-3 mb-2">
           {/* 画像 */}
           <div className="w-20 h-15 flex-shrink-0">
-            {product.imageUrls && product.imageUrls.length > 0 ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={product.imageUrls[0]}
-                alt={product.name}
-                className="w-20 h-15 object-contain bg-gray-100 rounded"
-              />
-            ) : (
-              <div className="w-20 h-15 bg-gray-200 rounded flex items-center justify-center">
-                <span className="text-gray-400 text-[10px]">画像なし</span>
-              </div>
-            )}
+            <VehicleImage
+              imageUrl={product.imageUrls?.[0]}
+              alt={product.name}
+              className="w-20 h-15 object-contain"
+              size="sm"
+            />
           </div>
 
           {/* タイトルと基本情報 */}
@@ -152,14 +119,14 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
               )}
               {displayTags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                {displayTags.map((pt) => (
-                  <span key={pt.tag.id} className={`px-1.5 py-0.5 rounded text-[10px] ${getCategoryColor(pt.tag.category)}`}>
-                  {pt.tag.name}
-                  </span>
-                ))}
+                  {displayTags.map((pt) => (
+                    <span key={pt.tag.id} className={`px-1.5 py-0.5 rounded text-[10px] ${getCategoryColor(pt.tag.category)}`}>
+                      {pt.tag.name}
+                    </span>
+                  ))}
                 </div>
               )}
-              
+
 
               {product._count && product._count.ownedVehicles > 0 && (
                 <span className="text-xs text-gray-600">
@@ -173,4 +140,3 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
     </div>
   )
 }
-          
