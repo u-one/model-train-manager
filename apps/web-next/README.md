@@ -58,6 +58,25 @@ ADMIN_EMAILS="your@email.com"
 npm run deploy-check
 ```
 
+## コード複雑度の計測
+
+ESLintに `complexity` / `max-depth` / `max-lines-per-function` ルールが設定されています。
+
+```bash
+# 複雑度の警告を確認
+npm run lint
+```
+
+複雑度が高い箇所は `warning` として表示されます。閾値はデフォルトで以下のとおりです：
+
+| ルール | 閾値 |
+|---|---|
+| 循環的複雑度 (`complexity`) | 10 |
+| ネスト深さ (`max-depth`) | 4 |
+| 関数行数 (`max-lines-per-function`) | 80行 |
+
+閾値の変更は `eslint.config.mjs` を編集してください。
+
 ## ドキュメント
 
 - [`docs/deployment-setup.md`](./docs/deployment-setup.md) - 環境設定・デプロイ手順
