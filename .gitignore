@@ -6,10 +6,9 @@ settings.local.json
 .playwright-mcp/
 
 # Claude specific files
-.claude/
+.claude/*.local.json
 claude_data/
 claude_logs/
-*.claude
 
 # Development environment
 .env.local
