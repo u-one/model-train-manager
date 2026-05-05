@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# model-train-manager
 
-## Getting Started
+Nゲージ鉄道模型の車両情報と保有状況を管理するWebアプリケーション。
 
-First, run the development server:
+## 技術スタック
+
+- **フロントエンド:** React (Next.js 15)
+- **バックエンド:** Node.js (Next.js API Routes)
+- **データベース:** PostgreSQL (Supabase)
+- **認証:** NextAuth.js (Google OAuth + ID/パスワード)
+- **画像ストレージ:** AWS S3 + CloudFront
+- **デプロイ:** Vercel + Supabase
+
+## 開発環境のセットアップ
 
 ```bash
+# 依存関係のインストール
+npm install
+
+# 開発サーバーの起動
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) をブラウザで開いてください。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 環境変数
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env.local` を作成して以下を設定してください：
 
-## Learn More
+```env
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+NEXT_PUBLIC_SUPABASE_URL="https://..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
+SUPABASE_SERVICE_ROLE_KEY="..."
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="..."
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+ADMIN_EMAILS="your@email.com"
+```
 
-To learn more about Next.js, take a look at the following resources:
+詳細は [`docs/deployment-setup.md`](./docs/deployment-setup.md) を参照。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 主な機能
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- 製品情報管理（メーカー・品番・価格等）
+- 保有車両管理（購入情報・状態管理）
+- タグシステム（カテゴリ別タグによる高度なフィルタリング）
+- セット・編成管理（製品間の親子関係）
+- CSVインポート（製品情報・保有情報の一括登録）
+- 管理者機能（一括削除・ユーザー管理・統計情報）
 
-## Deploy on Vercel
+## デプロイ前チェック
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# 型チェック・Lint・ビルドを一括実行
+npm run deploy-check
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ドキュメント
+
+- [`docs/deployment-setup.md`](./docs/deployment-setup.md) - 環境設定・デプロイ手順
+- [`../../docs/development-log.md`](../../docs/development-log.md) - 開発進捗記録
+- [`../../docs/database-schema-management.md`](../../docs/database-schema-management.md) - DBスキーマ管理ガイド
