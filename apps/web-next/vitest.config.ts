@@ -13,5 +13,18 @@ export default defineConfig({
         alias: {
             '@': path.resolve(__dirname, './src'),
         },
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html', 'lcov'],
+            reportsDirectory: './coverage',
+            include: ['src/**/*.{ts,tsx}'],
+            exclude: [
+                'src/**/*.test.{ts,tsx}',
+                'src/test/**',
+                'src/**/*.d.ts',
+                'src/app/**/page.tsx',
+                'src/app/**/layout.tsx',
+            ],
+        },
     },
 })
