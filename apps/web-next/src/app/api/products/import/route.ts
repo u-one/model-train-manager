@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { parseProductCSV } from '@/lib/csv-parser'
-import { createClient } from '@supabase/supabase-js'
+import { prisma } from '@/lib/prisma'
+import type { ProductType } from '@prisma/client'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// csv-parser は日本語の種別を返すため Prisma enum 値に変換する
+const PRODUCT_TYPE_MAP: Record<string, ProductType> = {
+  '単品': 'SINGLE',
+  'セット': 'SET',
+  'セット単品': 'SET_SINGLE',
+}
+
+// Vercel Hobby plan: 最大60秒
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,69 +55,61 @@ export async function POST(request: NextRequest) {
       errors: [] as string[]
     }
 
+    // 既存製品を一括取得（重複チェック用）
+    const existingProducts = await prisma.product.findMany({
+      select: { brand: true, productCode: true }
+    })
+    const existingSet = new Set(
+      existingProducts
+        .filter(p => p.productCode)
+        .map(p => `${p.brand.toLowerCase()}:${p.productCode!.toLowerCase()}`)
+    )
+
     for (let i = 0; i < parseResult.data.length; i++) {
       const productData = parseResult.data[i]
 
       try {
-        const { data: existingProduct } = await supabase
-          .from('products')
-          .select('id')
-          .eq('brand', productData.brand)
-          .eq('product_code', productData.productCode)
-          .single()
-
-        if (existingProduct) {
-          importResults.errorCount++
-          importResults.errors.push(`行 ${i + 2}: "${productData.brand} ${productData.productCode}" は既に存在します`)
-          continue
+        if (productData.productCode) {
+          const key = `${productData.brand.toLowerCase()}:${productData.productCode.toLowerCase()}`
+          if (existingSet.has(key)) {
+            importResults.errorCount++
+            importResults.errors.push(`行 ${i + 2}: "${productData.brand} ${productData.productCode}" は既に存在します`)
+            continue
+          }
         }
 
-        const now = new Date().toISOString()
-        const { data: product, error: productError } = await supabase
-          .from('products')
-          .insert({
+        const product = await prisma.product.create({
+          data: {
             brand: productData.brand,
-            product_code: productData.productCode,
-            parent_code: productData.parentCode, // 追加: 親品番
+            productCode: productData.productCode,
+            parentCode: productData.parentCode,
             name: productData.name,
-            type: productData.type,
-            release_year: productData.releaseYear,
-            price_excluding_tax: productData.priceExcludingTax,
-            price_including_tax: productData.priceIncludingTax,
+            type: PRODUCT_TYPE_MAP[productData.type] ?? 'SINGLE',
+            releaseYear: productData.releaseYear,
+            priceExcludingTax: productData.priceExcludingTax,
+            priceIncludingTax: productData.priceIncludingTax,
             description: productData.description,
-            image_urls: productData.imageUrl ? [productData.imageUrl] : [],
-            created_at: now,
-            updated_at: now,
-          })
-          .select('id')
-          .single()
-
-        if (productError) {
-          importResults.errorCount++
-          importResults.errors.push(`行 ${i + 2}: 製品登録エラー - ${productError.message}`)
-          continue
-        }
+            imageUrls: productData.imageUrl ? [productData.imageUrl] : [],
+          }
+        })
 
         if (productData.vehicleType || productData.company || productData.manufacturingYear ||
             productData.operationLine || productData.notes) {
-          const { error: vehicleError } = await supabase
-            .from('real_vehicles')
-            .insert({
-              product_id: product.id,
-              vehicle_type: productData.vehicleType,
+          await prisma.realVehicle.create({
+            data: {
+              productId: product.id,
+              vehicleType: productData.vehicleType,
               company: productData.company,
-              manufacturing_year: productData.manufacturingYear,
-              operation_line: productData.operationLine,
+              manufacturingYear: productData.manufacturingYear,
+              operationLine: productData.operationLine,
               notes: productData.notes,
-              created_at: now,
-              updated_at: now,
-            })
+            }
+          })
+        }
 
-          if (vehicleError) {
-            importResults.errorCount++
-            importResults.errors.push(`行 ${i + 2}: 実車情報登録エラー - ${vehicleError.message}`)
-            continue
-          }
+        // 同一インポート内での重複防止
+        if (productData.productCode) {
+          existingSet.add(`${productData.brand.toLowerCase()}:${productData.productCode.toLowerCase()}`)
         }
 
         importResults.successCount++
