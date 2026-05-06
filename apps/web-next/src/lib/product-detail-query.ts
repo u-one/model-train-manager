@@ -6,7 +6,8 @@ import { Prisma } from '@prisma/client'
  * ログイン中のユーザーセッションがある場合は ownedVehicles をユーザーID でフィルタする。
  */
 export function buildProductDetailInclude(session: Session | null): Prisma.ProductInclude {
-  const userId = session ? parseInt(session.user.id) : null
+  const parsed = session ? parseInt(session.user.id) : NaN
+  const userId: number | null = Number.isNaN(parsed) ? null : parsed
 
   return {
     realVehicles: true,
