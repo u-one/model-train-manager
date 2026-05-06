@@ -275,17 +275,18 @@ describe('GET /api/owned-vehicles', () => {
     )
   })
 
-  it('tags=AND ですべてのタグを持つ製品が取得される', async () => {
+  it('tags=AND ですべてのタグを個別のsome条件で持つ製品が取得される（products-queryと同じ方式）', async () => {
     await GET(makeRequest({ tags: '1,2', tag_operator: 'AND' }))
 
-    expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          product: expect.objectContaining({
-            productTags: expect.objectContaining({ every: expect.anything() }),
-          }),
-        }),
-      })
+    // AND検索: 各タグを個別のsome条件にすることで全タグ一致をDBで解決（everyは不正確）
+    const call = mockOwnedVehicleFindMany.mock.calls[0][0]
+    // where.AND が配列で各タグの some 条件を含む
+    expect(call.where.AND).toBeDefined()
+    expect(call.where.AND).toEqual(
+      expect.arrayContaining([
+        { product: expect.objectContaining({ productTags: { some: { tagId: 1 } } }) },
+        { product: expect.objectContaining({ productTags: { some: { tagId: 2 } } }) },
+      ])
     )
   })
 

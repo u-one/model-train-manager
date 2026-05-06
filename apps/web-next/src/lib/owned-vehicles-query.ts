@@ -46,15 +46,16 @@ export function buildUserWhereClause(
     const tagIds = tags.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
     if (tagIds.length > 0) {
       if (tagOperator === 'AND') {
-        // AND: すべてのタグを持つ製品
-        where.product = {
-          ...(where.product as object),
-          productTags: {
-            every: {
-              tagId: { in: tagIds }
-            }
+        // AND: 各タグを個別のsome条件にすることで全タグ一致をDBで解決
+        // products-query.ts と同じ方式。every は「全productTagsが指定リストにある」であり
+        // 「指定した全タグを持つ」ではないため不正確。
+        const andConditions = tagIds.map(tagId => ({
+          product: {
+            ...(where.product as object),
+            productTags: { some: { tagId } }
           }
-        }
+        }))
+        where.AND = [...(Array.isArray(where.AND) ? where.AND : []), ...andConditions]
       } else {
         // OR: いずれかのタグを持つ製品
         where.product = {
