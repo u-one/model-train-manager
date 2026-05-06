@@ -87,16 +87,14 @@ describe('GET /api/products/[id]', () => {
     expect(data.error).toBe('Product not found')
   })
 
-  // NOTE: 現状 parseInt('abc') === NaN が Prisma に渡り 404 になる（バグ）
-  // フェーズ3のバグ修正で 400 に変更する
-  it('不正な id (NaN) の場合 404 を返す（現状の挙動）', async () => {
-    mockFindUnique.mockResolvedValueOnce(null)
-
+  it('不正な id (NaN) の場合 400 を返す', async () => {
     const res = await GET(makeRequest('GET'), makeParams('abc'))
     const data = await res.json()
 
-    expect(res.status).toBe(404)
-    expect(data.error).toBeDefined()
+    expect(res.status).toBe(400)
+    expect(data.error).toBe('Invalid product id')
+    // findUnique は呼ばれない
+    expect(mockFindUnique).not.toHaveBeenCalled()
   })
 
   it('DB エラー時に 500 を返す', async () => {

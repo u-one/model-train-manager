@@ -12,6 +12,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: idStr } = await params
     const id = parseInt(idStr)
+    if (Number.isNaN(id)) {
+      return NextResponse.json({ error: 'Invalid product id' }, { status: 400 })
+    }
     const session = await getServerSession(authOptions)
 
     const product = await prisma.product.findUnique({
