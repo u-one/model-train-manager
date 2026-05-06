@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { parseQueryParams, buildWhereClause, buildOrderBy } from '@/lib/products-query'
+import { getCurrentUserId, createProductSchema } from '@/lib/product-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,15 +14,7 @@ export async function GET(request: NextRequest) {
     const { page, limit } = params
     const offset = (page - 1) * limit
 
-    // ログインユーザーを取得
-    let currentUserId = null
-    if (session?.user?.email) {
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email }
-      })
-      currentUserId = user?.id
-    }
-
+    const currentUserId = getCurrentUserId(session)
     const where = buildWhereClause(params)
     const orderBy = buildOrderBy(params.sortBy, params.sortOrder)
 
@@ -72,17 +65,9 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    const data = await request.json()
-    const { realVehicles, ...productData } = data
-
-    // ユーザー情報を取得（認証がない場合はnull）
-    let createdByUserId = null
-    if (session?.user?.email) {
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email }
-      })
-      createdByUserId = user?.id || null
-    }
+    const body = await request.json()
+    const { realVehicles, ...productData } = createProductSchema.parse(body)
+    const createdByUserId = getCurrentUserId(session)
 
     const product = await prisma.product.create({
       data: {
@@ -100,6 +85,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(product, { status: 201 })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid request body', details: error.issues }, { status: 400 })
+    }
     console.error('Product create error:', error)
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
   }
