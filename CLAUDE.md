@@ -21,12 +21,16 @@ repo-root/
 ├─ apps/                    # デプロイ対象（＝実行可能物）
 │  └─ web-next/             # Next.js フロントエンドアプリ
 │     └─ docs/              # web-next固有ドキュメント
-│        └─ deployment-setup.md  # 環境設定・デプロイ手順
+│        ├─ deployment-setup.md              # 環境設定・デプロイ手順
+│        ├─ specification.md                 # プロジェクト仕様書
+│        ├─ database-schema-management.md    # DBスキーマ管理ガイド
+│        ├─ tag-system-specification.md      # Phase 2.15仕様書
+│        ├─ phase-2.16-csv-import-improvement.md  # Phase 2.16仕様書
+│        └─ phase-2.17-bulk-operations.md   # Phase 2.17仕様書
 ├─ docs/                    # プロジェクト全体ドキュメント
 │  ├─ development-log.md    # 開発進捗記録（要参照・更新）
-│  ├─ database-schema-management.md  # DBスキーマ管理ガイド
-│  ├─ tag-system-specification.md    # Phase 2.15仕様書
-│  └─ phase-2.16-csv-import-improvement.md  # Phase 2.16仕様書
+│  ├─ refactoring-todo.md   # リファクタリング課題管理
+│  └─ rules.md              # リポジトリ運用ルール
 ├─ local/                   # ローカルファイル（git管理外）
 │  ├─ 車両リスト - 車両商品情報.csv
 │  └─ 車両リスト - 保有車両.csv
@@ -49,7 +53,7 @@ repo-root/
 - **Prismaスキーマが唯一の真実の源（Single Source of Truth）**
 - スキーマファイル: `apps/web-next/prisma/schema.prisma`
 - 変更方法: `npx prisma db push` でデータベースに反映
-- **詳細**: [データベーススキーマ管理ガイド](./docs/database-schema-management.md)
+- **詳細**: [データベーススキーマ管理ガイド](./apps/web-next/docs/database-schema-management.md)
 
 ### データ移行
 - `local/` ディレクトリ内のCSVファイルに既存データが格納されている
@@ -111,7 +115,7 @@ repo-root/
 - 管理画面でのタグ管理機能（CRUD、カテゴリフィルタ、使用数表示）
 - タグ統計・分析機能（ダッシュボード統計表示）
 - カテゴリ定数の一元管理
-- **詳細**: [タグシステム仕様書](./docs/tag-system-specification.md)
+- **詳細**: [タグシステム仕様書](./apps/web-next/docs/tag-system-specification.md)
 
 ### Phase 2.16 ✅
 - CSVインポート改善（Phase 2.16.1）✅
@@ -122,7 +126,7 @@ repo-root/
   - 保有車両詳細画面での変換ボタン
   - 製品作成後の自動リンク機能
 - 一括製品作成機能（Phase 2.16.3）Phase 3で実装予定
-- **詳細**: [Phase 2.16仕様書](./docs/phase-2.16-csv-import-improvement.md)
+- **詳細**: [Phase 2.16仕様書](./apps/web-next/docs/phase-2.16-csv-import-improvement.md)
 
 ### Phase 2.17
 - 製品一括タグ付け機能（Phase 2.17.1）✅
@@ -140,7 +144,7 @@ repo-root/
 - 保有車両一括更新機能（Phase 2.17.3）
   - 状態・保管条件の一括変更
   - 備考の追記・上書き機能
-- **詳細**: [Phase 2.17仕様書](./docs/phase-2.17-bulk-operations.md)
+- **詳細**: [Phase 2.17仕様書](./apps/web-next/docs/phase-2.17-bulk-operations.md)
 
 ### Phase 3
 - 整備記録機能
@@ -193,13 +197,13 @@ repo-root/
 - カテゴリ別タグ管理（車種・運営会社・商品特徴・車両仕様・時代塗装）
 - AND/OR論理演算による高度なフィルタリング
 - カテゴリごとの「なし」条件（タグ未設定製品の絞り込み）
-- **詳細**: [タグシステム仕様書](./docs/tag-system-specification.md)
+- **詳細**: [タグシステム仕様書](./apps/web-next/docs/tag-system-specification.md)
 
 ### 一括操作（Phase 2.17）
 - `/api/products/bulk-update-tags` - 製品一括タグ更新
 - `/api/admin/products/auto-tag` - 条件ベース自動タグ付け
 - `/api/owned-vehicles/bulk-update` - 保有車両一括更新
-- **詳細**: [Phase 2.17仕様書](./docs/phase-2.17-bulk-operations.md)
+- **詳細**: [Phase 2.17仕様書](./apps/web-next/docs/phase-2.17-bulk-operations.md)
 
 ## 環境変数
 
