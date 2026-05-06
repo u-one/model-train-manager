@@ -167,20 +167,29 @@ describe('GET /api/products', () => {
     )
   })
 
-  it('tags=AND でアプリ側フィルタが動作する', async () => {
-    const products = [
-      mockProduct({ id: 1, productTags: [{ tagId: 1 }, { tagId: 2 }] }),
-      mockProduct({ id: 2, productTags: [{ tagId: 1 }] }),
-    ]
-    mockFindMany.mockResolvedValue(products)
-    mockCount.mockResolvedValue(2)
+  it('tags=AND で各タグが個別のsome条件としてDBに渡される', async () => {
+    await GET(makeRequest({ tags: '1,2', tag_operator: 'AND' }))
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            { productTags: { some: { tagId: 1 } } },
+            { productTags: { some: { tagId: 2 } } },
+          ]),
+        }),
+      })
+    )
+  })
+
+  it('tags=AND でtotalはDBのカウントをそのまま使う', async () => {
+    mockFindMany.mockResolvedValue([mockProduct()])
+    mockCount.mockResolvedValue(42)
 
     const res = await GET(makeRequest({ tags: '1,2', tag_operator: 'AND' }))
     const data = await res.json()
 
-    // 両タグを持つ製品のみ返る
-    expect(data.products).toHaveLength(1)
-    expect(data.products[0].id).toBe(1)
+    expect(data.pagination.total).toBe(42)
   })
 
   it('exclude_tags で指定タグを持つ製品が除外される', async () => {

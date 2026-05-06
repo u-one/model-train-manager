@@ -55,15 +55,12 @@ function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Record<s
   // 通常のタグフィルタ
   if (tagIds.length > 0) {
     if (tagOperator === 'AND') {
-      // AND検索: 指定されたすべてのタグを持つ製品
-      tagConditions.push({
-        productTags: {
-          some: {
-            tagId: { in: tagIds }
-          }
-        }
-      })
-      // ANDの場合は後でフィルタする
+      // AND検索: 各タグを個別のsome条件にすることで全タグ一致をDBで解決
+      tagConditions.push(
+        ...tagIds.map(tagId => ({
+          productTags: { some: { tagId } }
+        }))
+      )
     } else {
       // OR検索: 指定されたタグのいずれかを持つ製品
       tagConditions.push({
@@ -145,7 +142,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     const { searchParams } = new URL(request.url)
     const params = parseQueryParams(searchParams)
-    const { page, limit, tagIds, tagOperator } = params
+    const { page, limit } = params
     const offset = (page - 1) * limit
 
     // ログインユーザーを取得
@@ -185,22 +182,13 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where })
     ])
 
-    // AND検索の場合、全てのタグを持つ製品のみにフィルタ
-    let filteredProducts = products
-    if (tagIds.length > 0 && tagOperator === 'AND') {
-      filteredProducts = products.filter(product => {
-        const productTagIds = product.productTags.map(pt => pt.tagId)
-        return tagIds.every(tagId => productTagIds.includes(tagId))
-      })
-    }
-
     return NextResponse.json({
-      products: filteredProducts,
+      products,
       pagination: {
         page,
         limit,
-        total: (tagOperator === 'AND' && tagIds.length > 0) ? filteredProducts.length : total,
-        totalPages: Math.ceil(((tagOperator === 'AND' && tagIds.length > 0) ? filteredProducts.length : total) / limit)
+        total,
+        totalPages: Math.ceil(total / limit)
       }
     })
   } catch (error) {
