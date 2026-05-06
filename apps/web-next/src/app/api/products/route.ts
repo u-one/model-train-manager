@@ -1,42 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { z } from 'zod'
 import { Prisma, ProductType } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
 
-function parseQueryParams(searchParams: URLSearchParams) {
-  const brand = searchParams.get('brand')
-  const type = searchParams.get('type')
-  const search = searchParams.get('search')
-  const excludeSetSingle = searchParams.get('excludeSetSingle') === 'true'
-  const sortBy = searchParams.get('sortBy') || 'createdAt'
-  const sortOrder = (searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc') as Prisma.SortOrder
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '100')
+// カンマ区切りの数値リストを number[] に変換するカスタム型
+const commaNumberList = z.string()
+  .optional()
+  .transform(s => s ? s.split(',').map(Number).filter(n => Number.isInteger(n) && n > 0) : [])
 
-  // タグフィルタパラメータ
-  const tagsParam = searchParams.get('tags')
-  const tagOperator = searchParams.get('tag_operator') || 'OR'
-  const excludeTagsParam = searchParams.get('exclude_tags')
-  // カテゴリ別「なし」条件
-  const noTagsCategories = searchParams.get('no_tags_categories')?.split(',') || []
+const querySchema = z.object({
+  brand:              z.string().optional(),
+  type:               z.enum(['SINGLE', 'SET', 'SET_SINGLE'] as const).optional(),
+  search:             z.string().optional(),
+  excludeSetSingle:   z.string().optional().transform(v => v === 'true'),
+  sortBy:             z.enum(['createdAt', 'name', 'brandCode', 'category']).default('createdAt'),
+  sortOrder:          z.enum(['asc', 'desc']).default('asc'),
+  page:               z.coerce.number().int().min(1).default(1),
+  limit:              z.coerce.number().int().min(1).default(100),
+  tags:               commaNumberList,
+  tag_operator:       z.enum(['AND', 'OR']).default('OR'),
+  exclude_tags:       commaNumberList,
+  no_tags_categories: z.string().optional().transform(s => s ? s.split(',') : []),
+})
 
-  const tagIds = tagsParam ? tagsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : []
-  const excludeTagIds = excludeTagsParam ? excludeTagsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : []
+type QueryParams = z.infer<typeof querySchema>
 
-  return { brand, type, search, excludeSetSingle, sortBy, sortOrder, page, limit, tagIds, tagOperator, excludeTagIds, noTagsCategories }
+function parseQueryParams(searchParams: URLSearchParams): QueryParams {
+  return querySchema.parse(Object.fromEntries(searchParams))
 }
 
-function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Prisma.ProductWhereInput {
-  const { brand, type, search, excludeSetSingle, tagIds, tagOperator, excludeTagIds, noTagsCategories } = params
+function buildWhereClause(params: QueryParams): Prisma.ProductWhereInput {
+  const { brand, type, search, excludeSetSingle, tags, tag_operator, exclude_tags, no_tags_categories } = params
   const where: Prisma.ProductWhereInput = {}
 
   if (brand) where.brand = brand
 
   // type フィルタの処理
   if (type) {
-    where.type = type as ProductType
+    where.type = type
   } else if (excludeSetSingle) {
     // typeが指定されていない場合のみexcludeSetSingleを適用
     where.type = { not: PRODUCT_TYPE_SET_SINGLE }
@@ -54,11 +58,11 @@ function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Prisma.P
   const tagConditions: Prisma.ProductWhereInput[] = []
 
   // 通常のタグフィルタ
-  if (tagIds.length > 0) {
-    if (tagOperator === 'AND') {
+  if (tags.length > 0) {
+    if (tag_operator === 'AND') {
       // AND検索: 各タグを個別のsome条件にすることで全タグ一致をDBで解決
       tagConditions.push(
-        ...tagIds.map(tagId => ({
+        ...tags.map((tagId: number) => ({
           productTags: { some: { tagId } }
         }))
       )
@@ -67,7 +71,7 @@ function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Prisma.P
       tagConditions.push({
         productTags: {
           some: {
-            tagId: { in: tagIds }
+            tagId: { in: tags }
           }
         }
       })
@@ -75,8 +79,8 @@ function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Prisma.P
   }
 
   // カテゴリ別「なし」条件
-  if (noTagsCategories.length > 0) {
-    for (const category of noTagsCategories) {
+  if (no_tags_categories.length > 0) {
+    for (const category of no_tags_categories) {
       tagConditions.push({
         NOT: {
           productTags: {
@@ -92,12 +96,12 @@ function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Prisma.P
   }
 
   // 除外タグの処理
-  if (excludeTagIds.length > 0) {
+  if (exclude_tags.length > 0) {
     tagConditions.push({
       NOT: {
         productTags: {
           some: {
-            tagId: { in: excludeTagIds }
+            tagId: { in: exclude_tags }
           }
         }
       }
@@ -193,6 +197,9 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 })
+    }
     console.error('Products fetch error:', error)
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
   }

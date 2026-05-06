@@ -106,11 +106,11 @@ describe('GET /api/products', () => {
   })
 
   it('type フィルタが適用される', async () => {
-    await GET(makeRequest({ type: 'EC' }))
+    await GET(makeRequest({ type: 'SINGLE' }))
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ type: 'EC' }),
+        where: expect.objectContaining({ type: 'SINGLE' }),
       })
     )
   })
@@ -126,11 +126,11 @@ describe('GET /api/products', () => {
   })
 
   it('type が指定された場合 excludeSetSingle は無視される', async () => {
-    await GET(makeRequest({ type: 'EC', excludeSetSingle: 'true' }))
+    await GET(makeRequest({ type: 'SINGLE', excludeSetSingle: 'true' }))
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ type: 'EC' }),
+        where: expect.objectContaining({ type: 'SINGLE' }),
       })
     )
   })
@@ -303,5 +303,21 @@ describe('GET /api/products', () => {
     expect(res.status).toBe(500)
     const data = await res.json()
     expect(data.error).toBe('Failed to fetch products')
+  })
+
+  it('不正な type パラメータで 400 を返す', async () => {
+    const res = await GET(makeRequest({ type: 'INVALID_TYPE' }))
+
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toBe('Invalid query parameters')
+  })
+
+  it('不正な sortOrder パラメータで 400 を返す', async () => {
+    const res = await GET(makeRequest({ sortOrder: 'random' }))
+
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toBe('Invalid query parameters')
   })
 })
