@@ -263,10 +263,9 @@ describe('GET /api/products', () => {
   it('ログイン中は _count.ownedVehicles がユーザーID でフィルタされる', async () => {
     const { getServerSession } = await import('next-auth')
     vi.mocked(getServerSession).mockResolvedValueOnce({
-      user: { email: 'test@example.com' },
+      user: { id: '123', email: 'test@example.com' },
       expires: '',
     })
-    mockUserFindUnique.mockResolvedValueOnce({ id: 'user-123' })
 
     await GET(makeRequest())
 
@@ -275,7 +274,7 @@ describe('GET /api/products', () => {
         include: expect.objectContaining({
           _count: {
             select: {
-              ownedVehicles: { where: { userId: 'user-123' } },
+              ownedVehicles: { where: { userId: 123 } },
             },
           },
         }),
