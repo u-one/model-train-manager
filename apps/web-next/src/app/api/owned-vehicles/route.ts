@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { processDateFields } from '@/lib/utils/date-utils'
 import { isAdminUser } from '@/lib/admin-auth'
 import { autoRegisterSetComponents } from '@/lib/owned-vehicle-utils'
+import { buildUserWhereClause, buildAdminWhereClause, buildOrderBy } from '@/lib/owned-vehicles-query'
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,127 +29,24 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
-      const status = searchParams.get('status')
-      const condition = searchParams.get('condition')
-      const search = searchParams.get('search')
-      const isIndependent = searchParams.get('isIndependent')
-      const brand = searchParams.get('brand')
-      const type = searchParams.get('type')
-      const tags = searchParams.get('tags')
-      const tagOperator = searchParams.get('tag_operator') || 'OR'
       const sortBy = searchParams.get('sortBy') || 'purchaseDate'
       const sortOrder = searchParams.get('sortOrder') || 'desc'
       const page = parseInt(searchParams.get('page') || '1')
       const limit = parseInt(searchParams.get('limit') || '100')
       const offset = (page - 1) * limit
 
-      const where: Record<string, unknown> = { userId: user.id }
+      const where = buildUserWhereClause(user.id, {
+        status: searchParams.get('status'),
+        condition: searchParams.get('condition'),
+        isIndependent: searchParams.get('isIndependent'),
+        brand: searchParams.get('brand'),
+        type: searchParams.get('type'),
+        tags: searchParams.get('tags'),
+        tagOperator: searchParams.get('tag_operator') || 'OR',
+        search: searchParams.get('search'),
+      })
 
-      if (status) where.currentStatus = status
-      if (condition) where.storageCondition = condition
-      if (isIndependent === 'true') {
-        // 独立車両のみ: independentVehicle が存在
-        where.independentVehicle = { isNot: null }
-      } else if (isIndependent === 'false') {
-        // 製品リンク済みのみ: independentVehicle が存在しない
-        where.independentVehicle = null
-      }
-
-      // メーカーフィルタ（製品または独立車両のメーカー）
-      if (brand) {
-        where.OR = [
-          { product: { brand } },
-          { independentVehicle: { brand } }
-        ]
-      }
-
-      // 種別フィルタ（製品の種別のみ）
-      if (type) {
-        where.product = { type }
-      }
-
-      // タグフィルタ（製品のタグ）
-      if (tags) {
-        const tagIds = tags.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
-        if (tagIds.length > 0) {
-          if (tagOperator === 'AND') {
-            // AND: すべてのタグを持つ製品
-            where.product = {
-              ...where.product as object,
-              productTags: {
-                every: {
-                  tagId: { in: tagIds }
-                }
-              }
-            }
-          } else {
-            // OR: いずれかのタグを持つ製品
-            where.product = {
-              ...where.product as object,
-              productTags: {
-                some: {
-                  tagId: { in: tagIds }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      if (search) {
-        where.OR = [
-          { managementId: { contains: search, mode: 'insensitive' } },
-          { product: { name: { contains: search, mode: 'insensitive' } } },
-          { product: { productCode: { contains: search, mode: 'insensitive' } } },
-          { independentVehicle: { name: { contains: search, mode: 'insensitive' } } },
-          { independentVehicle: { brand: { contains: search, mode: 'insensitive' } } },
-          { notes: { contains: search, mode: 'insensitive' } }
-        ]
-      }
-
-      // ソート条件の構築
-      let orderBy: Record<string, unknown> | Record<string, unknown>[] = { createdAt: 'desc' }
-
-      switch (sortBy) {
-        case 'purchaseDate':
-          // 購入日でソート（nullを最古として扱う）
-          // 昇順（古い順）: null（最古）→ 古い日付 → 新しい日付
-          // 降順（新しい順）: 新しい日付 → 古い日付 → null（最古）
-          orderBy = [
-            {
-              purchaseDate: {
-                sort: sortOrder as 'asc' | 'desc',
-                nulls: sortOrder === 'asc' ? 'first' : 'last'
-              }
-            }
-          ]
-          break
-        case 'name':
-          // 名称（製品名または独立車両名）
-          // Prismaでは複数テーブルの条件付きソートが難しいため、フロントエンドでソート
-          orderBy = { createdAt: sortOrder }
-          break
-        case 'managementId':
-          // 管理ID
-          orderBy = { managementId: sortOrder }
-          break
-        case 'productCode':
-          // 品番順（製品品番または独立車両品番）
-          // 複数テーブルの条件付きソートのため、フロントエンドでソート
-          orderBy = { createdAt: sortOrder }
-          break
-        case 'createdAt':
-          // 登録順
-          orderBy = { createdAt: sortOrder }
-          break
-        case 'category':
-          // 分類順（製品タイプ→メーカー→品番）
-          // 複雑なため、フロントエンドでソート
-          orderBy = { createdAt: sortOrder }
-          break
-        default:
-          orderBy = { createdAt: 'desc' }
-      }
+      const orderBy = buildOrderBy(sortBy, sortOrder)
 
       const [ownedVehicles, total] = await Promise.all([
         prisma.ownedVehicle.findMany({
@@ -194,19 +92,7 @@ export async function GET(request: NextRequest) {
     const adminSearch = searchParams.get('search')
     const adminOffset = (adminPage - 1) * adminLimit
 
-    const adminWhere: Record<string, unknown> = {}
-
-    if (adminSearch) {
-      adminWhere.OR = [
-        { managementId: { contains: adminSearch, mode: 'insensitive' } },
-        { product: { name: { contains: adminSearch, mode: 'insensitive' } } },
-        { product: { brand: { contains: adminSearch, mode: 'insensitive' } } },
-        { product: { productCode: { contains: adminSearch, mode: 'insensitive' } } },
-        { user: { name: { contains: adminSearch, mode: 'insensitive' } } },
-        { user: { email: { contains: adminSearch, mode: 'insensitive' } } },
-        { notes: { contains: adminSearch, mode: 'insensitive' } }
-      ]
-    }
+    const adminWhere = buildAdminWhereClause(adminSearch)
 
     const [ownedVehicles, adminTotal] = await Promise.all([
       prisma.ownedVehicle.findMany({
@@ -265,14 +151,14 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json()
-    
+
     // 日付フィールドの一括処理
     try {
       processDateFields(data, ['purchaseDate'])
     } catch (error) {
       console.error('Date processing error:', error)
-      return NextResponse.json({ 
-        error: error instanceof Error ? error.message : 'Invalid date format' 
+      return NextResponse.json({
+        error: error instanceof Error ? error.message : 'Invalid date format'
       }, { status: 400 })
     }
 
