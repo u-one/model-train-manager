@@ -55,3 +55,12 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Claude Code
+.claude/settings.local.json
+
+# IDE
+.vscode/
+
+# ESLint reports
+eslint-report.*
