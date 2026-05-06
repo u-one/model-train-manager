@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { Prisma, ProductType } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
@@ -10,7 +11,7 @@ function parseQueryParams(searchParams: URLSearchParams) {
   const search = searchParams.get('search')
   const excludeSetSingle = searchParams.get('excludeSetSingle') === 'true'
   const sortBy = searchParams.get('sortBy') || 'createdAt'
-  const sortOrder = searchParams.get('sortOrder') || 'asc'
+  const sortOrder = (searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc') as Prisma.SortOrder
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '100')
 
@@ -27,15 +28,15 @@ function parseQueryParams(searchParams: URLSearchParams) {
   return { brand, type, search, excludeSetSingle, sortBy, sortOrder, page, limit, tagIds, tagOperator, excludeTagIds, noTagsCategories }
 }
 
-function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Record<string, unknown> {
+function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Prisma.ProductWhereInput {
   const { brand, type, search, excludeSetSingle, tagIds, tagOperator, excludeTagIds, noTagsCategories } = params
-  const where: Record<string, unknown> = {}
+  const where: Prisma.ProductWhereInput = {}
 
   if (brand) where.brand = brand
 
   // type フィルタの処理
   if (type) {
-    where.type = type
+    where.type = type as ProductType
   } else if (excludeSetSingle) {
     // typeが指定されていない場合のみexcludeSetSingleを適用
     where.type = { not: PRODUCT_TYPE_SET_SINGLE }
@@ -50,7 +51,7 @@ function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Record<s
   }
 
   // カテゴリ別「なし」条件とタグフィルタを組み合わせる
-  const tagConditions: Record<string, unknown>[] = []
+  const tagConditions: Prisma.ProductWhereInput[] = []
 
   // 通常のタグフィルタ
   if (tagIds.length > 0) {
@@ -111,7 +112,7 @@ function buildWhereClause(params: ReturnType<typeof parseQueryParams>): Record<s
   return where
 }
 
-function buildOrderBy(sortBy: string, sortOrder: string): Record<string, unknown> | Record<string, unknown>[] {
+function buildOrderBy(sortBy: string, sortOrder: Prisma.SortOrder): Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[] {
   switch (sortBy) {
     case 'createdAt':
       // 登録順
