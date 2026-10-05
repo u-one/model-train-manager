@@ -9,6 +9,7 @@ import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
 import ImageGallery from '@/components/ImageGallery'
 import { useViewMode } from '@/hooks/useViewMode'
+import { useAdmin } from '@/hooks/useAdmin'
 import { getCategoryColor } from '@/constants/tags'
 import { PRODUCT_TYPE_SINGLE, PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
 
@@ -56,6 +57,7 @@ interface OwnedVehicle {
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { data: session } = useSession()
+  const { isAdmin } = useAdmin()
   const resolvedParams = use(params)
   const [product, setProduct] = useState<Product | null>(null)
   const [setComponents, setSetComponents] = useState<Product[]>([])
@@ -159,13 +161,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               >
                 編集
               </button>
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isDeleting ? '削除中...' : '削除'}
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeleting ? '削除中...' : '削除'}
+                </button>
+              )}
             </div>
           )}
         </div>

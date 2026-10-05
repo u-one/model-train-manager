@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
+import { getAuthContext } from '@/lib/server/auth'
 
 // セットの構成車両一覧取得
 export async function GET(
@@ -47,6 +48,14 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { session, user } = await getAuthContext()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     const resolvedParams = await params
     const productId = parseInt(resolvedParams.id)
     const { componentData } = await request.json()
@@ -66,7 +75,8 @@ export async function POST(
       data: {
         ...componentData,
         type: PRODUCT_TYPE_SET_SINGLE,
-        parentCode: setProduct.productCode
+        parentCode: setProduct.productCode,
+        createdByUserId: user.id
       },
       include: {
         realVehicles: true,

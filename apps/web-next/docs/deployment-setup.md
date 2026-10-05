@@ -27,7 +27,7 @@
 | BLOB_READ_WRITE_TOKEN | Vercel Blobの読み書きトークン |
 
 AWS S3 / CloudFront用の環境変数は現行コードでは使用しない。
-ADMIN_EMAILSは明示的に設定する。未設定時は共通管理者ヘルパーとタグAPIで判定が異なる。
+ADMIN_EMAILSは管理者メールを明示的に設定する。未設定時は管理者なしとして扱う。
 
 ローカルのNext.js用設定は.env.local、Prisma CLI用のDB接続値は.envまたは実行環境の変数に設定する。同じ接続先を使用し、秘密値をGitに保存しない。
 

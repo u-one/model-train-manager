@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
+import { getAuthContext } from '@/lib/server/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -201,24 +202,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const { session, user } = await getAuthContext()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
 
     const data = await request.json()
     const { realVehicles, ...productData } = data
 
-    // ユーザー情報を取得（認証がない場合はnull）
-    let createdByUserId = null
-    if (session?.user?.email) {
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email }
-      })
-      createdByUserId = user?.id || null
-    }
-
     const product = await prisma.product.create({
       data: {
         ...productData,
-        createdByUserId,
+        createdByUserId: user.id,
         realVehicles: realVehicles ? {
           create: realVehicles
         } : undefined
