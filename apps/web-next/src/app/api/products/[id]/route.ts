@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { buildProductDetailInclude } from '@/lib/product-detail-query'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -11,27 +12,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: idStr } = await params
     const id = parseInt(idStr)
+    if (Number.isNaN(id)) {
+      return NextResponse.json({ error: 'Invalid product id' }, { status: 400 })
+    }
     const session = await getServerSession(authOptions)
 
     const product = await prisma.product.findUnique({
       where: { id },
-      include: {
-        realVehicles: true,
-        ownedVehicles: session ? {
-          where: {
-            userId: parseInt(session.user.id)
-          },
-          include: {
-            user: { select: { id: true, name: true } }
-          }
-        } : false,
-        createdByUser: { select: { id: true, name: true } },
-        productTags: {
-          include: {
-            tag: true
-          }
-        }
-      }
+      include: buildProductDetailInclude(session),
     })
 
     if (!product) {
