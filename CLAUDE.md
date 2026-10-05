@@ -142,6 +142,13 @@ repo-root/
   - 備考の追記・上書き機能
 - **詳細**: [Phase 2.17仕様書](./docs/phase-2.17-bulk-operations.md)
 
+### Phase 2.18 ✅
+- ソート機能・共通ページネーション・モバイル表示改善
+- セット構成車両の自動登録、CSVインポートのバッチ・チャンク処理
+
+### Phase 2.19 ✅
+- 共通型定義・共有コンポーネント分離、テスト環境構築（Vitest + Playwright）
+
 ### Phase 3
 - 整備記録機能
 - 画像アップロード
@@ -329,7 +336,7 @@ chore: ビルド・設定変更
 
 ## テスト戦略
 
-- **ユニットテスト:** Jest + React Testing Library
+- **ユニットテスト:** Vitest + React Testing Library（`npm test`）
 - **統合テスト:** API Routes テスト
 - **E2Eテスト:** Playwright（主要機能のみ）
 
