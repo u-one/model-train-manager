@@ -1,0 +1,22 @@
+# 承認済みの検索・読取と通常のGit操作。シェル全体は許可しない。
+prefix_rule(pattern = ["rg"], decision = "allow")
+prefix_rule(pattern = ["Get-Content"], decision = "allow")
+prefix_rule(pattern = ["Get-ChildItem"], decision = "allow")
+prefix_rule(pattern = ["Get-Location"], decision = "allow")
+prefix_rule(pattern = ["Test-Path"], decision = "allow")
+prefix_rule(pattern = ["git", ["status", "diff", "log", "show"]], decision = "allow")
+prefix_rule(pattern = ["git", "add"], decision = "allow")
+prefix_rule(pattern = ["git", "commit"], decision = "allow")
+prefix_rule(pattern = ["git", "mv"], decision = "allow", justification = "通常のファイル移動。上書き・大規模な移動は対象を確認して承認を得る。")
+
+# アプリの既存スクリプト。apps/web-nextで1操作ずつ実行する。
+prefix_rule(pattern = ["npm", "run", ["dev", "type-check", "lint", "test", "build"]], decision = "allow")
+
+# 外部への反映とデータ変更は個別確認。
+prefix_rule(pattern = ["git", "push"], decision = "prompt", justification = "リモートへ反映する対象ブランチと変更を確認する。")
+prefix_rule(pattern = ["npx", "vercel"], decision = "prompt", justification = "デプロイ先と操作内容を確認する。")
+prefix_rule(pattern = ["npx", "prisma", ["db", "migrate"]], decision = "prompt", justification = "対象DB、適用内容、データ損失・復旧手順を確認する。")
+prefix_rule(pattern = ["git", ["reset", "clean"]], decision = "prompt", justification = "既存の作業変更を失う可能性があるため、対象を確認する。")
+prefix_rule(pattern = ["git", "mv", "-f"], decision = "prompt", justification = "移動先を上書きするため、対象パスを確認する。")
+prefix_rule(pattern = ["npm", "run", "clean"], decision = "prompt", justification = "削除する生成物の対象パスを確認する。")
+prefix_rule(pattern = [["Remove-Item", "rm", "rmdir", "del"]], decision = "prompt", justification = "削除対象の絶対パスを確認し、個別の承認を得る。")
