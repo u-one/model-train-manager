@@ -108,17 +108,20 @@ try {
   }, null, 2))
 
   if (apply) {
+    // 往復回数を減らすため、製品は1回のcreateMany、保有車両は親セットごとのupdateManyにまとめる。
+    const childIdsByParent = new Map()
+    for (const { childId, parentId } of ownedCandidates) {
+      childIdsByParent.set(parentId, [...(childIdsByParent.get(parentId) ?? []), childId])
+    }
     await prisma.$transaction(async tx => {
-      for (const membership of productCandidates) {
-        await tx.productSetComponent.createMany({ data: [membership], skipDuplicates: true })
-      }
-      for (const relation of ownedCandidates) {
+      await tx.productSetComponent.createMany({ data: productCandidates, skipDuplicates: true })
+      for (const [parentId, childIds] of childIdsByParent) {
         await tx.ownedVehicle.updateMany({
-          where: { id: relation.childId, parentSetOwnedVehicleId: null },
-          data: { parentSetOwnedVehicleId: relation.parentId }
+          where: { id: { in: childIds }, parentSetOwnedVehicleId: null },
+          data: { parentSetOwnedVehicleId: parentId }
         })
       }
-    }, { timeout: 60000, maxWait: 10000 })
+    }, { timeout: 120000, maxWait: 10000 })
     console.log(`Applied ${productCandidates.length} product memberships and ${ownedCandidates.length} owned relationships.`)
   }
 } finally {
