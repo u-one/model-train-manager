@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE, PRODUCT_TYPE_SINGLE } from '@/constants/productTypes'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 
 // 製品が所属するセット一覧取得
 export async function GET(
@@ -9,92 +11,65 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params
-    const productId = parseInt(resolvedParams.id)
+    const productId = Number(resolvedParams.id)
+    if (!Number.isSafeInteger(productId) || productId < 1) return apiErrorJson('製品IDが不正です', 400, 'VALIDATION_ERROR')
 
     // 指定された製品情報を取得
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { productCode: true, type: true, parentCode: true }
+      select: { brand: true, productCode: true, type: true, parentCode: true }
     })
 
     if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+      return apiErrorJson('製品が見つかりません', 404, 'NOT_FOUND')
     }
 
-    const parentSets: Array<{
-      id: number
-      brand: string
-      productCode: string | null
-      name: string
-      type: string
-      releaseYear: number | null
-      priceExcludingTax: number | null
-      priceIncludingTax: number | null
-      description: string | null
-      imageUrls: string[]
-      realVehicles: Array<{
-        id: number
-        vehicleType: string | null
-        company: string | null
-        manufacturingYear: string | null
-        operationLine: string | null
-        notes: string | null
-      }>
-      _count: { ownedVehicles: number }
-    }> = []
+    const membershipWhere: Prisma.ProductSetComponentWhereInput | null = product.type === PRODUCT_TYPE_SET_SINGLE
+      ? { componentProductId: productId }
+        : product.type === PRODUCT_TYPE_SINGLE && product.productCode
+        ? { componentProduct: { is: {
+            type: PRODUCT_TYPE_SET_SINGLE,
+            brand: { equals: product.brand, mode: 'insensitive' as const },
+            productCode: product.productCode
+          } } }
+        : null
+    const memberships = membershipWhere ? await prisma.productSetComponent.findMany({
+      where: membershipWhere,
+      include: { setProduct: { include: { realVehicles: true, _count: { select: { ownedVehicles: true } } } } }
+    }) : []
+    const parentsById = new Map(memberships.map(membership => [membership.setProduct.id, membership.setProduct]))
 
-    // パターン1: SET_SINGLEタイプで、parentCodeが設定されている場合
-    if (product.type === PRODUCT_TYPE_SET_SINGLE && product.parentCode) {
-      const parentSet = await prisma.product.findFirst({
+    // 移行前または親を一意に特定できなかった旧データは、旧 parentCode でも表示する。
+    const legacyComponentCodes = product.type === PRODUCT_TYPE_SET_SINGLE && product.parentCode
+      ? [product.parentCode]
+      : product.type === PRODUCT_TYPE_SINGLE && product.productCode
+        ? (await prisma.product.findMany({
+            where: {
+              type: PRODUCT_TYPE_SET_SINGLE,
+              brand: { equals: product.brand, mode: 'insensitive' },
+              productCode: product.productCode,
+              parentCode: { not: null }
+            },
+            select: { parentCode: true }
+          })).map(component => component.parentCode).filter((code): code is string => Boolean(code))
+        : []
+    const legacyCodes = [...new Set(legacyComponentCodes)]
+    if (legacyCodes.length > 0) {
+      const legacySets = await prisma.product.findMany({
         where: {
-          productCode: product.parentCode,
-          type: PRODUCT_TYPE_SET
+          type: PRODUCT_TYPE_SET,
+          brand: { equals: product.brand, mode: 'insensitive' },
+          productCode: { in: legacyCodes }
         },
-        include: {
-          realVehicles: true,
-          _count: { select: { ownedVehicles: true } }
-        }
+        include: { realVehicles: true, _count: { select: { ownedVehicles: true } } }
       })
-
-      if (parentSet) {
-        parentSets.push(parentSet)
-      }
+      for (const parentSet of legacySets) parentsById.set(parentSet.id, parentSet)
     }
 
-    // パターン2: 単品製品が複数のセットで使用されている場合
-    // この場合は、この製品のproductCodeをparentCodeとして持つSET_SINGLEを探し、
-    // さらにそのparentCodeでセットを特定する
-    if (product.type === PRODUCT_TYPE_SINGLE) {
-      const usageInSets = await prisma.product.findMany({
-        where: {
-          productCode: product.productCode,
-          type: PRODUCT_TYPE_SET_SINGLE,
-          parentCode: { not: null }
-        },
-        select: { parentCode: true }
-      })
-
-      const setProductCodes = [...new Set(usageInSets.map(item => item.parentCode).filter(Boolean))] as string[]
-
-      if (setProductCodes.length > 0) {
-        const sets = await prisma.product.findMany({
-          where: {
-            productCode: { in: setProductCodes },
-            type: PRODUCT_TYPE_SET
-          },
-          include: {
-            realVehicles: true,
-            _count: { select: { ownedVehicles: true } }
-          }
-        })
-
-        parentSets.push(...sets)
-      }
-    }
+    const parentSets = [...parentsById.values()]
 
     return NextResponse.json({ parentSets })
   } catch (error) {
-    console.error('Parent sets fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch parent sets' }, { status: 500 })
+    return apiErrorResponse(error, '所属セットを取得できませんでした')
   }
 }

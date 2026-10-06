@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getAuthContext } from '@/lib/server/auth'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 
 type RouteParams = {
   params: Promise<{
@@ -13,33 +13,24 @@ type RouteParams = {
 // 製品からタグを削除
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
     const { id: idStr, tagId: tagIdStr } = await params
-    const productId = parseInt(idStr)
-    const tagId = parseInt(tagIdStr)
+    const productId = Number(idStr)
+    const tagId = Number(tagIdStr)
+    if (!Number.isSafeInteger(productId) || productId < 1 || !Number.isSafeInteger(tagId) || tagId < 1) {
+      return apiErrorJson('製品IDまたはタグIDが不正です', 400, 'VALIDATION_ERROR')
+    }
 
     // タグを削除
-    await prisma.productTag.delete({
-      where: {
-        productId_tagId: {
-          productId,
-          tagId
-        }
-      }
-    })
+    const result = await prisma.productTag.deleteMany({ where: { productId, tagId } })
+    if (result.count === 0) return apiErrorJson('製品にこのタグは設定されていません', 404, 'NOT_FOUND')
 
     return NextResponse.json({ message: 'Tag removed successfully' })
   } catch (error) {
-    console.error('Product tag deletion error:', error)
-
-    if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
-      return NextResponse.json({ error: 'Tag not found for this product' }, { status: 404 })
-    }
-
-    return NextResponse.json({ error: 'Failed to remove tag from product' }, { status: 500 })
+    return apiErrorResponse(error, '製品タグを解除できませんでした')
   }
 }

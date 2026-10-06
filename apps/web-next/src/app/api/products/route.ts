@@ -1,27 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { z } from 'zod'
-import { authOptions } from '@/lib/auth'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthContext } from '@/lib/server/auth'
 import { parseQueryParams, buildWhereClause, buildOrderBy } from '@/lib/products-query'
+import { productInputSchema } from '@/lib/contracts/product'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
+import { createProduct } from '@/lib/server/products'
+import { apiJson, apiJsonAs } from '@/lib/server/api-json'
+import type { ProductListApiOutput } from '@/lib/contracts/api'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const auth = await getAuthContext()
     const { searchParams } = new URL(request.url)
     const params = parseQueryParams(searchParams)
     const { page, limit } = params
     const offset = (page - 1) * limit
 
     // ログインユーザーを取得
-    let currentUserId = null
-    if (session?.user?.email) {
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email }
-      })
-      currentUserId = user?.id
-    }
+    const currentUserId = auth.session?.user?.email ? auth.user?.id : null
 
     const where = buildWhereClause(params)
     const orderBy = buildOrderBy(params.sortBy, params.sortOrder)
@@ -51,7 +47,7 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where })
     ])
 
-    return NextResponse.json({
+    return apiJsonAs<ProductListApiOutput>()({
       products,
       pagination: {
         page,
@@ -61,11 +57,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 })
-    }
-    console.error('Products fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
+    return apiErrorResponse(error, '製品一覧を取得できませんでした')
   }
 }
 
@@ -73,32 +65,18 @@ export async function POST(request: NextRequest) {
   try {
     const { session, user } = await getAuthContext()
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
     }
 
-    const data = await request.json()
-    const { realVehicles, ...productData } = data
+    const parsed = productInputSchema.safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, '入力値を確認してください')
+    const product = await createProduct(parsed.data, user.id)
 
-    const product = await prisma.product.create({
-      data: {
-        ...productData,
-        createdByUserId: user.id,
-        realVehicles: realVehicles ? {
-          create: realVehicles
-        } : undefined
-      },
-      include: {
-        realVehicles: true,
-        _count: { select: { ownedVehicles: true } }
-      }
-    })
-
-    return NextResponse.json(product, { status: 201 })
+    return apiJson(product, { status: 201 })
   } catch (error) {
-    console.error('Product create error:', error)
-    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
+    return apiErrorResponse(error, '製品を作成できませんでした')
   }
 }

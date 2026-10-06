@@ -2,24 +2,29 @@ import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
 
-// カンマ区切りの数値リストを number[] に変換するカスタム型
-const commaNumberList = z.string()
-  .optional()
-  .transform(s => s ? s.split(',').map(Number).filter(n => Number.isInteger(n) && n > 0) : [])
+const commaNumberList = z.string().optional().transform(value => {
+  if (!value) return []
+  return value.split(',').map(item => Number(item.trim()))
+}).pipe(z.array(z.number().int().positive()).max(100))
+
+const categoryList = z.string().optional().transform(value => {
+  if (!value) return []
+  return value.split(',').map(item => item.trim()).filter(Boolean)
+}).pipe(z.array(z.string().min(1).max(30)).max(20))
 
 export const querySchema = z.object({
-  brand:              z.string().optional(),
-  type:               z.enum(['SINGLE', 'SET', 'SET_SINGLE'] as const).optional(),
-  search:             z.string().optional(),
-  excludeSetSingle:   z.string().optional().transform(v => v === 'true'),
-  sortBy:             z.enum(['createdAt', 'name', 'brandCode', 'category']).default('createdAt'),
-  sortOrder:          z.enum(['asc', 'desc']).default('asc'),
-  page:               z.coerce.number().int().min(1).default(1),
-  limit:              z.coerce.number().int().min(1).default(100),
-  tags:               commaNumberList,
-  tag_operator:       z.enum(['AND', 'OR']).default('OR'),
-  exclude_tags:       commaNumberList,
-  no_tags_categories: z.string().optional().transform(s => s ? s.split(',') : []),
+  brand: z.string().trim().max(100).optional(),
+  type: z.enum(['SINGLE', 'SET', 'SET_SINGLE']).optional(),
+  search: z.string().trim().max(200).optional(),
+  excludeSetSingle: z.enum(['true', 'false']).optional().transform(value => value === 'true'),
+  sortBy: z.enum(['createdAt', 'name', 'brandCode', 'category']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  limit: z.coerce.number().int().min(1).max(1000).default(100),
+  tags: commaNumberList,
+  tag_operator: z.enum(['AND', 'OR']).default('OR'),
+  exclude_tags: commaNumberList,
+  no_tags_categories: categoryList
 })
 
 export type QueryParams = z.infer<typeof querySchema>
@@ -29,111 +34,45 @@ export function parseQueryParams(searchParams: URLSearchParams): QueryParams {
 }
 
 export function buildWhereClause(params: QueryParams): Prisma.ProductWhereInput {
-  const { brand, type, search, excludeSetSingle, tags, tag_operator, exclude_tags, no_tags_categories } = params
-  const where: Prisma.ProductWhereInput = {}
+  const conditions: Prisma.ProductWhereInput[] = []
+  if (params.brand) conditions.push({ brand: { equals: params.brand, mode: 'insensitive' } })
 
-  if (brand) where.brand = brand
+  if (params.type) conditions.push({ type: params.type })
+  else if (params.excludeSetSingle) conditions.push({ type: { not: PRODUCT_TYPE_SET_SINGLE } })
 
-  // type フィルタの処理
-  if (type) {
-    where.type = type
-  } else if (excludeSetSingle) {
-    // typeが指定されていない場合のみexcludeSetSingleを適用
-    where.type = { not: PRODUCT_TYPE_SET_SINGLE }
+  if (params.search) {
+    conditions.push({ OR: [
+      { name: { contains: params.search, mode: 'insensitive' } },
+      { productCode: { contains: params.search, mode: 'insensitive' } },
+      { description: { contains: params.search, mode: 'insensitive' } }
+    ] })
   }
 
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: 'insensitive' } },
-      { productCode: { contains: search, mode: 'insensitive' } },
-      { description: { contains: search, mode: 'insensitive' } }
-    ]
-  }
-
-  // カテゴリ別「なし」条件とタグフィルタを組み合わせる
-  const tagConditions: Prisma.ProductWhereInput[] = []
-
-  // 通常のタグフィルタ
-  if (tags.length > 0) {
-    if (tag_operator === 'AND') {
-      // AND検索: 各タグを個別のsome条件にすることで全タグ一致をDBで解決
-      tagConditions.push(
-        ...tags.map((tagId: number) => ({
-          productTags: { some: { tagId } }
-        }))
-      )
+  if (params.tags.length > 0) {
+    if (params.tag_operator === 'AND') {
+      conditions.push(...params.tags.map(tagId => ({ productTags: { some: { tagId } } })))
     } else {
-      // OR検索: 指定されたタグのいずれかを持つ製品
-      tagConditions.push({
-        productTags: {
-          some: {
-            tagId: { in: tags }
-          }
-        }
-      })
+      conditions.push({ productTags: { some: { tagId: { in: params.tags } } } })
     }
   }
 
-  // カテゴリ別「なし」条件
-  if (no_tags_categories.length > 0) {
-    for (const category of no_tags_categories) {
-      tagConditions.push({
-        NOT: {
-          productTags: {
-            some: {
-              tag: {
-                category: category
-              }
-            }
-          }
-        }
-      })
-    }
+  if (params.exclude_tags.length > 0) {
+    conditions.push({ NOT: { productTags: { some: { tagId: { in: params.exclude_tags } } } } })
   }
 
-  // 除外タグの処理
-  if (exclude_tags.length > 0) {
-    tagConditions.push({
-      NOT: {
-        productTags: {
-          some: {
-            tagId: { in: exclude_tags }
-          }
-        }
-      }
-    })
+  for (const category of params.no_tags_categories) {
+    conditions.push({ NOT: { productTags: { some: { tag: { category } } } } })
   }
 
-  // 条件を統合
-  if (tagConditions.length > 0) {
-    where.AND = tagConditions
-  }
-
-  return where
+  return conditions.length ? { AND: conditions } : {}
 }
 
-export function buildOrderBy(sortBy: string, sortOrder: Prisma.SortOrder): Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[] {
+export function buildOrderBy(sortBy: QueryParams['sortBy'], sortOrder: Prisma.SortOrder): Prisma.ProductOrderByWithRelationInput[] {
+  const tieBreaker = { id: 'asc' as const }
   switch (sortBy) {
-    case 'createdAt':
-      // 登録順
-      return { createdAt: sortOrder }
-    case 'name':
-      // 名称
-      return { name: sortOrder }
-    case 'brandCode':
-      // メーカー＋品番
-      return [
-        { brand: sortOrder },
-        { productCode: sortOrder }
-      ]
-    case 'category':
-      // 分類順（タイプ→メーカー→品番）
-      return [
-        { type: sortOrder },
-        { brand: sortOrder },
-        { productCode: sortOrder }
-      ]
-    default:
-      return { createdAt: 'asc' }
+    case 'createdAt': return [{ createdAt: sortOrder }, tieBreaker]
+    case 'name': return [{ name: sortOrder }, tieBreaker]
+    case 'brandCode': return [{ brand: sortOrder }, { productCode: sortOrder }, tieBreaker]
+    case 'category': return [{ type: sortOrder }, { brand: sortOrder }, { productCode: sortOrder }, tieBreaker]
   }
 }

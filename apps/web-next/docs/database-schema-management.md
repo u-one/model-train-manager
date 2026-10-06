@@ -1,6 +1,6 @@
 # DBスキーマ管理
 
-スキーマの正は [apps/web-next/prisma/schema.prisma](../apps/web-next/prisma/schema.prisma)。
+スキーマの正は [schema.prisma](../prisma/schema.prisma)。
 現行運用はPrismaのdb push方式で、マイグレーション履歴は未導入。
 
 ## 変更手順
@@ -23,8 +23,12 @@ db pushは接続先DBを変更する。データ移行が必要な場合は、�
 - DATABASE_URLはアプリの通常接続、DIRECT_URLはスキーマ操作用接続。
 - Next.jsのローカル設定は.env.local、Prisma CLIの接続値は.envまたは実行環境の変数へ設定する。
 - postinstallとbuildはprisma generateを実行する。DBスキーマは自動更新しない。
-- Supabaseの管理画面等でスキーマを別管理しない。
-- 実際の適用コマンド・対象環境・変数変更・復旧手順は [デプロイ手順](../apps/web-next/docs/deployment-setup.md) と [開発記録](development-log.md) に残す。
+- DBアクセスはPrismaへ統一する。Supabase用の環境変数は現行APIでは使用しない。
+- 実際の適用コマンド・対象環境・変数変更・復旧手順は [デプロイ手順](deployment-setup.md) と [開発記録](../../docs/development-log.md) に残す。
+
+## セット関係のデータ移行
+
+ProductSetComponentとOwnedVehicle.parentSetOwnedVehicleIdは追加スキーマとして適用する。既存関係の判定は [デプロイ手順](deployment-setup.md) のドライラン付きスクリプトに従う。候補と未解決一覧を確認してから`--apply`を実行し、完了後に再度ドライランする。未解決の関係を推測で追加しない。
 
 ## DBとの差分確認
 

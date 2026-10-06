@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { isValid } from 'zod/v3'
-import { createClient } from '@supabase/supabase-js'
-import { mock } from 'node:test'
-import { error } from 'console'
+import { ApiError } from '@/lib/server/api-errors'
+
+const { mockFindUser, mockCreateImportedProduct } = vi.hoisted(() => ({
+    mockFindUser: vi.fn(),
+    mockCreateImportedProduct: vi.fn()
+}))
 
 vi.mock('next-auth', () => ({
   getServerSession: vi.fn(),
@@ -12,46 +14,16 @@ vi.mock('next-auth', () => ({
 vi.mock('@/lib/prisma', () => ({
     prisma: {
         user: {
-            findUnique: vi.fn(),
+            findUnique: mockFindUser,
         }
     }
 }))
 
-const defaultUser = {user: {id: '1', email: 'test@example.com'}}
-
-const {
-    mockSingle,
-    mockInsertSingle,
-    mockRealVehiclesInsert,
-    mockCreateClient
-} = vi.hoisted(() => {
-    const mockSingle = vi.fn(() => ({ data: null, error: null }))
-    const mockEq = vi.fn(() => ({ eq: mockEq, single: mockSingle }))
-    const mockSelect = vi.fn(() => ({ eq: mockEq, single: mockSingle }))
-    const mockInsertSingle = vi.fn(() => ({ data: { id: 1 }, error: null }))
-    const mockInsertSelect = vi.fn(() => ({ single: mockInsertSingle }))
-    const mockInsert = vi.fn(() => ({ select: mockInsertSelect }))
-    const mockRealVehiclesInsert = vi.fn(() => ({ error: null }))
-    const mockFrom = vi.fn((table: string) => {
-        if (table === 'products') return {select: mockSelect, insert: mockInsert}
-        if (table === 'real_vehicles') return {insert: mockRealVehiclesInsert}
-        return {}
-    })
-    const mockCreateClient = vi.fn(() => ({from: mockFrom}))
-
-    return {
-        mockSingle,
-        mockInsertSingle,
-        mockRealVehiclesInsert,
-        mockCreateClient
-    }
-})
-
-
-vi.mock('@supabase/supabase-js', () => ({
-    createClient: mockCreateClient
+vi.mock('@/lib/server/products', () => ({
+    createImportedProduct: mockCreateImportedProduct
 }))
 
+const defaultUser = {user: {id: '1', email: 'test@example.com'}}
 
 function makeRequest(params: Record<string, string> = {}) {
     const url = new URL('http://localhost/api/products/import')
@@ -101,9 +73,8 @@ function makeCsvFileRequest(csv: string = correctCsv) {
 describe('POST /api/products/import', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        vi.resetModules()
-
-        mockSingle.mockResolvedValue({ data: null, error: null })
+        mockFindUser.mockResolvedValue({ id: 1, email: 'test@example.com', name: 'Test' })
+        mockCreateImportedProduct.mockResolvedValue({ id: 1 })
     })
 
     it('認証されていない場合は 401 を返す', async () => {
@@ -115,7 +86,7 @@ describe('POST /api/products/import', () => {
         const data = await res.json()
 
         expect(res.status).toBe(401)
-        expect(data.error).toBe('Unauthorized')
+        expect(data).toMatchObject({ error: 'ログインが必要です', code: 'UNAUTHENTICATED' })
     })
 
     it ('CSVファイルがない場合は 400 を返す', async () => {
@@ -160,8 +131,10 @@ describe('POST /api/products/import', () => {
 
         expect(res.status).toBe(400)
         expect(data.error).toBe('CSVファイルの解析でエラーが発生しました')
-        expect(data.details).toEqual(['最低限必要な列数が不足しています。期待値: 5列以上, 実際: 2列'])
-        expect(data.skippedRows).toEqual([])
+        expect(data.details).toEqual({
+            errors: ['最低限必要な列数が不足しています。期待値: 5列以上, 実際: 2列'],
+            skippedRows: [],
+        })
     })
 
 
@@ -186,7 +159,7 @@ describe('POST /api/products/import', () => {
         const { getServerSession } = await import('next-auth')
         vi.mocked(getServerSession).mockResolvedValue(defaultUser as never)
 
-        vi.mocked(mockSingle).mockResolvedValueOnce({data: {id: 'existing-product-id'}, error: null})
+        mockCreateImportedProduct.mockRejectedValueOnce(new ApiError('同じメーカー・品番の製品が既にあります', 409, 'CONFLICT'))
 
         const req = makeCsvFileRequest()
         const res = await POST(req)
@@ -196,7 +169,7 @@ describe('POST /api/products/import', () => {
         expect(data.results.totalRows).toBe(1)
         expect(data.results.successCount).toBe(0)
         expect(data.results.errorCount).toBe(1)
-        expect(data.results.errors).toEqual(['行 2: \"KATO 10-001\" は既に存在します'])
+        expect(data.results.errors).toEqual(['行 3: 同じメーカー・品番の製品が既にあります'])
     })
 
     it ('製品登録エラーが発生した場合はスキップされる', async () => {
@@ -204,7 +177,7 @@ describe('POST /api/products/import', () => {
         const { getServerSession } = await import('next-auth')
         vi.mocked(getServerSession).mockResolvedValue(defaultUser as never)
         
-        vi.mocked(mockInsertSingle).mockResolvedValueOnce({ data: { id: 1 }, error: {message: 'test'} }) // 登録でエラー  
+        mockCreateImportedProduct.mockRejectedValueOnce(new ApiError('製品登録に失敗しました', 409, 'CONFLICT'))
 
         const req = makeCsvFileRequest()
         const res = await POST(req)
@@ -214,7 +187,7 @@ describe('POST /api/products/import', () => {
         expect(data.results.totalRows).toBe(1)
         expect(data.results.successCount).toBe(0)
         expect(data.results.errorCount).toBe(1)
-        expect(data.results.errors).toEqual(['行 2: 製品登録エラー - test'])
+        expect(data.results.errors).toEqual(['行 3: 製品登録に失敗しました'])
     })
 
     it ('実車情報登録エラーが発生した場合はスキップされる', async () => {
@@ -222,7 +195,7 @@ describe('POST /api/products/import', () => {
         const { getServerSession } = await import('next-auth')
         vi.mocked(getServerSession).mockResolvedValue(defaultUser as never)
         
-        vi.mocked(mockRealVehiclesInsert).mockResolvedValueOnce({ error: {message: 'test'} }) // 実写情報登録でエラー
+        mockCreateImportedProduct.mockRejectedValueOnce(new ApiError('実車情報登録に失敗しました', 409, 'CONFLICT'))
 
         const req = makeCsvFileRequest()
         const res = await POST(req)
@@ -232,7 +205,7 @@ describe('POST /api/products/import', () => {
         expect(data.results.totalRows).toBe(1)
         expect(data.results.successCount).toBe(0)
         expect(data.results.errorCount).toBe(1)
-        expect(data.results.errors).toEqual(['行 2: 実車情報登録エラー - test'])
+        expect(data.results.errors).toEqual(['行 3: 実車情報登録に失敗しました'])
     })
 
 })

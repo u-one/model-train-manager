@@ -1,13 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-
-interface Tag {
-  id: number
-  name: string
-  category: string
-  description?: string
-}
+import type { Tag } from '@/types/domain'
 
 interface TagCategory {
   category: string

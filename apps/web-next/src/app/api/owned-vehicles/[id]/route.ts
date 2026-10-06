@@ -1,30 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { processDateFields } from '@/lib/utils/date-utils'
+import { getAuthContext } from '@/lib/server/auth'
+import { ownedVehicleInputSchema } from '@/lib/contracts/owned-vehicle'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
+import { linkProductToOwnedVehicle } from '@/lib/server/products'
+import { updateOwnedVehicle } from '@/lib/server/owned-vehicles'
+import { apiJson, apiJsonAs } from '@/lib/server/api-json'
+import { z } from 'zod'
+import type { OwnedVehicleDetailApiOutput } from '@/lib/contracts/api'
+import type { Prisma } from '@prisma/client'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+const linkProductSchema = z.object({ productId: z.number().int().positive() }).strict()
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
+    const user = auth.user
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
     }
 
     const { id: idStr } = await params
-    const id = parseInt(idStr)
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('保有車両IDが不正です', 400, 'VALIDATION_ERROR')
 
     const ownedVehicle = await prisma.ownedVehicle.findFirst({
       where: {
@@ -45,188 +52,90 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!ownedVehicle) {
-      return NextResponse.json({ error: 'Owned vehicle not found' }, { status: 404 })
+      return apiErrorJson('保有車両が見つかりません', 404, 'NOT_FOUND')
     }
 
-    // セットの場合、構成車両の保有状況を取得
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let componentOwnedVehicles: any[] = []
-    if (ownedVehicle.product && ownedVehicle.product.type === 'SET' && ownedVehicle.product.productCode) {
-      // parentCodeがセットのproductCodeと一致する製品IDを取得
-      const componentProducts = await prisma.product.findMany({
+    let componentOwnedVehicles: Prisma.OwnedVehicleGetPayload<{ include: { product: true } }>[] = []
+    if (ownedVehicle.product?.type === 'SET') {
+      const legacyComponentProducts = ownedVehicle.product.productCode
+        ? await prisma.product.findMany({
+            where: {
+              type: 'SET_SINGLE',
+              brand: { equals: ownedVehicle.product.brand, mode: 'insensitive' },
+              parentCode: { equals: ownedVehicle.product.productCode, mode: 'insensitive' }
+            },
+            select: { id: true }
+          })
+        : []
+      const legacyProductIds = legacyComponentProducts.map(product => product.id)
+      const legacyMarker = `セット「${ownedVehicle.product.name}」(管理ID: ${ownedVehicle.managementId})`
+      componentOwnedVehicles = await prisma.ownedVehicle.findMany({
         where: {
-          parentCode: ownedVehicle.product.productCode,
-          type: 'SET_SINGLE'
+          userId: user.id,
+          OR: [
+            { parentSetOwnedVehicleId: ownedVehicle.id },
+            ...(legacyProductIds.length ? [{
+              parentSetOwnedVehicleId: null,
+              productId: { in: legacyProductIds },
+              notes: { contains: legacyMarker }
+            }] : [])
+          ]
         },
-        select: { id: true }
+        include: { product: true },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }]
       })
-
-      const componentIds = componentProducts.map(p => p.id)
-
-      // このセットから登録された保有車両を取得
-      if (componentIds.length > 0) {
-        componentOwnedVehicles = await prisma.ownedVehicle.findMany({
-          where: {
-            userId: user.id,
-            productId: { in: componentIds },
-            notes: {
-              contains: `セット「${ownedVehicle.product.name}」(管理ID: ${ownedVehicle.managementId})`
-            }
-          },
-          include: {
-            product: true
-          },
-          orderBy: { createdAt: 'asc' }
-        })
-      }
     }
 
-    return NextResponse.json({
+    return apiJsonAs<OwnedVehicleDetailApiOutput>()({
       ...ownedVehicle,
       componentOwnedVehicles
     })
   } catch (error) {
-    console.error('Owned vehicle fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch owned vehicle' }, { status: 500 })
+    return apiErrorResponse(error, '保有車両を取得できませんでした')
   }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
+    const user = auth.user
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
     }
 
     const { id: idStr } = await params
-    const id = parseInt(idStr)
-    const data = await request.json()
-    
-    // 日付フィールドの一括処理
-    try {
-      processDateFields(data, ['purchaseDate'])
-    } catch (error) {
-      console.error('Date processing error:', error)
-      return NextResponse.json({ 
-        error: error instanceof Error ? error.message : 'Invalid date format' 
-      }, { status: 400 })
-    }
-
-    const { vehicleType, independentVehicle, ...ownedVehicleData } = data
-
-    // 既存の保有車両を確認
-    const existingVehicle = await prisma.ownedVehicle.findFirst({
-      where: {
-        id,
-        userId: user.id
-      },
-      include: {
-        independentVehicle: true
-      }
-    })
-
-    if (!existingVehicle) {
-      return NextResponse.json({ error: 'Owned vehicle not found' }, { status: 404 })
-    }
-
-    // 車両タイプに応じてデータを処理
-    let finalUpdateData: Record<string, unknown> = {
-      ...ownedVehicleData
-    }
-
-    if (vehicleType === 'INDEPENDENT' && independentVehicle) {
-      // 独立車両の場合
-      finalUpdateData = {
-        ...finalUpdateData,
-        productId: null
-      }
-
-      if (existingVehicle.independentVehicle) {
-        // 既存の独立車両情報を更新
-        await prisma.independentVehicle.update({
-          where: { ownedVehicleId: id },
-          data: independentVehicle
-        })
-      } else {
-        // 新規に独立車両情報を作成
-        await prisma.independentVehicle.create({
-          data: {
-            ...independentVehicle,
-            ownedVehicleId: id
-          }
-        })
-      }
-    } else if (vehicleType === 'PRODUCT') {
-      // 製品車両の場合
-      if (existingVehicle.independentVehicle) {
-        // 既存の独立車両情報を削除
-        await prisma.independentVehicle.delete({
-          where: { ownedVehicleId: id }
-        })
-      }
-    } else if (ownedVehicleData.productId && existingVehicle.independentVehicle) {
-      // productId が設定される場合は独立車両情報を削除
-      await prisma.independentVehicle.delete({
-        where: { ownedVehicleId: id }
-      })
-    }
-
-    // 不要なフィールドを削除
-    delete finalUpdateData.vehicleType
-
-    // 保有車両情報を更新
-    await prisma.ownedVehicle.update({
-      where: { id },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: finalUpdateData as any
-    })
-
-    // 更新後のデータを取得
-    const updatedVehicle = await prisma.ownedVehicle.findUnique({
-      where: { id },
-      include: {
-        product: {
-          include: {
-            realVehicles: true
-          }
-        },
-        independentVehicle: true,
-        maintenanceRecords: true
-      }
-    })
-
-    return NextResponse.json(updatedVehicle)
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('保有車両IDが不正です', 400, 'VALIDATION_ERROR')
+    const parsed = ownedVehicleInputSchema.safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, '入力値を確認してください')
+    const updatedVehicle = await updateOwnedVehicle(id, parsed.data, user.id)
+    return apiJson(updatedVehicle)
   } catch (error) {
-    console.error('Owned vehicle update error:', error)
-    return NextResponse.json({ error: 'Failed to update owned vehicle' }, { status: 500 })
+    return apiErrorResponse(error, '保有車両を更新できませんでした')
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
+    const user = auth.user
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
     }
 
     const { id: idStr } = await params
-    const id = parseInt(idStr)
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('保有車両IDが不正です', 400, 'VALIDATION_ERROR')
 
     const deleteResult = await prisma.ownedVehicle.deleteMany({
       where: {
@@ -236,12 +145,28 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (deleteResult.count === 0) {
-      return NextResponse.json({ error: 'Owned vehicle not found' }, { status: 404 })
+      return apiErrorJson('保有車両が見つかりません', 404, 'NOT_FOUND')
     }
 
     return NextResponse.json({ message: 'Owned vehicle deleted successfully' })
   } catch (error) {
-    console.error('Owned vehicle delete error:', error)
-    return NextResponse.json({ error: 'Failed to delete owned vehicle' }, { status: 500 })
+    return apiErrorResponse(error, '保有車両を削除できませんでした')
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
+    if (!auth.user) return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
+    const { id: idStr } = await params
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('保有車両IDが不正です', 400, 'VALIDATION_ERROR')
+    const parsed = linkProductSchema.safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, '製品IDを確認してください')
+    const result = await linkProductToOwnedVehicle(parsed.data.productId, id, auth.user.id)
+    return apiJson(result)
+  } catch (error) {
+    return apiErrorResponse(error, '製品を紐付けられませんでした')
   }
 }

@@ -1,45 +1,13 @@
-export interface Tag {
-    id: number
-    name: string
-    category: string
-}
+import type { ProductApiOutput, OwnedVehicleApiOutput, TagApiOutput } from '@/lib/contracts/api'
 
-export interface ProductTag {
-    tag: Tag
+export type Tag = Pick<TagApiOutput, 'id' | 'name' | 'category'>
+export type ProductTag = { tag: Tag }
+export type OwnedVehicleProduct = Omit<Pick<ProductApiOutput, 'id' | 'name' | 'brand' | 'productCode' | 'type' | 'productTags'>, 'productTags'> & {
+  productTags?: ProductTag[]
 }
-
-export interface Product {
-    id: number
-    brand: string
-    productCode: string | null
-    name: string
-    type: string
-    priceIncludingTax: number | null
-    imageUrls: string[]
-    _count?: { ownedVehicles: number }
-    productTags?: ProductTag[]
-}
-
-export interface OwnedVehicle {
-    id: number
-    managementId: string
-    currentStatus: string
-    storageCondition: string
-    purchaseDate: string | null
-    purchasePriceIncludingTax: number | null
-    notes: string | null
-    imageUrls: string[]
-    product?: {
-        id: number
-        name: string
-        brand: string
-        productCode: string | null
-        type: string
-        productTags?: ProductTag[]
-    } | null
-    independentVehicle?: {
-        name: string
-        brand: string | null
-        vehicleType: string | null
-    } | null
+export type Product = Pick<ProductApiOutput, 'id' | 'brand' | 'productCode' | 'name' | 'type' | 'priceIncludingTax' | 'imageUrls'> &
+  Partial<Pick<ProductApiOutput, '_count'>> & { productTags?: ProductTag[] }
+export type OwnedVehicle = Pick<OwnedVehicleApiOutput, 'id' | 'managementId' | 'currentStatus' | 'storageCondition' | 'purchaseDate' | 'purchasePriceIncludingTax' | 'notes' | 'imageUrls'> & {
+  product?: OwnedVehicleProduct | null
+  independentVehicle?: Pick<NonNullable<OwnedVehicleApiOutput['independentVehicle']>, 'name' | 'brand' | 'vehicleType'> | null
 }

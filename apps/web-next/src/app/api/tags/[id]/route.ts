@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAdminEmail } from '@/lib/server/auth'
+import { getAuthContext } from '@/lib/server/auth'
+import { tagUpdateSchema } from '@/lib/contracts/tag'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 
 type RouteParams = {
   params: Promise<{
@@ -14,7 +14,8 @@ type RouteParams = {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: idStr } = await params
-    const id = parseInt(idStr)
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('タグIDが不正です', 400, 'VALIDATION_ERROR')
 
     const tag = await prisma.tag.findUnique({
       where: { id },
@@ -26,93 +27,74 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!tag) {
-      return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
+      return apiErrorJson('タグが見つかりません', 404, 'NOT_FOUND')
     }
 
     return NextResponse.json(tag)
   } catch (error) {
-    console.error('Tag fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch tag' }, { status: 500 })
+    return apiErrorResponse(error, 'タグを取得できませんでした')
   }
 }
 
 // タグ更新（管理者のみ）
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
     // 管理者チェック
-    if (!isAdminEmail(session.user.email)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!auth.isAdmin) {
+      return apiErrorJson('管理者権限が必要です', 403, 'FORBIDDEN')
     }
 
     const { id: idStr } = await params
-    const id = parseInt(idStr)
-    const data = await request.json()
-
-    const { name, category, description } = data
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('タグIDが不正です', 400, 'VALIDATION_ERROR')
+    const parsed = tagUpdateSchema.safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, 'タグの入力値を確認してください')
+    const data = parsed.data
 
     // タグを更新
     const tag = await prisma.tag.update({
       where: { id },
       data: {
-        ...(name && { name }),
-        ...(category && { category }),
-        ...(description !== undefined && { description })
+        ...(data.name === undefined ? {} : { name: data.name }),
+        ...(data.category === undefined ? {} : { category: data.category }),
+        ...(data.description === undefined ? {} : { description: data.description })
       }
     })
 
     return NextResponse.json(tag)
   } catch (error) {
-    console.error('Tag update error:', error)
-
-    if (error instanceof Error && error.message.includes('Record to update not found')) {
-      return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
-    }
-
-    if (error instanceof Error && error.message.includes('Unique constraint')) {
-      return NextResponse.json(
-        { error: 'Tag with this name already exists' },
-        { status: 409 }
-      )
-    }
-
-    return NextResponse.json({ error: 'Failed to update tag' }, { status: 500 })
+    return apiErrorResponse(error, 'タグを更新できませんでした')
   }
 }
 
 // タグ削除（管理者のみ）
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
     // 管理者チェック
-    if (!isAdminEmail(session.user.email)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!auth.isAdmin) {
+      return apiErrorJson('管理者権限が必要です', 403, 'FORBIDDEN')
     }
 
     const { id: idStr } = await params
-    const id = parseInt(idStr)
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('タグIDが不正です', 400, 'VALIDATION_ERROR')
 
     // タグを削除（CASCADE設定により、product_tagsも自動削除される）
-    await prisma.tag.delete({
-      where: { id }
-    })
+    const result = await prisma.tag.deleteMany({ where: { id } })
+    if (result.count === 0) return apiErrorJson('タグが見つかりません', 404, 'NOT_FOUND')
 
     return NextResponse.json({ message: 'Tag deleted successfully' })
   } catch (error) {
-    console.error('Tag deletion error:', error)
-
-    if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
-      return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({ error: 'Failed to delete tag' }, { status: 500 })
+    return apiErrorResponse(error, 'タグを削除できませんでした')
   }
 }

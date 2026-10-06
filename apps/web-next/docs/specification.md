@@ -1,14 +1,14 @@
 # 鉄道模型車両管理アプリ 現行仕様
 
-基準日: 2026-10-05。リポジトリ内の実装を基準とする。外部環境の設定・本番DB・動作確認結果は今回確認していない。
+基準日: 2026-10-06。リポジトリ内の実装を基準とする。外部環境の設定・本番DBへの適用は未確認。
 
 ## 参照先
 
-- [開発状況・残課題](../../../docs/development-log.md)
+- [開発状況・残課題](../../docs/development-log.md)
 - [デプロイ・環境設定](deployment-setup.md)
-- [DBスキーマ](../prisma/schema.prisma) / [変更手順](../../../docs/database-schema-management.md)
-- [タグ仕様](../../../docs/tag-system-specification.md)、[画像仕様](image-upload-specification.md)
-- [リファクタリング計画](../../../docs/refactoring-plan.md)、[車両TODO・整備記録計画](../../../docs/phase-3.1-vehicle-tasks-maintenance.md)
+- [DBスキーマ](../prisma/schema.prisma) / [変更手順](database-schema-management.md)
+- [タグ仕様](../../docs/tag-system-specification.md)、[画像仕様](image-upload-specification.md)
+- [リファクタリング計画](../../docs/refactoring-plan.md)、[車両TODO・整備記録計画](../../docs/phase-3.1-vehicle-tasks-maintenance.md)
 
 ## 概要・技術構成
 
@@ -19,7 +19,7 @@ Nゲージ鉄道模型の製品情報を共有し、ユーザーごとの保有�
 | アプリ | Next.js 15 / React 19 / TypeScript / Tailwind CSS 4 |
 | API | Next.js App RouterのRoute Handlers |
 | DB | PostgreSQL（Supabase）、Prisma 6 |
-| DBアクセス | 通常処理はPrisma。製品CSV取込はSupabaseクライアント |
+| DBアクセス | Prisma。関連する書込みは業務関数・トランザクションへ集約 |
 | 認証 | NextAuth.js 4、Google OAuthとメール・パスワード、JWTセッション |
 | 画像 | Vercel Blob、開発用ローカル保存 |
 | 配置先 | Vercelを想定。実際の環境設定はデプロイ時に確認 |
@@ -55,11 +55,13 @@ GitHub Actionsの現行ワークフローはClaude連携・レビュー用であ
 | Tag / ProductTag | タグ、製品との多対多関係 |
 
 - ProductとOwnedVehicleは画像URL配列を持つ。
+- Productのセット構成はProductSetComponentのIDによる多対多。構成順・数量は未モデル化し、同一車種の内訳は別の構成製品として登録する。
+- OwnedVehicleはparentSetOwnedVehicleIdで保有セットと構成車両を結ぶ。親削除時は構成車両を残し、親IDをnullにする。
 - 管理IDは空文字を許容し、ユーザー＋管理IDの一意制約はない。
 - 製品のメーカー＋品番にも一意制約はない。
 - Productの旧tags文字列配列は残っている。カテゴリ付きタグはTag / ProductTagを使用。
 - isIndependentカラムはない。IndependentVehicleの関連で判定する。
-- 製品構成はparentCodeによる品番参照。保有セットとの関係は文字列による判定が残る。
+- 旧parentCode・備考から一意に特定できない既存構成はID関係へ自動移行しない。画面は移行中の互換読取を行う。
 - 車両状態はNORMAL / NEEDS_REPAIR / BROKEN、保管条件はWITH_CASE / WITHOUT_CASE。DBには日本語値でマッピングする。
 - VehicleTaskモデルは未追加。
 
@@ -73,6 +75,7 @@ GitHub Actionsの現行ワークフローはClaude連携・レビュー用であ
 | POST | /api/auth/register | メール・パスワード登録 |
 | GET / POST | /api/products | 製品一覧・作成 |
 | GET / PUT / DELETE | /api/products/:id | 製品詳細・更新・削除 |
+| PATCH | /api/owned-vehicles/:id | 保有車両への製品紐付け |
 | GET / POST | /api/products/:id/set-components | 構成一覧・構成製品の作成 |
 | GET | /api/products/:id/parent-sets | 所属セット |
 | POST | /api/products/import | 製品CSV取込 |
@@ -102,18 +105,19 @@ GitHub Actionsの現行ワークフローはClaude連携・レビュー用であ
 - 製品・タグの閲覧は公開。製品追加・編集の画面はログイン状態を確認する。
 - 製品作成・更新APIはログイン必須。製品削除APIは管理者限定。構成製品作成APIはログイン必須。
 - 通常の保有車両APIはログイン必須で、自分のデータを対象とする。管理者は一覧のincludeUserAndProduct=trueで全ユーザー分を取得できる。
-- 製品タグの更新・CSV取込・画像APIはログイン必須。画像APIの所有者・作成者チェックは未実装。
+- 製品タグの更新・CSV取込・画像APIはログイン必須。画像は保有車両の所有者、製品の作成者または管理者だけが追加・削除できる（実装済み、動作未検証）。
 - タグマスタの変更と管理APIは管理者限定。管理者はADMIN_EMAILSのカンマ区切り一覧で判定し、未設定時は管理者なし。
 
-望ましい権限への統一はリファクタリング計画R0 / R1で扱う。
+入力はZodスキーマで検証し、Prisma書込項目は明示的に組み立てる。共通エラーは400（不正入力）、401（未認証）、403（権限不足）、404（対象なし）、409（重複・曖昧一致）、500（予期しない失敗）に分ける。APIの日付はISO形式のJSON文字列として返す。
 
-## 検索・関連更新の制限
+## 検索・CSV・関連更新
 
-- 一覧はデフォルト100件。製品のタグAND検索はページ取得後に絞り込み、そのページ内の件数を総件数として返す。
-- 保有車両のタグAND検索はPrismaのeveryを使い、製品一覧と意味が一致しない。カテゴリ別「なし」は画面にあるが保有APIには未接続。
-- 保有車両のメーカーとキーワードを同時指定するとOR条件が上書きされる。
-- 保有車両の名称・品番・分類ソートは取得後に画面で行うため、ページをまたぐ並び順を保証しない。
-- 独立車両からの製品作成画面は紐付けにPATCHを送るが、保有更新APIはPUTのみ。自動紐付けの成功は保証できない。
-- 関連更新・通常登録・CSV取込は処理とトランザクション境界が統一されていない。
+- 製品・保有一覧は検索条件をANDで組み合わせ、条件に一致する全件数を返す。タグANDは指定タグすべてを持つ意味。
+- カテゴリ別「タグなし」はそのカテゴリのタグを持たない製品に加え、製品未紐付けの保有車両も含む。
+- 保有車両の名称・品番・分類ソートは製品・独立車両の表示値でサーバー全件を並べてからページ分割する。大規模データでは全一致行をメモリに読むため、DB側の正規化列や検索基盤が必要になる可能性がある。
+- 保有CSVは50件単位、製品CSVは製品単位でトランザクションを実行し、製品と実車情報、保有セットと自動登録車両の関連書込みをまとめる。ファイル内の製品重複・管理ID重複は報告し、曖昧な製品照合は自動紐付けしない。
+- 製品登録・更新、タグ更新、独立車両の製品紐付け、選択削除・全削除はサーバー業務関数で処理する。
+
+セット関係の既存データ移行は[デプロイ手順](deployment-setup.md)に記載。ドライラン報告を確認後、対象DBで明示的に適用する。DB適用と本番動作は未確認。
 
 修正の完了条件はリファクタリング計画で管理する。

@@ -1,26 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getAuthContext } from '@/lib/server/auth'
+import { z } from 'zod'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
+    }
+    if (!auth.user) {
+      return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
     }
 
-    const { brand, productCode } = await request.json()
+    const parsed = z.object({ brand: z.string().trim().min(1).max(100), productCode: z.string().trim().min(1).max(100) }).strict().safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, 'メーカーと品番を確認してください')
+    const { brand, productCode } = parsed.data
 
-    if (!brand || !productCode) {
-      return NextResponse.json(
-        { error: 'メーカーと品番は必須です' },
-        { status: 400 }
-      )
-    }
-
-    // メーカーと品番で製品を検索
-    const product = await prisma.product.findFirst({
+    // 大文字小文字を無視した完全一致の候補件数で判定する。
+    const products = await prisma.product.findMany({
       where: {
         brand: {
           equals: brand,
@@ -31,27 +30,19 @@ export async function POST(request: NextRequest) {
           mode: 'insensitive'
         }
       },
-      include: {
-        realVehicles: true
-      }
+      include: { realVehicles: true },
+      take: 2
     })
 
-    if (!product) {
-      return NextResponse.json(
-        {
-          error: 'マッチする製品が見つかりません',
-          suggestion: '新しい製品として登録するか、メーカー・品番を確認してください'
-        },
-        { status: 404 }
-      )
+    if (products.length === 0) {
+      return apiErrorJson('マッチする製品が見つかりません', 404, 'NOT_FOUND', {
+        suggestion: '新しい製品として登録するか、メーカー・品番を確認してください'
+      })
     }
+    if (products.length > 1) return apiErrorJson('一致する製品が複数あります', 409, 'CONFLICT')
 
-    return NextResponse.json({ product })
+    return NextResponse.json({ product: products[0] })
   } catch (error) {
-    console.error('Product matching error:', error)
-    return NextResponse.json(
-      { error: '製品マッチング処理でエラーが発生しました' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error, '製品を照合できませんでした')
   }
 }

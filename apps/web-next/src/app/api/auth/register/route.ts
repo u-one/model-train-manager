@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
+
+const registrationSchema = z.object({
+  email: z.string().trim().email().max(320),
+  password: z.string().min(8).max(128),
+  name: z.string().trim().min(1).max(100)
+}).strict()
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name } = await request.json()
-
-    // バリデーション
-    if (!email || !password || !name) {
-      return NextResponse.json(
-        { error: 'メールアドレス、パスワード、名前は必須です' },
-        { status: 400 }
-      )
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: 'パスワードは8文字以上で入力してください' },
-        { status: 400 }
-      )
-    }
+    const parsed = registrationSchema.safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, '入力値を確認してください')
+    const { email, password, name } = parsed.data
 
     // メールアドレスの重複チェック
     const existingUser = await prisma.user.findUnique({
@@ -27,10 +22,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'このメールアドレスは既に使用されています' },
-        { status: 400 }
-      )
+      return apiErrorJson('このメールアドレスは既に使用されています', 409, 'CONFLICT')
     }
 
     // パスワードをハッシュ化
@@ -57,10 +49,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    console.error('User registration error:', error)
-    return NextResponse.json(
-      { error: 'ユーザー登録中にエラーが発生しました' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error, 'ユーザー登録中にエラーが発生しました')
   }
 }

@@ -7,7 +7,7 @@ const mockProduct: Product = {
     name: 'Test Product',
     brand: 'KATO',
     productCode: '10-001',
-    type: 'EC',
+    type: 'SINGLE',
     priceIncludingTax: 15000,
     imageUrls: ['http://example.com/image.jpg'],
     productTags: [

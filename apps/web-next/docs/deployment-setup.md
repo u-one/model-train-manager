@@ -1,13 +1,13 @@
 # デプロイ・環境設定手順
 
-基準日: 2026-10-05。現行コードの設定項目と配置手順。本番・Previewの設定状態は未確認。
+基準日: 2026-10-06。現行コードの設定項目と配置手順。本番・Previewの設定状態は未確認。
 
 ## 前提
 
 - アプリの作業ディレクトリはapps/web-next。
 - テストを含む開発環境はNode.js 20.19以上の20系、22.12以上の22系、または24以上を使用する。現行jsdomのenginesに基づく。
 - ルートの.nvmrcは18のままなので、切り替え時に確認する。
-- PostgreSQL / Supabase、Google OAuth、Vercelを用意する。
+- PostgreSQL、Google OAuth、Vercelを用意する。
 - VercelのRoot Directoryはapps/web-next、ビルドはnpm run build。
 
 ## 環境変数
@@ -16,9 +16,6 @@
 |---|---|
 | DATABASE_URL | Prismaの通常接続 |
 | DIRECT_URL | Prismaのスキーマ操作用接続 |
-| NEXT_PUBLIC_SUPABASE_URL | SupabaseのURL |
-| NEXT_PUBLIC_SUPABASE_ANON_KEY | src/lib/supabase.tsの公開クライアント |
-| SUPABASE_SERVICE_ROLE_KEY | 製品CSV取込等のサーバー処理 |
 | NEXTAUTH_URL | その環境の公開URL。ローカルはhttp://localhost:3000 |
 | NEXTAUTH_SECRET | JWTセッション用シークレット |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | Google OAuth認証情報 |
@@ -28,6 +25,7 @@
 
 AWS S3 / CloudFront用の環境変数は現行コードでは使用しない。
 ADMIN_EMAILSは管理者メールを明示的に設定する。未設定時は管理者なしとして扱う。
+製品・保有CSV取込を含むDB処理はPrismaを使い、Supabase用環境変数は現行APIに不要。既存の未使用ヘルパーと依存パッケージの整理は個別承認後に行う。
 
 ローカルのNext.js用設定は.env.local、Prisma CLI用のDB接続値は.envまたは実行環境の変数に設定する。同じ接続先を使用し、秘密値をGitに保存しない。
 
@@ -45,9 +43,9 @@ https://<公開ドメイン>/api/auth/callback/google
 
 ## DB準備・変更
 
-DATABASE_URL / DIRECT_URLを対象DBの接続情報に設定する。製品CSV取込用のSupabase設定も同じDBに向ける。
+DATABASE_URL / DIRECT_URLを対象DBの接続情報に設定する。対象環境とバックアップを必ず確認する。
 
-[DBスキーマ管理ガイド](../../../docs/database-schema-management.md) に従い、対象環境とバックアップを確認してから個別に実行する。
+[DBスキーマ管理ガイド](database-schema-management.md) に従い、対象環境とバックアップを確認してから個別に実行する。
 
 ~~~bash
 npx prisma db push
@@ -56,6 +54,45 @@ npx prisma generate
 
 現行運用はdb push方式。migrateの履歴は導入していない。
 npm installとnpm run buildはクライアントを生成するが、DBスキーマを変更しない。
+
+### セット関係の既存データ移行（追加スキーマ）
+
+新しいProductSetComponent / parentSetOwnedVehicleIdの適用後に実行する。アプリの互換読取は旧parentCode・備考を残す。
+
+1. 対象DBのバックアップを取得し、`DATABASE_URL`が対象環境を指すことを確認する。
+2. 上記の`db push`と`prisma generate`を実行する。
+3. `DATABASE_URL`を実行環境へ設定した状態で、まず読取専用のドライランを行う。
+
+~~~bash
+node scripts/migrate-set-relationships.mjs
+~~~
+
+4. 出力された候補・未解決一覧を確認する。製品は旧parentCodeがセット品番に大小文字を無視して一意一致する関係、保有車両は同じユーザーの保有セットと旧備考マーカーが一意一致する関係だけが候補になる。
+5. 候補と未解決理由を確認してから適用する。
+
+~~~bash
+node scripts/migrate-set-relationships.mjs --apply
+~~~
+
+6. ドライランを再実行し、新規候補が0件で、適用数・既存リンク数・未解決一覧が説明できることを確認する。アプリの製品構成・保有セット詳細も確認する。
+
+スクリプトは再実行可能で、既存リンクを重複作成しない。ドライランはDBを書き換えない。誤適用時は対象DBのバックアップを復元する。旧コードへ戻しても追加スキーマとリンク行は残り、スキーマ削除や互換読取の除去は別変更として扱う。未解決関係は画面表示上の互換読取に残るため、件数と判断を作業記録に残す。
+
+`.env.local`の値は単独のNode.jsスクリプトには自動読込されない。実行端末または運用環境のシークレット設定から`DATABASE_URL`を渡し、接続文字列を画面出力・記録へ貼らない。
+
+## ローカル動作確認
+
+本番と分離した確認専用DBで行う。Dockerでの例（ポート5433）:
+
+~~~bash
+docker run -d --name model-train-test-db -e POSTGRES_PASSWORD=<任意> -e POSTGRES_DB=model_train_test -p 5433:5432 postgres:16
+~~~
+
+1. apps/web-nextの.env.localにDATABASE_URL / DIRECT_URL（上記DB）、NEXTAUTH_URL、NEXTAUTH_SECRET、ADMIN_EMAILS、STORAGE_PROVIDER=localを設定する。.envにもDATABASE_URL / DIRECT_URLを設定する。どちらもGit管理外。
+2. apps/web-nextで`npx prisma db push`、`npm run dev`を実行する。
+3. 画面からメール・パスワードで管理者（ADMIN_EMAILS）と一般ユーザーを登録し、認可・CSV取込・画像を確認する。
+
+Playwrightは`channel: 'chrome'`で拡張機能のないプロファイルを使う。Chrome拡張経由の操作は、他の拡張機能（パスワード管理等）の干渉で失敗することがある。画面の読込直後に入力するとログインが成立しない場合があるため、表示後に操作する。
 
 ## 画像保存
 
@@ -85,7 +122,7 @@ npx vercel
 npx vercel --prod
 ~~~
 
-環境変数の変更後は再デプロイする。実際の公開URL・適用DB・DB変更コマンド・追加/廃止した変数・復旧方法を [開発記録](../../../docs/development-log.md) に残す。
+環境変数の変更後は再デプロイする。実際の公開URL・適用DB・DB変更コマンド・追加/廃止した変数・復旧方法を [開発記録](../../docs/development-log.md) に残す。
 
 ## 配置後の確認
 

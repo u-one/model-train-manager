@@ -1,296 +1,151 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { parseOwnedVehicleCSV } from '@/lib/csv-parser'
 import { prisma } from '@/lib/prisma'
-import { autoRegisterSetComponents } from '@/lib/owned-vehicle-utils'
-import type { VehicleStatus, StorageCondition } from '@prisma/client'
+import { getAuthContext } from '@/lib/server/auth'
+import { ownedVehicleInputSchema, type OwnedVehicleInput } from '@/lib/contracts/owned-vehicle'
+import { createOwnedVehicleInTransaction } from '@/lib/server/owned-vehicles'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 
-// Vercel Hobby plan: 最大60秒
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
+    if (!auth.user) return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
 
     const formData = await request.formData()
-    const file = formData.get('file') as File
-
-    if (!file) {
-      return NextResponse.json({ error: 'ファイルが選択されていません' }, { status: 400 })
+    const file = formData.get('file')
+    if (!(file instanceof File)) return apiErrorJson('ファイルが選択されていません', 400, 'VALIDATION_ERROR')
+    if (file.type !== 'text/csv' && !file.name.toLowerCase().endsWith('.csv')) {
+      return apiErrorJson('CSVファイルを選択してください', 400, 'VALIDATION_ERROR')
     }
 
-    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-      return NextResponse.json({ error: 'CSVファイルを選択してください' }, { status: 400 })
+    const parsedCsv = parseOwnedVehicleCSV(await file.text())
+    if (parsedCsv.errors.length > 0) {
+      return apiErrorJson('CSVファイルの解析でエラーが発生しました', 400, 'VALIDATION_ERROR', {
+        errors: parsedCsv.errors,
+        skippedRows: parsedCsv.skippedRows
+      })
     }
 
-    const csvContent = await file.text()
-    console.log('CSV file content preview:', csvContent.substring(0, 500))
-
-    const parseResult = parseOwnedVehicleCSV(csvContent)
-    console.log('Parse result:', { dataCount: parseResult.data.length, errorCount: parseResult.errors.length, errors: parseResult.errors })
-
-    if (parseResult.errors.length > 0) {
-      console.error('CSV parsing errors:', parseResult.errors)
-      return NextResponse.json({
-        error: 'CSVファイルの解析でエラーが発生しました',
-        details: parseResult.errors,
-        skippedRows: parseResult.skippedRows
-      }, { status: 400 })
+    const rows = parsedCsv.data
+    const managementIds = [...new Set(rows.map(row => row.managementId.trim()).filter(Boolean))]
+    const [existingVehicles, products] = await Promise.all([
+      prisma.ownedVehicle.findMany({
+        where: { userId: auth.user.id, managementId: { in: managementIds } },
+        select: { managementId: true }
+      }),
+      prisma.product.findMany({ select: { id: true, brand: true, productCode: true } })
+    ])
+    const existingManagementIds = new Set(existingVehicles.map(vehicle => vehicle.managementId))
+    const productMatches = new Map<string, typeof products>()
+    for (const product of products) {
+      if (!product.productCode) continue
+      const key = `${product.brand.toLocaleLowerCase()}:${product.productCode.toLocaleLowerCase()}`
+      productMatches.set(key, [...(productMatches.get(key) ?? []), product])
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'ユーザーが見つかりません' }, { status: 404 })
-    }
-
-    const importResults = {
-      totalRows: parseResult.data.length,
-      successCount: 0,
-      linkedCount: 0,        // 製品リンク数
-      independentCount: 0,   // 独立車両数
-      errorCount: 0,
-      errors: [] as string[]
-    }
-
-    // === バッチ処理最適化: 事前に全データを取得 ===
-
-    // 1. 既存の管理IDを一括取得（重複チェック用）
-    const managementIds = parseResult.data
-      .map(d => d.managementId)
-      .filter((id): id is string => !!id && id.trim() !== '')
-
-    const existingVehicles = await prisma.ownedVehicle.findMany({
-      where: {
-        userId: user.id,
-        managementId: { in: managementIds }
-      },
-      select: { managementId: true }
-    })
-    const existingManagementIdSet = new Set(existingVehicles.map(v => v.managementId))
-
-    // 2. 全製品を一括取得（メーカー+品番マッチング用）
-    const allProducts = await prisma.product.findMany({
-      select: {
-        id: true,
-        brand: true,
-        productCode: true,
-        name: true
+    const seenManagementIds = new Set<string>()
+    const validRows: Array<{ rowNumber: number; input: OwnedVehicleInput; independent: boolean }> = []
+    const errors: string[] = []
+    for (const [index, row] of rows.entries()) {
+      const rowNumber = index + 2
+      const managementId = row.managementId.trim()
+      if (managementId && (existingManagementIds.has(managementId) || seenManagementIds.has(managementId))) {
+        errors.push(`行 ${rowNumber}: 管理ID「${managementId}」が既存データまたはCSV内で重複しています`)
+        continue
       }
-    })
+      if (managementId) seenManagementIds.add(managementId)
 
-    // 製品マップを作成（大文字小文字区別なし）
-    const productMap = new Map<string, typeof allProducts[0]>()
-    allProducts.forEach(p => {
-      if (p.productCode) {
-        const key = `${p.brand.toLowerCase()}:${p.productCode.toLowerCase()}`
-        productMap.set(key, p)
+      let vehicleType: 'PRODUCT' | 'INDEPENDENT' = 'INDEPENDENT'
+      let productId: number | undefined
+      let independentVehicle: OwnedVehicleInput['independentVehicle']
+      if (row.productBrand && row.productCode) {
+        const key = `${row.productBrand.toLocaleLowerCase()}:${row.productCode.toLocaleLowerCase()}`
+        const matches = productMatches.get(key) ?? []
+        if (matches.length > 1) {
+          errors.push(`行 ${rowNumber}: メーカー・品番に一致する製品が複数あるため、保有車両へ自動紐付けできません`)
+          continue
+        }
+        if (matches.length === 1) {
+          vehicleType = 'PRODUCT'
+          productId = matches[0].id
+        } else {
+          independentVehicle = {
+            name: row.productName || `${row.productBrand} ${row.productCode}`,
+            brand: row.productBrand,
+            productCode: row.productCode,
+            vehicleType: row.independentVehicleType,
+            description: 'CSV取込時に一致する製品がなかったため独立車両として登録'
+          }
+        }
+      } else {
+        independentVehicle = {
+          name: row.independentName || '(商品名不明)',
+          brand: row.independentBrand,
+          vehicleType: row.independentVehicleType,
+          description: 'CSV取込時に製品情報がなかったため独立車両として登録'
+        }
       }
-    })
 
-    // === バッチ処理: チャンクごとに処理（メモリ効率とパフォーマンスのバランス） ===
+      const candidate = {
+        managementId,
+        vehicleType,
+        productId,
+        independentVehicle,
+        currentStatus: row.currentStatus,
+        storageCondition: row.storageCondition,
+        purchaseDate: row.purchaseDate?.slice(0, 10) ?? null,
+        purchasePriceIncludingTax: row.purchasePriceIncludingTax,
+        notes: row.notes,
+        imageUrls: []
+      }
+      const validated = ownedVehicleInputSchema.safeParse(candidate)
+      if (!validated.success) {
+        errors.push(`行 ${rowNumber}: ${validated.error.issues.map(issue => issue.message).join('、')}`)
+        continue
+      }
+      validRows.push({ rowNumber, input: validated.data, independent: vehicleType === 'INDEPENDENT' })
+    }
+
     const BATCH_SIZE = 50
-
-    for (let batchStart = 0; batchStart < parseResult.data.length; batchStart += BATCH_SIZE) {
-      const batchEnd = Math.min(batchStart + BATCH_SIZE, parseResult.data.length)
-      const batch = parseResult.data.slice(batchStart, batchEnd)
-
-      interface VehicleToCreate {
-        userId: number
-        productId: number | null
-        managementId: string | null
-        currentStatus: VehicleStatus
-        storageCondition: StorageCondition
-        purchaseDate: string | null
-        purchasePriceIncludingTax: number | null
-        notes: string | null
-        imageUrls: string[]
-        independentVehicleData: {
-          brand?: string | null
-          productCode?: string | null
-          name: string
-          vehicleType?: string | null
-          description?: string
-        } | null
-        vehicleData: typeof parseResult.data[0]
-      }
-
-      const vehiclesToCreate: VehicleToCreate[] = []
-      const setComponentJobs: Array<{ productId: number, productName: string, vehicleIndex: number }> = []
-
-      for (let i = 0; i < batch.length; i++) {
-        const vehicleData = batch[i]
-        const rowNumber = batchStart + i + 2
-
-        try {
-          // 管理ID重複チェック
-          if (vehicleData.managementId && vehicleData.managementId.trim() !== '') {
-            if (existingManagementIdSet.has(vehicleData.managementId)) {
-              importResults.errorCount++
-              importResults.errors.push(`行 ${rowNumber}: 管理ID "${vehicleData.managementId}" は既に存在します`)
-              continue
-            }
+    let successCount = 0
+    let linkedCount = 0
+    let independentCount = 0
+    const batches: Array<{ batch: number; rowCount: number; committed: boolean; error?: string }> = []
+    for (let start = 0; start < validRows.length; start += BATCH_SIZE) {
+      const batch = validRows.slice(start, start + BATCH_SIZE)
+      try {
+        await prisma.$transaction(async tx => {
+          for (const item of batch) {
+            await createOwnedVehicleInTransaction(tx, item.input, auth.user!.id)
           }
-
-          let productId: number | null = null
-          let independentVehicleData: {
-            brand?: string | null
-            productCode?: string | null
-            name: string
-            vehicleType?: string | null
-            description?: string
-          } | null = null
-
-          if (vehicleData.productBrand && vehicleData.productCode) {
-            // メーカーと品番でマッチング（マップから高速検索）
-            const key = `${vehicleData.productBrand.toLowerCase()}:${vehicleData.productCode.toLowerCase()}`
-            const product = productMap.get(key)
-
-            if (product) {
-              productId = product.id
-
-              // セット構成車両登録ジョブを追加
-              setComponentJobs.push({
-                productId: product.id,
-                productName: product.name,
-                vehicleIndex: vehiclesToCreate.length
-              })
-            } else {
-              // 製品が見つからない場合は独立車両として登録
-              independentVehicleData = {
-                brand: vehicleData.productBrand,
-                productCode: vehicleData.productCode,
-                name: vehicleData.productName || `${vehicleData.productBrand} ${vehicleData.productCode}`,
-                description: `CSVインポート時に製品が見つからなかったため独立車両として登録 (メーカー: ${vehicleData.productBrand}, 品番: ${vehicleData.productCode})`
-              }
-              console.log(`行 ${rowNumber}: 製品が見つからないため独立車両として登録 (メーカー: ${vehicleData.productBrand}, 品番: ${vehicleData.productCode})`)
-            }
-          } else {
-            // 製品情報がない場合は独立車両として登録
-            independentVehicleData = {
-              brand: vehicleData.independentBrand,
-              name: vehicleData.independentName || '(商品名不明)',
-              description: 'CSVインポート時に製品情報がなかったため独立車両として登録'
-            }
-            console.log(`行 ${rowNumber}: 製品情報なし、独立車両として登録`)
-          }
-
-          // 保有車両データを配列に追加
-          vehiclesToCreate.push({
-            userId: user.id,
-            productId: productId,
-            managementId: vehicleData.managementId,
-            currentStatus: vehicleData.currentStatus,
-            storageCondition: vehicleData.storageCondition,
-            purchaseDate: vehicleData.purchaseDate,
-            purchasePriceIncludingTax: vehicleData.purchasePriceIncludingTax,
-            notes: vehicleData.notes,
-            imageUrls: [],
-            independentVehicleData: independentVehicleData,
-            vehicleData: vehicleData
-          })
-
-        } catch (error) {
-          importResults.errorCount++
-          importResults.errors.push(`行 ${rowNumber}: 予期しないエラー - ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
-      }
-
-      // バッチ一括登録（トランザクション内）
-      if (vehiclesToCreate.length > 0) {
-        try {
-          await prisma.$transaction(async (tx) => {
-            // 保有車両を一括作成
-            const createdVehicles = await Promise.all(
-              vehiclesToCreate.map(v =>
-                tx.ownedVehicle.create({
-                  data: {
-                    userId: v.userId,
-                    productId: v.productId,
-                    managementId: v.managementId || '',
-                    currentStatus: v.currentStatus,
-                    storageCondition: v.storageCondition,
-                    purchaseDate: v.purchaseDate ? new Date(v.purchaseDate) : null,
-                    purchasePriceIncludingTax: v.purchasePriceIncludingTax,
-                    notes: v.notes,
-                    imageUrls: v.imageUrls
-                  }
-                })
-              )
-            )
-
-            // 独立車両を一括作成
-            const independentVehiclesData = []
-            for (let i = 0; i < vehiclesToCreate.length; i++) {
-              const v = vehiclesToCreate[i]
-              if (v.independentVehicleData) {
-                independentVehiclesData.push({
-                  ownedVehicleId: createdVehicles[i].id,
-                  brand: v.independentVehicleData.brand,
-                  productCode: v.independentVehicleData.productCode,
-                  name: v.independentVehicleData.name,
-                  vehicleType: v.vehicleData.independentVehicleType || v.independentVehicleData.vehicleType,
-                  description: v.independentVehicleData.description
-                })
-                importResults.independentCount++
-              } else {
-                importResults.linkedCount++
-              }
-            }
-
-            if (independentVehiclesData.length > 0) {
-              await tx.independentVehicle.createMany({
-                data: independentVehiclesData
-              })
-            }
-
-            importResults.successCount += createdVehicles.length
-
-            // セット構成車両の自動登録（トランザクション外で非同期実行）
-            for (const job of setComponentJobs) {
-              const vehicleIndex = job.vehicleIndex
-              const v = vehiclesToCreate[vehicleIndex]
-
-              // トランザクション外で実行（失敗しても本体登録は成功扱い）
-              autoRegisterSetComponents(
-                job.productId,
-                user.id,
-                job.productName,
-                v.managementId || '',
-                v.currentStatus,
-                v.storageCondition,
-                v.purchaseDate ? new Date(v.purchaseDate) : null
-              ).catch(err => {
-                console.error(`セット構成車両登録エラー (productId: ${job.productId}):`, err)
-              })
-            }
-          }, {
-            timeout: 50000 // 50秒タイムアウト
-          })
-        } catch (error) {
-          console.error('Batch insert error:', error)
-          importResults.errorCount += vehiclesToCreate.length
-          importResults.errors.push(`バッチ処理エラー: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
+        }, { timeout: 50000 })
+        successCount += batch.length
+        independentCount += batch.filter(item => item.independent).length
+        linkedCount += batch.filter(item => !item.independent).length
+        batches.push({ batch: batches.length + 1, rowCount: batch.length, committed: true })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '不明なエラー'
+        errors.push(...batch.map(item => `行 ${item.rowNumber}: バッチ登録に失敗したため未登録です`))
+        batches.push({ batch: batches.length + 1, rowCount: batch.length, committed: false, error: message })
       }
     }
 
     return NextResponse.json({
       message: 'インポート処理が完了しました',
-      results: importResults
+      results: {
+        totalRows: rows.length,
+        successCount,
+        linkedCount,
+        independentCount,
+        errorCount: errors.length,
+        errors,
+        batches
+      }
     })
-
   } catch (error) {
-    console.error('Owned vehicle import error:', error)
-    return NextResponse.json(
-      { error: 'サーバーエラーが発生しました' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error, '保有車両CSVを取り込めませんでした')
   }
 }

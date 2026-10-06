@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAdminEmail } from '@/lib/server/auth'
+import { getAuthContext } from '@/lib/server/auth'
+import { tagInputSchema } from '@/lib/contracts/tag'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
+import { apiJsonAs } from '@/lib/server/api-json'
+import type { TagListApiOutput } from '@/lib/contracts/api'
+import { z } from 'zod'
+
+const tagListQuerySchema = z.object({
+  category: z.string().trim().min(1).max(50).optional(),
+  limit: z.coerce.number().int().min(1).max(1000).default(100),
+  offset: z.coerce.number().int().min(0).max(1000000).default(0)
+})
 
 // タグ一覧取得
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const category = searchParams.get('category')
-    const limit = parseInt(searchParams.get('limit') || '100')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const parsed = tagListQuerySchema.safeParse(Object.fromEntries(searchParams))
+    if (!parsed.success) return apiErrorResponse(parsed.error, 'タグ一覧の検索条件を確認してください')
+    const { category, limit, offset } = parsed.data
 
     // フィルタ条件
     const where = category ? { category } : {}
@@ -37,7 +46,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({
+    return apiJsonAs<TagListApiOutput>()({
       tags,
       total,
       categories: categories.map((c: { category: string; _count: { category: number } }) => ({
@@ -46,34 +55,26 @@ export async function GET(request: NextRequest) {
       }))
     })
   } catch (error) {
-    console.error('Tags fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 })
+    return apiErrorResponse(error, 'タグ一覧を取得できませんでした')
   }
 }
 
 // タグ作成（管理者のみ）
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
     // 管理者チェック
-    if (!isAdminEmail(session.user.email)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!auth.isAdmin) {
+      return apiErrorJson('管理者権限が必要です', 403, 'FORBIDDEN')
     }
 
-    const data = await request.json()
-    const { name, category, description } = data
-
-    // バリデーション
-    if (!name || !category) {
-      return NextResponse.json(
-        { error: 'Name and category are required' },
-        { status: 400 }
-      )
-    }
+    const parsed = tagInputSchema.safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, 'タグの入力値を確認してください')
+    const { name, category, description } = parsed.data
 
     // タグを作成
     const tag = await prisma.tag.create({
@@ -86,16 +87,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(tag, { status: 201 })
   } catch (error) {
-    console.error('Tag creation error:', error)
-
-    // 重複エラーのチェック
-    if (error instanceof Error && error.message.includes('Unique constraint')) {
-      return NextResponse.json(
-        { error: 'Tag with this name already exists' },
-        { status: 409 }
-      )
-    }
-
-    return NextResponse.json({ error: 'Failed to create tag' }, { status: 500 })
+    return apiErrorResponse(error, 'タグを作成できませんでした')
   }
 }

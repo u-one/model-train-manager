@@ -14,8 +14,12 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   return Boolean(email && ADMIN_EMAILS.has(email.trim().toLowerCase()))
 }
 
+export async function getAuthSession(): Promise<Session | null> {
+  return getServerSession(authOptions)
+}
+
 export async function getAuthContext() {
-  const session: Session | null = await getServerSession(authOptions)
+  const session = await getAuthSession()
   const email = session?.user?.email ?? null
   const user = email
     ? await prisma.user.findUnique({

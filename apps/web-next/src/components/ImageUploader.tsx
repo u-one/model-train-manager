@@ -99,8 +99,8 @@ export default function ImageUploader({
     if (!confirm('この画像を削除しますか？')) return
 
     try {
-      // URLからキーを抽出（Vercel Blobの場合はURL全体を使用）
-      const response = await fetch(`/api/images/${encodeURIComponent(url)}`, {
+      const query = new URLSearchParams({ entityType, entityId })
+      const response = await fetch(`/api/images/${encodeURIComponent(url)}?${query.toString()}`, {
         method: 'DELETE',
       })
 

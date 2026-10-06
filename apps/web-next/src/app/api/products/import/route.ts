@@ -1,122 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { parseProductCSV } from '@/lib/csv-parser'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+import { getAuthContext } from '@/lib/server/auth'
+import { productInputSchema } from '@/lib/contracts/product'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
+import { createImportedProduct } from '@/lib/server/products'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
+    if (!auth.user) return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
 
     const formData = await request.formData()
     const file = formData.get('file') as File
 
     if (!file) {
-      return NextResponse.json({ error: 'ファイルが選択されていません' }, { status: 400 })
+      return apiErrorJson('ファイルが選択されていません', 400, 'VALIDATION_ERROR')
     }
 
     if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-      return NextResponse.json({ error: 'CSVファイルを選択してください' }, { status: 400 })
+      return apiErrorJson('CSVファイルを選択してください', 400, 'VALIDATION_ERROR')
     }
 
     const csvContent = await file.text()
-    console.log('CSV file content preview:', csvContent.substring(0, 500))
-
     const parseResult = parseProductCSV(csvContent)
-    console.log('Parse result:', { dataCount: parseResult.data.length, errorCount: parseResult.errors.length, errors: parseResult.errors })
 
     if (parseResult.errors.length > 0) {
       console.error('CSV parsing errors:', parseResult.errors)
-      return NextResponse.json({
-        error: 'CSVファイルの解析でエラーが発生しました',
-        details: parseResult.errors,
+      return apiErrorJson('CSVファイルの解析でエラーが発生しました', 400, 'VALIDATION_ERROR', {
+        errors: parseResult.errors,
         skippedRows: parseResult.skippedRows
-      }, { status: 400 })
+      })
     }
 
     const importResults = {
       totalRows: parseResult.data.length,
       successCount: 0,
       errorCount: 0,
-      errors: [] as string[]
+      errors: [] as string[],
+      warnings: [...(parseResult.warnings ?? [])]
     }
 
+    const seen = new Set<string>()
+
     for (let i = 0; i < parseResult.data.length; i++) {
-      const productData = parseResult.data[i]
+      const row = parseResult.data[i]
+      const rowNumber = i + 3
+      const type = row.type === 'セット' ? 'SET' : row.type === 'セット単品' ? 'SET_SINGLE' : 'SINGLE'
+      const realVehicle = {
+        vehicleType: row.vehicleType,
+        company: row.company,
+        manufacturingYear: row.manufacturingYear,
+        operationLine: row.operationLine,
+        notes: row.notes
+      }
+      const parsed = productInputSchema.safeParse({
+        brand: row.brand,
+        productCode: row.productCode,
+        parentCode: row.parentCode,
+        type,
+        name: row.name,
+        releaseYear: row.releaseYear,
+        priceExcludingTax: row.priceExcludingTax,
+        priceIncludingTax: row.priceIncludingTax,
+        description: row.description,
+        imageUrls: row.imageUrl ? [row.imageUrl] : [],
+        realVehicles: Object.values(realVehicle).some(Boolean) ? [realVehicle] : []
+      })
+      if (!parsed.success) {
+        importResults.errorCount++
+        importResults.errors.push(`行 ${rowNumber}: ${parsed.error.issues.map(issue => issue.message).join('、')}`)
+        continue
+      }
+
+      const duplicateKey = `${parsed.data.brand.toLocaleLowerCase()}:${(parsed.data.productCode ?? '').toLocaleLowerCase()}`
+      if (seen.has(duplicateKey)) {
+        importResults.errorCount++
+        importResults.errors.push(`行 ${rowNumber}: 同じメーカー・品番がこのCSV内に重複しています`)
+        continue
+      }
+      seen.add(duplicateKey)
 
       try {
-        const { data: existingProduct } = await supabase
-          .from('products')
-          .select('id')
-          .eq('brand', productData.brand)
-          .eq('product_code', productData.productCode)
-          .single()
-
-        if (existingProduct) {
-          importResults.errorCount++
-          importResults.errors.push(`行 ${i + 2}: "${productData.brand} ${productData.productCode}" は既に存在します`)
-          continue
-        }
-
-        const now = new Date().toISOString()
-        const { data: product, error: productError } = await supabase
-          .from('products')
-          .insert({
-            brand: productData.brand,
-            product_code: productData.productCode,
-            parent_code: productData.parentCode, // 追加: 親品番
-            name: productData.name,
-            type: productData.type,
-            release_year: productData.releaseYear,
-            price_excluding_tax: productData.priceExcludingTax,
-            price_including_tax: productData.priceIncludingTax,
-            description: productData.description,
-            image_urls: productData.imageUrl ? [productData.imageUrl] : [],
-            created_at: now,
-            updated_at: now,
-          })
-          .select('id')
-          .single()
-
-        if (productError) {
-          importResults.errorCount++
-          importResults.errors.push(`行 ${i + 2}: 製品登録エラー - ${productError.message}`)
-          continue
-        }
-
-        if (productData.vehicleType || productData.company || productData.manufacturingYear ||
-            productData.operationLine || productData.notes) {
-          const { error: vehicleError } = await supabase
-            .from('real_vehicles')
-            .insert({
-              product_id: product.id,
-              vehicle_type: productData.vehicleType,
-              company: productData.company,
-              manufacturing_year: productData.manufacturingYear,
-              operation_line: productData.operationLine,
-              notes: productData.notes,
-              created_at: now,
-              updated_at: now,
-            })
-
-          if (vehicleError) {
-            importResults.errorCount++
-            importResults.errors.push(`行 ${i + 2}: 実車情報登録エラー - ${vehicleError.message}`)
-            continue
-          }
-        }
-
+        await createImportedProduct(parsed.data, auth.user.id)
         importResults.successCount++
       } catch (error) {
         importResults.errorCount++
-        importResults.errors.push(`行 ${i + 2}: 予期しないエラー - ${error instanceof Error ? error.message : 'Unknown error'}`)
+        const result = apiErrorResponse(error, '製品登録エラー')
+        const body = await result.json()
+        importResults.errors.push(`行 ${rowNumber}: ${body.error ?? '製品登録エラー'}`)
       }
     }
 
@@ -126,10 +100,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Product import error:', error)
-    return NextResponse.json(
-      { error: 'サーバーエラーが発生しました' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error, '製品CSVを取り込めませんでした')
   }
 }

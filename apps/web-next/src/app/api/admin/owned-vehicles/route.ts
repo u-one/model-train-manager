@@ -1,45 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/admin-auth'
-import { prisma } from '@/lib/prisma'
+import { AuthorizationError, requireAdmin } from '@/lib/admin-auth'
+import { z } from 'zod'
+import { apiErrorResponse } from '@/lib/server/api-errors'
+import { deleteOwnedVehiclesByIds } from '@/lib/server/data-management'
 
 export async function DELETE(request: NextRequest) {
   try {
     // 管理者権限チェック
     await requireAdmin()
 
-    const { ownedVehicleIds } = await request.json()
-
-    if (!Array.isArray(ownedVehicleIds) || ownedVehicleIds.length === 0) {
-      return NextResponse.json(
-        { error: '削除する保有車両IDが指定されていません' },
-        { status: 400 }
-      )
-    }
-
-    // トランザクション内で一括削除を実行
-    const result = await prisma.$transaction(async (tx) => {
-      // 関連データを削除（整備記録）
-      await tx.maintenanceRecord.deleteMany({
-        where: {
-          ownedVehicleId: {
-            in: ownedVehicleIds
-          }
-        }
-      })
-
-      // 保有車両を削除
-      const deletedOwnedVehicles = await tx.ownedVehicle.deleteMany({
-        where: {
-          id: {
-            in: ownedVehicleIds
-          }
-        }
-      })
-
-      return {
-        deletedCount: deletedOwnedVehicles.count
-      }
-    })
+    const parsed = z.object({ ownedVehicleIds: z.array(z.number().int().positive()).min(1).max(1000).refine(ids => new Set(ids).size === ids.length) }).strict().safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, '削除する保有車両IDを確認してください')
+    const { ownedVehicleIds } = parsed.data
+    const result = await deleteOwnedVehiclesByIds(ownedVehicleIds)
 
     console.log(`Admin deleted ${result.deletedCount} owned vehicles:`, ownedVehicleIds)
 
@@ -50,28 +23,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('Unauthorized')) {
-        return NextResponse.json(
-          { error: '管理者権限が必要です' },
-          { status: 403 }
-        )
-      }
-
-      console.error('Owned vehicle bulk delete error:', error)
-      return NextResponse.json(
-        {
-          error: 'データ削除エラーが発生しました',
-          details: error.message
-        },
-        { status: 500 }
-      )
-    }
-
-    console.error('Unknown owned vehicle bulk delete error:', error)
-    return NextResponse.json(
-      { error: 'サーバーエラーが発生しました' },
-      { status: 500 }
-    )
+    if (error instanceof AuthorizationError) return apiErrorResponse(error, '管理者権限が必要です')
+    return apiErrorResponse(error, '保有車両を一括削除できませんでした')
   }
 }

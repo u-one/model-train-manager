@@ -18,7 +18,7 @@ AWS S3 / CloudFrontプロバイダーは未実装。設定は [デプロイ手�
 
 ### POST /api/images/upload
 
-ログイン必須。multipart/form-dataでfile、entityType、entityIdを送る。
+ログイン必須。multipart/form-dataでfile、entityType、entityIdを送る。保有車両は所有者、製品は作成者または管理者に限定する。`entityType` は `owned-vehicle` / `product`、IDは正の整数。
 
 - 許可形式: JPEG / PNG / WebP / GIF。
 - サイズ上限: 1ファイル5MB。
@@ -29,8 +29,8 @@ AWS S3 / CloudFrontプロバイダーは未実装。設定は [デプロイ手�
 
 ### DELETE /api/images/:key
 
-ログイン必須。デコードしたkeyをストレージのdeleteへ渡す。
-現行UIは画像URL全体をURLエンコードして送る。ストレージ削除とDBのURL配列更新は別操作。
+ログイン必須。現行UIは画像URL全体をURLエンコードし、`entityType` と `entityId` をクエリで送る。対象の所有者・作成者を確認し、URLが対象の画像であることを確かめてから削除する。旧クライアント向けにDB登録済みURLからの対象特定も行う。
+ローカル保存は `/uploads/<種別>/<ID>/...` を使い、URLから削除キーを解決する。既存の平坦な保存URLはDB登録済みの場合に限り対象を確認できる。
 
 ## 画面
 
@@ -41,9 +41,7 @@ AWS S3 / CloudFrontプロバイダーは未実装。設定は [デプロイ手�
 
 ## 制限・残課題
 
-- APIは所有者・作成者を確認していない。entityType / entityIdと対象データの存在・権限の検証も未実装。
-- ローカルのdeleteはファイル名を想定するが、UIは/uploadsの画像URLを送るため、削除キーの扱いが一致していない。
 - ストレージとDB更新の一体性、保存中断時の未紐付け画像の整理は保証していない。
 - ファイル数上限はUI側で制御し、APIはDBの画像数を検証しない。
 
-残課題の進捗は [開発状況](../../../docs/development-log.md) と [リファクタリング計画](../../../docs/refactoring-plan.md) で管理する。
+残課題の進捗は [開発状況](../../docs/development-log.md) と [リファクタリング計画](../../docs/refactoring-plan.md) で管理する。

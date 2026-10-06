@@ -13,51 +13,12 @@ import ConfirmModal from '@/components/ConfirmModal'
 import Pagination from '@/components/Pagination'
 import { useViewMode } from '@/hooks/useViewMode'
 import { PRODUCT_TYPES } from '@/constants/productTypes'
-
-interface OwnedVehicle {
-  id: number
-  managementId: string
-  currentStatus: string
-  storageCondition: string
-  purchaseDate: string | null
-  purchasePriceIncludingTax: number | null
-  notes: string | null
-  imageUrls: string[]
-  product?: {
-    id: number
-    name: string
-    brand: string
-    productCode: string | null
-    type: string
-    productTags?: {
-      tag: {
-        id: number
-        name: string
-        category: string
-      }
-    }[]
-  } | null
-  independentVehicle?: {
-    name: string
-    brand: string | null
-    vehicleType: string | null
-  } | null
-}
-
-interface OwnedVehiclesResponse {
-  ownedVehicles: OwnedVehicle[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-}
+import type { OwnedVehicleApiOutput, OwnedVehicleListApiOutput } from '@/lib/contracts/api'
 
 export default function OwnedVehiclesPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [vehicles, setVehicles] = useState<OwnedVehicle[]>([])
+  const [vehicles, setVehicles] = useState<OwnedVehicleApiOutput[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -72,7 +33,7 @@ export default function OwnedVehiclesPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(100)
-  const [pagination, setPagination] = useState<OwnedVehiclesResponse['pagination'] | null>(null)
+  const [pagination, setPagination] = useState<OwnedVehicleListApiOutput['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
@@ -95,6 +56,7 @@ export default function OwnedVehiclesPage() {
         params.append('tags', selectedTags.join(','))
         params.append('tag_operator', tagOperator)
       }
+      if (noTagsCategories.length > 0) params.append('no_tags_categories', noTagsCategories.join(','))
       params.append('sortBy', sortBy)
       params.append('sortOrder', sortOrder)
       params.append('page', page.toString())
@@ -108,62 +70,8 @@ export default function OwnedVehiclesPage() {
       }
 
       if (response.ok) {
-        const data: OwnedVehiclesResponse = await response.json()
-        let sortedVehicles = data.ownedVehicles || []
-
-        // クライアント側でソート（名称、品番、分類順）
-        if (sortBy === 'name') {
-          sortedVehicles = [...sortedVehicles].sort((a, b) => {
-            const nameA = (a.product?.name || a.independentVehicle?.name || '').toLowerCase()
-            const nameB = (b.product?.name || b.independentVehicle?.name || '').toLowerCase()
-            return sortOrder === 'asc'
-              ? nameA.localeCompare(nameB)
-              : nameB.localeCompare(nameA)
-          })
-        } else if (sortBy === 'productCode') {
-          sortedVehicles = [...sortedVehicles].sort((a, b) => {
-            // 品番順：メーカー → 品番
-            const brandA = a.product?.brand || a.independentVehicle?.brand || ''
-            const brandB = b.product?.brand || b.independentVehicle?.brand || ''
-            const codeA = a.product?.productCode || ''
-            const codeB = b.product?.productCode || ''
-
-            if (brandA !== brandB) {
-              return sortOrder === 'asc'
-                ? brandA.localeCompare(brandB)
-                : brandB.localeCompare(brandA)
-            }
-            return sortOrder === 'asc'
-              ? codeA.localeCompare(codeB)
-              : codeB.localeCompare(codeA)
-          })
-        } else if (sortBy === 'category') {
-          sortedVehicles = [...sortedVehicles].sort((a, b) => {
-            // 分類順：タイプ → メーカー → 品番
-            const typeA = a.product?.type || a.independentVehicle?.vehicleType || ''
-            const typeB = b.product?.type || b.independentVehicle?.vehicleType || ''
-            const brandA = a.product?.brand || a.independentVehicle?.brand || ''
-            const brandB = b.product?.brand || b.independentVehicle?.brand || ''
-            const codeA = a.product?.productCode || ''
-            const codeB = b.product?.productCode || ''
-
-            if (typeA !== typeB) {
-              return sortOrder === 'asc'
-                ? typeA.localeCompare(typeB)
-                : typeB.localeCompare(typeA)
-            }
-            if (brandA !== brandB) {
-              return sortOrder === 'asc'
-                ? brandA.localeCompare(brandB)
-                : brandB.localeCompare(brandA)
-            }
-            return sortOrder === 'asc'
-              ? codeA.localeCompare(codeB)
-              : codeB.localeCompare(codeA)
-          })
-        }
-
-        setVehicles(sortedVehicles)
+        const data: OwnedVehicleListApiOutput = await response.json()
+        setVehicles(data.ownedVehicles || [])
         setPagination(data.pagination)
       } else {
         console.error('API Error:', response.status, response.statusText)
