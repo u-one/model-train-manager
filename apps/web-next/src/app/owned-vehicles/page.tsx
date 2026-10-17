@@ -39,6 +39,7 @@ export default function OwnedVehiclesPage() {
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
   const [showConvertModal, setShowConvertModal] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
 
@@ -140,7 +141,7 @@ export default function OwnedVehiclesPage() {
       ]
       alert(lines.join('\n'))
       setShowConvertModal(false)
-      setSelectedIds(new Set())
+      exitSelectMode()
       fetchVehicles()
     } catch (error) {
       console.error('Convert error:', error)
@@ -150,18 +151,24 @@ export default function OwnedVehiclesPage() {
     }
   }
 
+  const exitSelectMode = () => {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
   const withSelectCheckbox = (vehicle: OwnedVehicleApiOutput, content: React.ReactNode) => {
-    if (!vehicle.independentVehicle) return content
+    if (!selectMode) return content
+    if (!vehicle.independentVehicle) return <div className="pl-8">{content}</div>
     return (
-      <div className="relative">
+      <div className="flex items-center gap-3">
         <input
           type="checkbox"
           aria-label="製品への変換対象に選択"
           checked={selectedIds.has(vehicle.id)}
           onChange={() => toggleSelected(vehicle.id)}
-          className="absolute top-2 left-2 z-10 h-5 w-5 cursor-pointer"
+          className="h-5 w-5 shrink-0 cursor-pointer"
         />
-        {content}
+        <div className="min-w-0 flex-1">{content}</div>
       </div>
     )
   }
@@ -421,13 +428,30 @@ export default function OwnedVehiclesPage() {
                 >
                   CSVインポート
                 </button>
-                {selectedIds.size > 0 && (
+                {!selectMode && vehicles.some(vehicle => vehicle.independentVehicle) && (
                   <button
-                    onClick={() => setShowConvertModal(true)}
+                    onClick={() => setSelectMode(true)}
                     className="bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 whitespace-nowrap"
                   >
-                    製品に変換 ({selectedIds.size}両)
+                    独立車両を製品に変換
                   </button>
+                )}
+                {selectMode && (
+                  <>
+                    <button
+                      onClick={() => setShowConvertModal(true)}
+                      disabled={selectedIds.size === 0}
+                      className="bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      変換 ({selectedIds.size}両)
+                    </button>
+                    <button
+                      onClick={exitSelectMode}
+                      className="border border-gray-300 px-3 py-2 rounded text-sm hover:bg-gray-100 whitespace-nowrap"
+                    >
+                      選択をやめる
+                    </button>
+                  </>
                 )}
                 {vehicles.length > 0 && (
                   <button
