@@ -38,6 +38,9 @@ export default function OwnedVehiclesPage() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [showConvertModal, setShowConvertModal] = useState(false)
+  const [isConverting, setIsConverting] = useState(false)
 
   const fetchVehicles = useCallback(async () => {
     if (status === 'loading') return
@@ -105,6 +108,63 @@ export default function OwnedVehiclesPage() {
   }
 
   const hasActiveFilters = search || statusFilter || conditionFilter || independentFilter || brand || type || selectedTags.length > 0 || noTagsCategories.length > 0
+
+  const toggleSelected = (vehicleId: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(vehicleId)) next.delete(vehicleId)
+      else next.add(vehicleId)
+      return next
+    })
+  }
+
+  const handleConvert = async () => {
+    setIsConverting(true)
+    try {
+      const response = await fetch('/api/owned-vehicles/convert-to-products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ownedVehicleIds: Array.from(selectedIds) }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        alert(`変換に失敗しました: ${data.error}`)
+        return
+      }
+      const r = data.results
+      const lines = [
+        `${r.convertedVehicleCount}両を製品に紐付けました(製品を新規作成: ${r.createdProductCount}件、既存製品に紐付け: ${r.linkedExistingProductCount}件)`,
+        ...(r.skipped.length > 0
+          ? [`スキップ ${r.skipped.length}両:`, ...r.skipped.map((s: { ownedVehicleId: number; reason: string }) => `  ID ${s.ownedVehicleId}: ${s.reason}`)]
+          : []),
+      ]
+      alert(lines.join('\n'))
+      setShowConvertModal(false)
+      setSelectedIds(new Set())
+      fetchVehicles()
+    } catch (error) {
+      console.error('Convert error:', error)
+      alert('変換中にエラーが発生しました')
+    } finally {
+      setIsConverting(false)
+    }
+  }
+
+  const withSelectCheckbox = (vehicle: OwnedVehicleApiOutput, content: React.ReactNode) => {
+    if (!vehicle.independentVehicle) return content
+    return (
+      <div className="relative">
+        <input
+          type="checkbox"
+          aria-label="製品への変換対象に選択"
+          checked={selectedIds.has(vehicle.id)}
+          onChange={() => toggleSelected(vehicle.id)}
+          className="absolute top-2 left-2 z-10 h-5 w-5 cursor-pointer"
+        />
+        {content}
+      </div>
+    )
+  }
 
   const handleVehicleClick = (vehicleId: number) => {
     router.push(`/owned-vehicles/${vehicleId}`)
@@ -361,6 +421,14 @@ export default function OwnedVehiclesPage() {
                 >
                   CSVインポート
                 </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={() => setShowConvertModal(true)}
+                    className="bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 whitespace-nowrap"
+                  >
+                    製品に変換 ({selectedIds.size}両)
+                  </button>
+                )}
                 {vehicles.length > 0 && (
                   <button
                     onClick={() => setShowDeleteAllModal(true)}
@@ -384,13 +452,13 @@ export default function OwnedVehiclesPage() {
             <ItemsContainer
               items={vehicles}
               viewMode={viewMode}
-              renderGridItem={(vehicle) => (
+              renderGridItem={(vehicle) => withSelectCheckbox(vehicle,
                 <OwnedVehicleCard
                   vehicle={vehicle}
                   onClick={() => handleVehicleClick(vehicle.id)}
                 />
               )}
-              renderListItem={(vehicle) => (
+              renderListItem={(vehicle) => withSelectCheckbox(vehicle,
                 <OwnedVehicleListItem
                   vehicle={vehicle}
                   onClick={() => handleVehicleClick(vehicle.id)}
@@ -429,6 +497,29 @@ export default function OwnedVehiclesPage() {
         )}
       </main>
       </div>
+
+      {/* 独立車両の一括製品変換モーダル */}
+      <ConfirmModal
+        isOpen={showConvertModal}
+        title="独立車両を製品に変換"
+        message={
+          <>
+            <p className="text-gray-700">
+              選択した{selectedIds.size}両を、メーカー・品番が同じもの同士で1つの製品にまとめます。
+            </p>
+            <p className="text-gray-700">
+              同じメーカー・品番の製品が既にある場合は、その製品に紐付けます。メーカーまたは品番が未設定の車両はスキップされます。
+            </p>
+          </>
+        }
+        confirmText="変換"
+        onConfirm={handleConvert}
+        onCancel={() => setShowConvertModal(false)}
+        confirmButtonText="変換実行"
+        isProcessing={isConverting}
+        processingText="変換中..."
+        variant="info"
+      />
 
       {/* 全削除確認モーダル */}
       <ConfirmModal
