@@ -102,6 +102,8 @@ dist
 # Gatsby files
 .cache/
 public
+!apps/web-next/src/app/api/stats/public/
+!apps/web-next/src/app/api/stats/public/**
 
 # Storybook build outputs
 .out

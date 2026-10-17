@@ -174,7 +174,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <span className="font-medium">{product.releaseYear}年</span>
                 </div>
               )}
-              {product.priceIncludingTax && (
+              {product.priceIncludingTax !== null && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">価格:</span>
                   <span className="font-medium text-lg">¥{product.priceIncludingTax.toLocaleString()}</span>
@@ -330,7 +330,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   )}
                   <h3 className="font-medium text-gray-900 line-clamp-2">{parentSet.name}</h3>
                   <div className="flex justify-between items-center">
-                    {parentSet.priceIncludingTax && (
+                    {parentSet.priceIncludingTax !== null && (
                       <span className="text-lg font-semibold text-green-600">
                         ¥{parentSet.priceIncludingTax.toLocaleString()}
                       </span>

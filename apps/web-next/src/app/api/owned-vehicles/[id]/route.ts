@@ -4,8 +4,9 @@ import { getAuthContext } from '@/lib/server/auth'
 import { ownedVehicleInputSchema } from '@/lib/contracts/owned-vehicle'
 import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 import { linkProductToOwnedVehicle } from '@/lib/server/products'
-import { updateOwnedVehicle } from '@/lib/server/owned-vehicles'
+import { updateOwnedVehicle, updateOwnedVehicleImageUrls } from '@/lib/server/owned-vehicles'
 import { apiJson, apiJsonAs } from '@/lib/server/api-json'
+import { authorizeImageEntity, imageUrlBelongsToEntity } from '@/lib/server/image-auth'
 import { z } from 'zod'
 import type { OwnedVehicleDetailApiOutput } from '@/lib/contracts/api'
 import type { Prisma } from '@prisma/client'
@@ -15,6 +16,24 @@ interface RouteParams {
 }
 
 const linkProductSchema = z.object({ productId: z.number().int().positive() }).strict()
+const updateImagesSchema = z.object({
+  imageUrls: z.array(z.string().trim().min(1).max(2048)).max(100)
+}).strict()
+const patchSchema = z.union([linkProductSchema, updateImagesSchema])
+
+async function patchOwnedVehicle(request: NextRequest, id: number, userId: number) {
+  const parsed = patchSchema.safeParse(await request.json())
+  if (!parsed.success) return apiErrorResponse(parsed.error, '更新内容を確認してください')
+  if ('imageUrls' in parsed.data) {
+    const access = await authorizeImageEntity('owned-vehicle', String(id))
+    if (!access.ok) return apiErrorJson(access.error, access.status, access.code)
+    if (parsed.data.imageUrls.some(url => !imageUrlBelongsToEntity(url, access))) {
+      return apiErrorJson('対象車両の画像URLを指定してください', 400, 'VALIDATION_ERROR')
+    }
+    return apiJson(await updateOwnedVehicleImageUrls(id, parsed.data.imageUrls, userId))
+  }
+  return apiJson(await linkProductToOwnedVehicle(parsed.data.productId, id, userId))
+}
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -162,11 +181,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id: idStr } = await params
     const id = Number(idStr)
     if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('保有車両IDが不正です', 400, 'VALIDATION_ERROR')
-    const parsed = linkProductSchema.safeParse(await request.json())
-    if (!parsed.success) return apiErrorResponse(parsed.error, '製品IDを確認してください')
-    const result = await linkProductToOwnedVehicle(parsed.data.productId, id, auth.user.id)
-    return apiJson(result)
+    return await patchOwnedVehicle(request, id, auth.user.id)
   } catch (error) {
-    return apiErrorResponse(error, '製品を紐付けられませんでした')
+    return apiErrorResponse(error, '保有車両を更新できませんでした')
   }
 }

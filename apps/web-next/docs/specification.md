@@ -26,7 +26,7 @@ Nゲージ鉄道模型の製品情報を共有し、ユーザーごとの保有�
 | テスト | Vitest / React Testing Library / Playwrightの設定あり |
 
 正確な依存バージョン・実行コマンドは [package.json](../package.json) を参照。
-GitHub Actionsの現行ワークフローはClaude連携・レビュー用であり、自動テスト用ワークフローはない。
+GitHub ActionsのcoverageワークフローがPull Requestでテストを実行する。Node.js 22を使用する。
 
 ## 実装済みの範囲
 
@@ -75,7 +75,7 @@ GitHub Actionsの現行ワークフローはClaude連携・レビュー用であ
 | POST | /api/auth/register | メール・パスワード登録 |
 | GET / POST | /api/products | 製品一覧・作成 |
 | GET / PUT / DELETE | /api/products/:id | 製品詳細・更新・削除 |
-| PATCH | /api/owned-vehicles/:id | 保有車両への製品紐付け |
+| PATCH | /api/owned-vehicles/:id | 製品紐付け、画像URL更新 |
 | GET / POST | /api/products/:id/set-components | 構成一覧・構成製品の作成 |
 | GET | /api/products/:id/parent-sets | 所属セット |
 | POST | /api/products/import | 製品CSV取込 |
@@ -85,6 +85,7 @@ GitHub Actionsの現行ワークフローはClaude連携・レビュー用であ
 | POST | /api/owned-vehicles/import | 保有CSV取込 |
 | DELETE | /api/owned-vehicles/delete-all | 自分の保有車両を全削除 |
 | GET | /api/stats/user | ログインユーザーの統計 |
+| GET | /api/stats/public | 公開製品統計・最近の製品・人気タグ |
 | GET / POST | /api/tags | タグ一覧・作成 |
 | GET / PUT / DELETE | /api/tags/:id | タグ詳細・更新・削除 |
 | GET / PUT / POST | /api/products/:id/tags | 製品タグの取得・置換・追加 |

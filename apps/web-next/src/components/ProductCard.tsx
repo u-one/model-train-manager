@@ -41,7 +41,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
         <div className="flex flex-wrap gap-1">
           <span className="text-sm font-medium text-gray-900">
-            ¥{product.priceIncludingTax ? product.priceIncludingTax.toLocaleString() : ' - '}
+            ¥{product.priceIncludingTax !== null ? product.priceIncludingTax.toLocaleString() : ' - '}
           </span>
         </div>
 

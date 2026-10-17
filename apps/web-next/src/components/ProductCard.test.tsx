@@ -39,6 +39,12 @@ describe('ProductCard', () => {
         expect(handleClick).toHaveBeenCalledTimes(1)
     })
 
+    it('renders a zero price', () => {
+        render(<ProductCard product={{ ...mockProduct, priceIncludingTax: 0 }} />)
+
+        expect(screen.getByText('¥0')).toBeInTheDocument()
+    })
+
     it('renders "画像なし" when no images', () => {
         const productNoImage = { ...mockProduct, imageUrls: [] }
         render(<ProductCard product={productNoImage} />)

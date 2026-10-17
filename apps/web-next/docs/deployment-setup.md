@@ -1,12 +1,12 @@
 # デプロイ・環境設定手順
 
-基準日: 2026-10-06。現行コードの設定項目と配置手順。本番・Previewの設定状態は未確認。
+基準日: 2026-10-07。現行コードの設定項目と配置手順。本番・Previewの設定状態は未確認。
 
 ## 前提
 
 - アプリの作業ディレクトリはapps/web-next。
-- テストを含む開発環境はNode.js 20.19以上の20系、22.12以上の22系、または24以上を使用する。現行jsdomのenginesに基づく。
-- ルートの.nvmrcは18のままなので、切り替え時に確認する。
+- テストを含む開発環境はNode.js 20.19以上または22.12以上を使用する。現行jsdomのenginesに基づく。
+- ルートの`.nvmrc`とGitHub ActionsはNode.js 22を使用する。
 - PostgreSQL、Google OAuth、Vercelを用意する。
 - VercelのRoot Directoryはapps/web-next、ビルドはnpm run build。
 
@@ -25,7 +25,7 @@
 
 AWS S3 / CloudFront用の環境変数は現行コードでは使用しない。
 ADMIN_EMAILSは管理者メールを明示的に設定する。未設定時は管理者なしとして扱う。
-製品・保有CSV取込を含むDB処理はPrismaを使い、Supabase用環境変数は現行APIに不要。既存の未使用ヘルパーと依存パッケージの整理は個別承認後に行う。
+製品・保有CSV取込を含むDB処理はPrismaを使う。未使用Supabaseヘルパーと依存は削除済み。`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` は不要。外部環境での変数削除は、その環境の他用途がないことを確認して行う。
 
 ローカルのNext.js用設定は.env.local、Prisma CLI用のDB接続値は.envまたは実行環境の変数に設定する。同じ接続先を使用し、秘密値をGitに保存しない。
 

@@ -287,7 +287,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
                   <span className="ml-2 font-medium">{purchaseConditionLabels[vehicle.purchaseCondition] || vehicle.purchaseCondition}</span>
                 </div>
               )}
-              {vehicle.purchasePriceIncludingTax && (
+              {vehicle.purchasePriceIncludingTax !== null && (
                 <div>
                   <span className="text-gray-600">購入価格:</span>
                   <span className="ml-2 font-medium">¥{vehicle.purchasePriceIncludingTax.toLocaleString()}</span>

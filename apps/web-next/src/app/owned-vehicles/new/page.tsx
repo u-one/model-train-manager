@@ -52,6 +52,16 @@ export default function NewOwnedVehiclePage() {
     }
   }
 
+  const persistImageUrls = async (nextImageUrls: string[]) => {
+    if (!createdVehicleId) return
+    const response = await fetch(`/api/owned-vehicles/${createdVehicleId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrls: nextImageUrls })
+    })
+    if (!response.ok) throw new Error(await getApiErrorMessage(response, '画像情報の保存に失敗しました'))
+  }
+
   if (loadingProducts) return <AuthGuard requireAuth><div className="container mx-auto px-4 py-8"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto" /></div></AuthGuard>
 
   return (
@@ -64,7 +74,7 @@ export default function NewOwnedVehiclePage() {
             <p className="text-gray-600 mt-2">新しい保有車両情報を登録します</p>
           </header>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <OwnedVehicleFormFields form={form} products={products} imageUrls={imageUrls} onImageUrlsChange={setImageUrls} vehicleId={createdVehicleId?.toString()} allowProductCodeMatch />
+            <OwnedVehicleFormFields form={form} products={products} imageUrls={imageUrls} onImageUrlsChange={setImageUrls} onImageUrlsPersist={persistImageUrls} vehicleId={createdVehicleId?.toString()} allowProductCodeMatch />
             {createdVehicleId ? (
               <div className="flex justify-end"><button type="button" onClick={() => router.push(`/owned-vehicles/${createdVehicleId}`)} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">保有車両の詳細へ</button></div>
             ) : (

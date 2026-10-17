@@ -17,6 +17,7 @@ interface OwnedVehicleFormFieldsProps {
   products: VehicleProductOption[]
   imageUrls: string[]
   onImageUrlsChange: (update: (current: string[]) => string[]) => void
+  onImageUrlsPersist?: (imageUrls: string[]) => Promise<void>
   vehicleId?: string | null
   allowProductCodeMatch?: boolean
 }
@@ -30,10 +31,15 @@ export default function OwnedVehicleFormFields({
   products,
   imageUrls,
   onImageUrlsChange,
+  onImageUrlsPersist,
   vehicleId,
   allowProductCodeMatch = false
 }: OwnedVehicleFormFieldsProps) {
   const vehicleType = form.watch('vehicleType')
+  const saveImageUrls = async (nextImageUrls: string[]) => {
+    if (onImageUrlsPersist) await onImageUrlsPersist(nextImageUrls)
+    onImageUrlsChange(() => nextImageUrls)
+  }
   return (
     <>
       <section className="bg-white p-6 rounded-lg shadow">
@@ -135,7 +141,7 @@ export default function OwnedVehicleFormFields({
 
       <section className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">車両画像</h2>
-        {vehicleId ? <ImageUploader entityType="owned-vehicle" entityId={vehicleId} currentImages={imageUrls} onUploadComplete={urls => onImageUrlsChange(current => [...new Set([...current, ...urls])])} onDelete={url => onImageUrlsChange(current => current.filter(item => item !== url))} /> : <p className="text-sm text-gray-500">ℹ️ 保有車両を作成後に画像をアップロードできます</p>}
+        {vehicleId ? <ImageUploader entityType="owned-vehicle" entityId={vehicleId} currentImages={imageUrls} onUploadComplete={urls => saveImageUrls([...new Set([...imageUrls, ...urls])])} onDelete={url => saveImageUrls(imageUrls.filter(item => item !== url))} /> : <p className="text-sm text-gray-500">ℹ️ 保有車両を作成後に画像をアップロードできます</p>}
       </section>
     </>
   )

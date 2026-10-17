@@ -110,3 +110,12 @@ export async function updateOwnedVehicle(vehicleId: number, input: OwnedVehicleI
     return tx.ownedVehicle.findUniqueOrThrow({ where: { id: vehicleId }, include: ownedVehicleInclude })
   })
 }
+
+export async function updateOwnedVehicleImageUrls(vehicleId: number, imageUrls: string[], userId: number) {
+  const result = await prisma.ownedVehicle.updateMany({
+    where: { id: vehicleId, userId },
+    data: { imageUrls }
+  })
+  if (result.count === 0) throw new ApiError('保有車両が見つかりません', 404, 'NOT_FOUND')
+  return { imageUrls }
+}

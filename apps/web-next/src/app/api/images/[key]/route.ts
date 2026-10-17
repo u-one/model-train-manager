@@ -7,6 +7,7 @@ import {
   type ImageEntityType
 } from '@/lib/server/image-auth'
 import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
+import { getAuthContext } from '@/lib/server/auth'
 
 interface RouteParams {
   params: Promise<{ key: string }>
@@ -38,6 +39,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
       imageToDelete = [...candidates].find(candidate => imageUrlBelongsToEntity(candidate, access))
     } else {
+      const auth = await getAuthContext()
+      if (!auth.session?.user?.email) {
+        return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
+      }
+      if (!auth.user) {
+        return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
+      }
       // 旧クライアント向けに、DBに登録済みの画像URLから対象を特定する。
       const urls = [...candidates]
       const [products, ownedVehicles] = await Promise.all([
