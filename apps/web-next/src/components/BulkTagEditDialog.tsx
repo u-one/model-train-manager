@@ -3,13 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { getCategoryLabel, getCategoryColor } from '@/constants/tags'
-
-interface Tag {
-  id: number
-  name: string
-  category: string
-  description?: string
-}
+import type { Tag } from '@/types/domain'
 
 interface TagCategory {
   category: string

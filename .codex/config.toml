@@ -1,0 +1,8 @@
+# プロジェクト共通設定。モデル・個人の設定はユーザー設定を継承する。
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+# 作業指示はルートのAGENTS.mdで管理する。
+
+[sandbox_workspace_write]
+network_access = false

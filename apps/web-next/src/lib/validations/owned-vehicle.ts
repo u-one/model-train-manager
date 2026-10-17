@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const ownedVehicleFormSchema = z.object({
   // 管理情報
-  managementId: z.string().optional().default(''),
+  managementId: z.string().max(100).optional(),
 
   // 車両選択（製品IDまたは独立車両情報）
   vehicleType: z.enum(['PRODUCT', 'INDEPENDENT'], {
@@ -29,9 +29,14 @@ export const ownedVehicleFormSchema = z.object({
   }),
 
   // 購入情報
-  purchaseDate: z.string().optional(),
-  purchasePriceExcludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan()),
-  purchasePriceIncludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan()),
+  purchaseDate: z.string().refine(value => {
+    if (!value) return true
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+    const parsed = new Date(`${value}T00:00:00.000Z`)
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+  }, '購入日は YYYY-MM-DD の有効な日付で入力してください').optional(),
+  purchasePriceExcludingTax: z.number().int().min(0, '価格は0以上の整数で入力してください').optional().or(z.nan()),
+  purchasePriceIncludingTax: z.number().int().min(0, '価格は0以上の整数で入力してください').optional().or(z.nan()),
   purchaseStore: z.string().optional(),
   purchaseCondition: z.enum(['NEW', 'USED']).optional().or(z.literal('')),
 

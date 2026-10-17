@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getStorage } from '@/lib/storage'
+import { authorizeImageEntity } from '@/lib/server/image-auth'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 
 // 許可される画像形式
 const ALLOWED_MIME_TYPES = [
@@ -16,50 +16,39 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
   try {
-    // 認証チェック
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     // FormDataを取得
     const formData = await request.formData()
-    const file = formData.get('file') as File
-    const entityType = formData.get('entityType') as string
-    const entityId = formData.get('entityId') as string
+    const fileValue = formData.get('file')
+    const entityTypeValue = formData.get('entityType')
+    const entityIdValue = formData.get('entityId')
 
-    if (!file) {
-      return NextResponse.json({ error: 'ファイルが選択されていません' }, { status: 400 })
+    if (!(fileValue instanceof File)) {
+      return apiErrorJson('ファイルが選択されていません', 400, 'VALIDATION_ERROR')
     }
 
-    if (!entityType || !entityId) {
-      return NextResponse.json({ error: 'エンティティ情報が不足しています' }, { status: 400 })
+    const access = await authorizeImageEntity(
+      typeof entityTypeValue === 'string' ? entityTypeValue : null,
+      typeof entityIdValue === 'string' ? entityIdValue : null
+    )
+    if (!access.ok) {
+      return apiErrorJson(access.error, access.status, access.code)
     }
+    const file = fileValue
 
     // ファイル形式チェック
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return NextResponse.json({
-        error: '許可されていないファイル形式です',
-        details: `許可されている形式: ${ALLOWED_MIME_TYPES.join(', ')}`
-      }, { status: 400 })
+      return apiErrorJson('許可されていないファイル形式です', 400, 'VALIDATION_ERROR', `許可されている形式: ${ALLOWED_MIME_TYPES.join(', ')}`)
     }
 
     // ファイルサイズチェック
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({
-        error: 'ファイルサイズが大きすぎます',
-        details: `最大サイズ: ${MAX_FILE_SIZE / 1024 / 1024}MB`
-      }, { status: 400 })
+      return apiErrorJson('ファイルサイズが大きすぎます', 400, 'VALIDATION_ERROR', `最大サイズ: ${MAX_FILE_SIZE / 1024 / 1024}MB`)
     }
-
-    // TODO: 権限チェック（エンティティの所有者または作成者のみアップロード可能）
-    // 保有車両の場合: userId === session.user.id
-    // 製品の場合: createdByUserId === session.user.id または管理者
 
     // ファイル名をサニタイズ
     const timestamp = Date.now()
     const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-    const pathname = `${entityType}s/${entityId}/${timestamp}-${originalName}`
+    const pathname = `${access.entityType}s/${access.entityId}/${timestamp}-${originalName}`
 
     // ストレージにアップロード
     const storage = getStorage()
@@ -78,10 +67,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Image upload error:', error)
-    return NextResponse.json({
-      error: '画像のアップロードに失敗しました',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    return apiErrorResponse(error, '画像のアップロードに失敗しました')
   }
 }

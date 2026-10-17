@@ -1,30 +1,21 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getAuthContext } from '@/lib/server/auth'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 import { ProductType } from '@prisma/client'
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
+    const auth = await getAuthContext()
 
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'ログインが必要です' },
-        { status: 401 }
-      )
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
-    // ユーザー情報を取得
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
+    const user = auth.user
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'ユーザーが見つかりません' },
-        { status: 404 }
-      )
+      return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
     }
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -104,10 +95,6 @@ export async function GET() {
       recentActivity
     })
   } catch (error) {
-    console.error('User stats error:', error)
-    return NextResponse.json(
-      { error: 'サーバーエラーが発生しました' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error, 'ユーザー統計を取得できませんでした')
   }
 }

@@ -1,35 +1,26 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { isAdminUser } from '@/lib/admin-auth'
+import { getAuthContext } from '@/lib/server/auth'
+import { deleteAllOwnedVehicles } from '@/lib/server/data-management'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
 
 export async function DELETE() {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
 
-    const isAdmin = await isAdminUser()
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    if (!auth.isAdmin) {
+      return apiErrorJson('管理者権限が必要です', 403, 'FORBIDDEN')
     }
 
-    // 関連する整備記録も含めて削除
-    const deletedMaintenanceRecords = await prisma.maintenanceRecord.deleteMany({})
-    const deletedOwnedVehicles = await prisma.ownedVehicle.deleteMany({})
+    const result = await deleteAllOwnedVehicles()
 
     return NextResponse.json({
-      deletedCount: deletedOwnedVehicles.count,
-      deletedMaintenanceRecords: deletedMaintenanceRecords.count,
+      ...result,
       message: 'All owned vehicles and related maintenance records deleted successfully'
     })
   } catch (error) {
-    console.error('Delete all owned vehicles error:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete all owned vehicles' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error, '保有車両を一括削除できませんでした')
   }
 }

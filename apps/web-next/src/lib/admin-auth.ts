@@ -1,21 +1,19 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthContext } from '@/lib/server/auth'
 
-// 管理者メールアドレスリスト
-const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',') || ['test@uoneweb.net']
+export class AuthorizationError extends Error {
+  constructor(message: string, readonly status: 401 | 403) {
+    super(message)
+    this.name = 'AuthorizationError'
+  }
+}
 
 /**
  * 現在のユーザーが管理者かどうかを判定
  */
-export async function isAdminUser(): Promise<boolean> {
+export async function isAdminUser(authContext?: Awaited<ReturnType<typeof getAuthContext>>): Promise<boolean> {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.email) {
-      return false
-    }
-
-    return ADMIN_EMAILS.includes(session.user.email)
+    const context = authContext ?? await getAuthContext()
+    return context.isAdmin
   } catch (error) {
     console.error('Admin auth error:', error)
     return false
@@ -27,10 +25,12 @@ export async function isAdminUser(): Promise<boolean> {
  * 管理者でない場合は例外を投げる
  */
 export async function requireAdmin(): Promise<void> {
-  const isAdmin = await isAdminUser()
-
-  if (!isAdmin) {
-    throw new Error('Unauthorized: Admin access required')
+  const auth = await getAuthContext()
+  if (!auth.session?.user?.email) {
+    throw new AuthorizationError('ログインが必要です', 401)
+  }
+  if (!auth.isAdmin) {
+    throw new AuthorizationError('管理者権限が必要です', 403)
   }
 }
 
@@ -47,14 +47,13 @@ export interface AdminStatus {
  */
 export async function getAdminStatus(): Promise<AdminStatus> {
   try {
-    const session = await getServerSession(authOptions)
-
+    const { session, isAdmin } = await getAuthContext()
     if (!session?.user?.email) {
       return { isAdmin: false, email: null }
     }
 
     return {
-      isAdmin: ADMIN_EMAILS.includes(session.user.email),
+      isAdmin,
       email: session.user.email
     }
   } catch (error) {

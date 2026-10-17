@@ -20,6 +20,13 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      complexity: ["warn", { max: 10 }],
+      "max-depth": ["warn", { max: 4 }],
+      "max-lines-per-function": ["warn", { max: 80, skipBlankLines: true, skipComments: true }],
+    },
+  },
 ];
 
 export default eslintConfig;

@@ -12,7 +12,7 @@ export const PRODUCT_TYPES = [
   { value: PRODUCT_TYPE_SET_SINGLE, label: 'セット単品' }
 ]
 
-export const PRODUCT_TYPE_VALUES = PRODUCT_TYPES.map((t) => t.value)
+export const PRODUCT_TYPE_VALUES = [PRODUCT_TYPE_SINGLE, PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE] as const
 export const PRODUCT_TYPE_LABELS = PRODUCT_TYPES.map((t) => t.label)
 
 /**

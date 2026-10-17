@@ -15,9 +15,9 @@ interface ImageUploaderProps {
   /** 最大ファイル数 */
   maxFiles?: number
   /** アップロード完了コールバック */
-  onUploadComplete?: (urls: string[]) => void
+  onUploadComplete?: (urls: string[]) => void | Promise<void>
   /** 削除コールバック */
-  onDelete?: (url: string) => void
+  onDelete?: (url: string) => void | Promise<void>
 }
 
 export default function ImageUploader({
@@ -64,7 +64,7 @@ export default function ImageUploader({
       }
 
       if (onUploadComplete) {
-        onUploadComplete(uploadedUrls)
+        await onUploadComplete(uploadedUrls)
       }
     } catch (err) {
       console.error('Upload error:', err)
@@ -99,8 +99,8 @@ export default function ImageUploader({
     if (!confirm('この画像を削除しますか？')) return
 
     try {
-      // URLからキーを抽出（Vercel Blobの場合はURL全体を使用）
-      const response = await fetch(`/api/images/${encodeURIComponent(url)}`, {
+      const query = new URLSearchParams({ entityType, entityId })
+      const response = await fetch(`/api/images/${encodeURIComponent(url)}?${query.toString()}`, {
         method: 'DELETE',
       })
 
@@ -109,7 +109,7 @@ export default function ImageUploader({
       }
 
       if (onDelete) {
-        onDelete(url)
+        await onDelete(url)
       }
     } catch (err) {
       console.error('Delete error:', err)
@@ -167,6 +167,7 @@ export default function ImageUploader({
             <p className="text-sm text-red-800">{error}</p>
           </div>
           <button
+            type="button"
             onClick={() => setError(null)}
             className="text-red-600 hover:text-red-800"
           >
@@ -194,6 +195,8 @@ export default function ImageUploader({
                 className="w-full h-32 object-cover rounded-lg"
               />
               <button
+                type="button"
+                aria-label={`画像 ${index + 1} を削除`}
                 onClick={() => handleDelete(url)}
                 className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
               >
