@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
+import { apiErrorResponse } from '@/lib/server/api-errors'
 
 export async function GET() {
   try {
@@ -23,17 +24,6 @@ export async function GET() {
       users
     })
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Unauthorized')) {
-      return NextResponse.json(
-        { error: '管理者権限が必要です' },
-        { status: 403 }
-      )
-    }
-
-    console.error('Admin users fetch error:', error)
-    return NextResponse.json(
-      { error: 'サーバーエラーが発生しました' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error, 'ユーザー一覧を取得できませんでした')
   }
 }

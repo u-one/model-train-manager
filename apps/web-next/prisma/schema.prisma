@@ -47,6 +47,8 @@ model Product {
   productTags       ProductTag[]
   createdByUser     User?          @relation("UserCreatedProducts", fields: [createdByUserId], references: [id])
   realVehicles      RealVehicle[]
+  setComponents     ProductSetComponent[] @relation("ProductSetParent")
+  parentSets        ProductSetComponent[] @relation("ProductSetComponent")
 
   @@index([brand])
   @@index([productCode])
@@ -90,13 +92,29 @@ model OwnedVehicle {
   updatedAt                 DateTime            @updatedAt @map("updated_at")
   independentVehicle        IndependentVehicle?
   maintenanceRecords        MaintenanceRecord[]
+  parentSetOwnedVehicleId   Int?                @map("parent_set_owned_vehicle_id")
+  parentSet                 OwnedVehicle?       @relation("OwnedSetComponents", fields: [parentSetOwnedVehicleId], references: [id], onDelete: SetNull)
+  setComponents             OwnedVehicle[]      @relation("OwnedSetComponents")
   product                   Product?            @relation(fields: [productId], references: [id])
   user                      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([productId])
   @@index([managementId])
+  @@index([parentSetOwnedVehicleId])
   @@map("owned_vehicles")
+}
+
+model ProductSetComponent {
+  setProductId       Int      @map("set_product_id")
+  componentProductId Int      @map("component_product_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  setProduct         Product  @relation("ProductSetParent", fields: [setProductId], references: [id], onDelete: Cascade)
+  componentProduct   Product  @relation("ProductSetComponent", fields: [componentProductId], references: [id], onDelete: Cascade)
+
+  @@id([setProductId, componentProductId])
+  @@index([componentProductId])
+  @@map("product_set_components")
 }
 
 model IndependentVehicle {

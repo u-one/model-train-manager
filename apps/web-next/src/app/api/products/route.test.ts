@@ -100,7 +100,11 @@ describe('GET /api/products', () => {
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ brand: 'KATO' }),
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            { brand: { equals: 'KATO', mode: 'insensitive' } },
+          ]),
+        }),
       })
     )
   })
@@ -110,7 +114,7 @@ describe('GET /api/products', () => {
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ type: 'SINGLE' }),
+        where: expect.objectContaining({ AND: expect.arrayContaining([{ type: 'SINGLE' }]) }),
       })
     )
   })
@@ -120,7 +124,7 @@ describe('GET /api/products', () => {
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ type: { not: 'SET_SINGLE' } }),
+        where: expect.objectContaining({ AND: expect.arrayContaining([{ type: { not: 'SET_SINGLE' } }]) }),
       })
     )
   })
@@ -130,7 +134,7 @@ describe('GET /api/products', () => {
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ type: 'SINGLE' }),
+        where: expect.objectContaining({ AND: expect.arrayContaining([{ type: 'SINGLE' }]) }),
       })
     )
   })
@@ -141,11 +145,11 @@ describe('GET /api/products', () => {
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          OR: [
+          AND: expect.arrayContaining([{ OR: [
             { name: { contains: 'E231', mode: 'insensitive' } },
             { productCode: { contains: 'E231', mode: 'insensitive' } },
             { description: { contains: 'E231', mode: 'insensitive' } },
-          ],
+          ] }]),
         }),
       })
     )
@@ -226,7 +230,7 @@ describe('GET /api/products', () => {
     await GET(makeRequest({ sortBy: 'createdAt', sortOrder: 'desc' }))
 
     expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { createdAt: 'desc' } })
+      expect.objectContaining({ orderBy: [{ createdAt: 'desc' }, { id: 'asc' }] })
     )
   })
 
@@ -234,7 +238,7 @@ describe('GET /api/products', () => {
     await GET(makeRequest({ sortBy: 'name', sortOrder: 'asc' }))
 
     expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { name: 'asc' } })
+      expect.objectContaining({ orderBy: [{ name: 'asc' }, { id: 'asc' }] })
     )
   })
 
@@ -243,7 +247,7 @@ describe('GET /api/products', () => {
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: [{ brand: 'asc' }, { productCode: 'asc' }],
+        orderBy: [{ brand: 'asc' }, { productCode: 'asc' }, { id: 'asc' }],
       })
     )
   })
@@ -253,7 +257,7 @@ describe('GET /api/products', () => {
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: [{ type: 'asc' }, { brand: 'asc' }, { productCode: 'asc' }],
+        orderBy: [{ type: 'asc' }, { brand: 'asc' }, { productCode: 'asc' }, { id: 'asc' }],
       })
     )
   })
@@ -263,9 +267,10 @@ describe('GET /api/products', () => {
   it('ログイン中は _count.ownedVehicles がユーザーID でフィルタされる', async () => {
     const { getServerSession } = await import('next-auth')
     vi.mocked(getServerSession).mockResolvedValueOnce({
-      user: { id: '123', email: 'test@example.com' },
+      user: { email: 'test@example.com' },
       expires: '',
     })
+    mockUserFindUnique.mockResolvedValueOnce({ id: 'user-123' })
 
     await GET(makeRequest())
 
@@ -274,7 +279,7 @@ describe('GET /api/products', () => {
         include: expect.objectContaining({
           _count: {
             select: {
-              ownedVehicles: { where: { userId: 123 } },
+              ownedVehicles: { where: { userId: 'user-123' } },
             },
           },
         }),
@@ -301,7 +306,7 @@ describe('GET /api/products', () => {
 
     expect(res.status).toBe(500)
     const data = await res.json()
-    expect(data.error).toBe('Failed to fetch products')
+    expect(data).toMatchObject({ error: '製品一覧を取得できませんでした', code: 'INTERNAL_ERROR' })
   })
 
   it('不正な type パラメータで 400 を返す', async () => {
@@ -309,7 +314,7 @@ describe('GET /api/products', () => {
 
     expect(res.status).toBe(400)
     const data = await res.json()
-    expect(data.error).toBe('Invalid query parameters')
+    expect(data).toMatchObject({ error: '入力値を確認してください', code: 'VALIDATION_ERROR' })
   })
 
   it('不正な sortOrder パラメータで 400 を返す', async () => {
@@ -317,6 +322,6 @@ describe('GET /api/products', () => {
 
     expect(res.status).toBe(400)
     const data = await res.json()
-    expect(data.error).toBe('Invalid query parameters')
+    expect(data).toMatchObject({ error: '入力値を確認してください', code: 'VALIDATION_ERROR' })
   })
 })

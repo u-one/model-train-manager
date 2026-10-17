@@ -9,57 +9,20 @@ import ViewModeToggle from '@/components/ViewModeToggle'
 import ItemsContainer from '@/components/ItemsContainer'
 import ImageGallery from '@/components/ImageGallery'
 import { useViewMode } from '@/hooks/useViewMode'
+import { useAdmin } from '@/hooks/useAdmin'
 import { getCategoryColor } from '@/constants/tags'
 import { PRODUCT_TYPE_SINGLE, PRODUCT_TYPE_SET, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
-
-interface Product {
-  id: number
-  brand: string
-  productCode: string | null
-  name: string
-  type: string
-  releaseYear: number | null
-  priceExcludingTax: number | null
-  priceIncludingTax: number | null
-  description: string | null
-  imageUrls: string[]
-  realVehicles: RealVehicle[]
-  ownedVehicles: OwnedVehicle[]
-  _count?: { ownedVehicles: number }
-  productTags?: ProductTag[]
-}
-
-interface ProductTag {
-  tag: {
-    id: number
-    name: string
-    category: string
-  }
-}
-
-interface RealVehicle {
-  id: number
-  vehicleType: string | null
-  company: string | null
-  manufacturingYear: string | null
-  operationLine: string | null
-  notes: string | null
-}
-
-interface OwnedVehicle {
-  id: number
-  managementId: string
-  user: { id: number; name: string }
-}
+import type { ProductApiOutput, ProductDetailApiOutput } from '@/lib/contracts/api'
 
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { data: session } = useSession()
+  const { isAdmin } = useAdmin()
   const resolvedParams = use(params)
-  const [product, setProduct] = useState<Product | null>(null)
-  const [setComponents, setSetComponents] = useState<Product[]>([])
-  const [parentSets, setParentSets] = useState<Product[]>([])
+  const [product, setProduct] = useState<ProductDetailApiOutput | null>(null)
+  const [setComponents, setSetComponents] = useState<ProductApiOutput[]>([])
+  const [parentSets, setParentSets] = useState<ProductApiOutput[]>([])
   const [loading, setLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const { viewMode: setComponentsViewMode, setViewMode: setSetComponentsViewMode } = useViewMode()
@@ -138,6 +101,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   if (!product) {
     return null
   }
+  const ownedVehicles = product.ownedVehicles ?? []
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -159,13 +123,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               >
                 編集
               </button>
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isDeleting ? '削除中...' : '削除'}
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeleting ? '削除中...' : '削除'}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -208,7 +174,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <span className="font-medium">{product.releaseYear}年</span>
                 </div>
               )}
-              {product.priceIncludingTax && (
+              {product.priceIncludingTax !== null && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">価格:</span>
                   <span className="font-medium text-lg">¥{product.priceIncludingTax.toLocaleString()}</span>
@@ -296,7 +262,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <ViewModeToggle viewMode={setComponentsViewMode} onViewModeChange={setSetComponentsViewMode} />
               {session && (
                 <button
-                  onClick={() => router.push(`/products/new?type=${PRODUCT_TYPE_SET_SINGLE}&parentCode=${product.productCode}&brand=${encodeURIComponent(product.brand)}`)}
+                  onClick={() => router.push(`/products/new?type=${PRODUCT_TYPE_SET_SINGLE}&parentCode=${product.productCode}&parentSetId=${product.id}&brand=${encodeURIComponent(product.brand)}`)}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   + セット単品を追加
@@ -364,7 +330,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   )}
                   <h3 className="font-medium text-gray-900 line-clamp-2">{parentSet.name}</h3>
                   <div className="flex justify-between items-center">
-                    {parentSet.priceIncludingTax && (
+                    {parentSet.priceIncludingTax !== null && (
                       <span className="text-lg font-semibold text-green-600">
                         ¥{parentSet.priceIncludingTax.toLocaleString()}
                       </span>
@@ -384,15 +350,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       {session && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">
-            保有状況 ({product.ownedVehicles.length}両)
+            保有状況 ({ownedVehicles.length}両)
           </h2>
-          {product.ownedVehicles.length > 0 ? (
+          {ownedVehicles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {product.ownedVehicles.map((owned) => (
+              {ownedVehicles.map((owned) => (
                 <div key={owned.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{owned.managementId}</span>
-                    <span className="text-sm text-gray-600">{owned.user.name}</span>
+                    <span className="text-sm text-gray-600">{owned.user?.name ?? '未設定'}</span>
                   </div>
                 </div>
               ))}

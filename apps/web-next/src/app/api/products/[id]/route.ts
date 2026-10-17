@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getAuthContext, getAuthSession } from '@/lib/server/auth'
 import { buildProductDetailInclude } from '@/lib/product-detail-query'
+import { productInputSchema } from '@/lib/contracts/product'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
+import { updateProduct } from '@/lib/server/products'
+import { apiJson, apiJsonAs } from '@/lib/server/api-json'
+import type { ProductDetailApiOutput } from '@/lib/contracts/api'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -11,11 +15,11 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: idStr } = await params
-    const id = parseInt(idStr)
-    if (Number.isNaN(id)) {
-      return NextResponse.json({ error: 'Invalid product id' }, { status: 400 })
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) {
+      return apiErrorJson('製品IDが不正です', 400, 'VALIDATION_ERROR')
     }
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -23,56 +27,57 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+      return apiErrorJson('製品が見つかりません', 404, 'NOT_FOUND')
     }
 
-    return NextResponse.json(product)
+    return apiJsonAs<ProductDetailApiOutput>()(product)
   } catch (error) {
-    console.error('Product fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 })
+    return apiErrorResponse(error, '製品詳細を取得できませんでした')
   }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const { session, user } = await getAuthContext()
+    if (!session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
+    }
+    if (!user) {
+      return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
+    }
+
     const { id: idStr } = await params
-    const id = parseInt(idStr)
-    const data = await request.json()
-    const { realVehicles, ...productData } = data
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('製品IDが不正です', 400, 'VALIDATION_ERROR')
+    const parsed = productInputSchema.safeParse(await request.json())
+    if (!parsed.success) return apiErrorResponse(parsed.error, '入力値を確認してください')
+    const product = await updateProduct(id, parsed.data)
 
-    // 既存の実車情報を削除してから新しい情報を作成
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        ...productData,
-        realVehicles: {
-          deleteMany: {}, // 既存の実車情報を全て削除
-          create: realVehicles || [] // 新しい実車情報を作成
-        }
-      },
-      include: {
-        realVehicles: true,
-        _count: { select: { ownedVehicles: true } }
-      }
-    })
-
-    return NextResponse.json(product)
+    return apiJson(product)
   } catch (error) {
-    console.error('Product update error:', error)
-    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
+    return apiErrorResponse(error, '製品を更新できませんでした')
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: idStr } = await params
-    const id = parseInt(idStr)
+    const { session, isAdmin } = await getAuthContext()
+    if (!session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
+    }
+    if (!isAdmin) {
+      return apiErrorJson('管理者権限が必要です', 403, 'FORBIDDEN')
+    }
 
-    await prisma.product.delete({ where: { id } })
+    const { id: idStr } = await params
+    const id = Number(idStr)
+    if (!Number.isSafeInteger(id) || id < 1) return apiErrorJson('製品IDが不正です', 400, 'VALIDATION_ERROR')
+
+    const result = await prisma.product.deleteMany({ where: { id } })
+    if (result.count === 0) return apiErrorJson('製品が見つかりません', 404, 'NOT_FOUND')
 
     return NextResponse.json({ message: 'Product deleted successfully' })
   } catch (error) {
-    console.error('Product delete error:', error)
-    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 })
+    return apiErrorResponse(error, '製品を削除できませんでした')
   }
 }

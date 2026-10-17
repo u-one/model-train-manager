@@ -50,7 +50,7 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
               }
             </span>
 
-            {product.priceIncludingTax && (
+            {product.priceIncludingTax !== null && (
               <>
                 <span>|</span>
                 <span>¥{product.priceIncludingTax.toLocaleString()}</span>
@@ -112,7 +112,7 @@ export default function ProductListItem({ product, onClick }: ProductListItemPro
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${getProductTypeColor(product.type)}`}>
                 {getProductTypeLabel(product.type)}
               </span>
-              {product.priceIncludingTax && (
+              {product.priceIncludingTax !== null && (
                 <span className="text-xs text-gray-600">
                   ¥{product.priceIncludingTax.toLocaleString()}
                 </span>

@@ -54,7 +54,7 @@ export default function OwnedVehicleCard({ vehicle, onClick }: OwnedVehicleCardP
           </div>
         )}
 
-        {vehicle.purchasePriceIncludingTax && (
+        {vehicle.purchasePriceIncludingTax !== null && (
           <div className="flex justify-between">
             <span className="text-gray-600">購入価格:</span>
             <span className="font-medium">¥{vehicle.purchasePriceIncludingTax.toLocaleString()}</span>

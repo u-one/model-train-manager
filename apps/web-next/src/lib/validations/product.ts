@@ -13,12 +13,12 @@ export const productFormSchema = z.object({
   releaseYear: z.number().int().min(1900).max(2030).optional().or(z.nan()),
 
   // 価格情報
-  priceExcludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan()),
-  priceIncludingTax: z.number().min(0, '価格は0以上で入力してください').optional().or(z.nan()),
+  priceExcludingTax: z.number().int().min(0, '価格は0以上の整数で入力してください').optional().or(z.nan()),
+  priceIncludingTax: z.number().int().min(0, '価格は0以上の整数で入力してください').optional().or(z.nan()),
 
   // 商品情報
   description: z.string().optional(),
-  imageUrls: z.array(z.string().url('正しいURLを入力してください')).optional(),
+  imageUrls: z.array(z.string().trim().min(1).max(2048)).optional(),
 
   // 実車情報
   realVehicles: z.array(z.object({

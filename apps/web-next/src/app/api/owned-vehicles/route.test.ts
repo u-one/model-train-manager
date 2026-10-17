@@ -1,26 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from './route'
+import { ApiError } from '@/lib/server/api-errors'
 
 // --- ホイストされたモック関数 ---
 const {
   mockOwnedVehicleFindMany,
   mockOwnedVehicleCount,
-  mockOwnedVehicleCreate,
   mockUserFindUnique,
-  mockProductFindFirst,
   mockGetServerSession,
   mockIsAdminUser,
-  mockAutoRegisterSetComponents,
+  mockCreateOwnedVehicle,
 } = vi.hoisted(() => ({
   mockOwnedVehicleFindMany: vi.fn(),
   mockOwnedVehicleCount: vi.fn(),
-  mockOwnedVehicleCreate: vi.fn(),
   mockUserFindUnique: vi.fn(),
-  mockProductFindFirst: vi.fn(),
   mockGetServerSession: vi.fn(),
   mockIsAdminUser: vi.fn(),
-  mockAutoRegisterSetComponents: vi.fn(),
+  mockCreateOwnedVehicle: vi.fn(),
 }))
 
 vi.mock('next-auth', () => ({
@@ -36,23 +33,20 @@ vi.mock('@/lib/prisma', () => ({
     ownedVehicle: {
       findMany: mockOwnedVehicleFindMany,
       count: mockOwnedVehicleCount,
-      create: mockOwnedVehicleCreate,
     },
     user: {
       findUnique: mockUserFindUnique,
     },
-    product: {
-      findFirst: mockProductFindFirst,
-    },
   },
 }))
 
-vi.mock('@/lib/admin-auth', () => ({
+vi.mock('@/lib/admin-auth', async importOriginal => ({
+  ...await importOriginal<typeof import('@/lib/admin-auth')>(),
   isAdminUser: mockIsAdminUser,
 }))
 
-vi.mock('@/lib/owned-vehicle-utils', () => ({
-  autoRegisterSetComponents: mockAutoRegisterSetComponents,
+vi.mock('@/lib/server/owned-vehicles', () => ({
+  createOwnedVehicle: mockCreateOwnedVehicle,
 }))
 
 // --- ヘルパー ---
@@ -108,7 +102,7 @@ describe('GET /api/owned-vehicles', () => {
     const res = await GET(makeRequest())
     expect(res.status).toBe(401)
     const data = await res.json()
-    expect(data.error).toBe('Unauthorized')
+    expect(data).toMatchObject({ error: 'ログインが必要です', code: 'UNAUTHENTICATED' })
   })
 
   it('ユーザーが見つからない場合に 404 を返す', async () => {
@@ -116,7 +110,7 @@ describe('GET /api/owned-vehicles', () => {
     const res = await GET(makeRequest())
     expect(res.status).toBe(404)
     const data = await res.json()
-    expect(data.error).toBe('User not found')
+    expect(data).toMatchObject({ error: 'ユーザーが見つかりません', code: 'NOT_FOUND' })
   })
 
   // --- レスポンス形式 ---
@@ -177,7 +171,7 @@ describe('GET /api/owned-vehicles', () => {
 
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ currentStatus: 'NORMAL' }),
+        where: expect.objectContaining({ AND: expect.arrayContaining([{ currentStatus: 'NORMAL' }]) }),
       })
     )
   })
@@ -187,7 +181,7 @@ describe('GET /api/owned-vehicles', () => {
 
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ storageCondition: 'WITH_CASE' }),
+        where: expect.objectContaining({ AND: expect.arrayContaining([{ storageCondition: 'WITH_CASE' }]) }),
       })
     )
   })
@@ -198,7 +192,7 @@ describe('GET /api/owned-vehicles', () => {
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          independentVehicle: { isNot: null },
+          AND: expect.arrayContaining([{ productId: null }]),
         }),
       })
     )
@@ -210,7 +204,7 @@ describe('GET /api/owned-vehicles', () => {
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          independentVehicle: null,
+          AND: expect.arrayContaining([{ productId: { not: null } }]),
         }),
       })
     )
@@ -221,23 +215,23 @@ describe('GET /api/owned-vehicles', () => {
 
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          OR: expect.arrayContaining([
-            { product: { brand: 'KATO' } },
-            { independentVehicle: { brand: 'KATO' } },
-          ]),
-        }),
+        where: expect.objectContaining({ AND: expect.arrayContaining([
+          { OR: [
+            { product: { is: { brand: { contains: 'KATO', mode: 'insensitive' } } } },
+            { independentVehicle: { is: { brand: { contains: 'KATO', mode: 'insensitive' } } } },
+          ] },
+        ]) }),
       })
     )
   })
 
   it('type フィルタが製品に適用される', async () => {
-    await GET(makeRequest({ type: 'EC' }))
+    await GET(makeRequest({ type: 'SINGLE' }))
 
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          product: expect.objectContaining({ type: 'EC' }),
+          AND: expect.arrayContaining([{ product: { is: { type: 'SINGLE' } } }]),
         }),
       })
     )
@@ -248,13 +242,11 @@ describe('GET /api/owned-vehicles', () => {
 
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          OR: expect.arrayContaining([
+        where: expect.objectContaining({ AND: expect.arrayContaining([{ OR: expect.arrayContaining([
             { managementId: { contains: 'E231', mode: 'insensitive' } },
-            { product: { name: { contains: 'E231', mode: 'insensitive' } } },
+            { product: { is: { name: { contains: 'E231', mode: 'insensitive' } } } },
             { notes: { contains: 'E231', mode: 'insensitive' } },
-          ]),
-        }),
+          ]) }]) }),
       })
     )
   })
@@ -267,9 +259,9 @@ describe('GET /api/owned-vehicles', () => {
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          product: expect.objectContaining({
-            productTags: { some: { tagId: { in: [1, 2] } } },
-          }),
+          AND: expect.arrayContaining([
+            { product: { is: { productTags: { some: { tagId: { in: [1, 2] } } } } } },
+          ]),
         }),
       })
     )
@@ -284,8 +276,8 @@ describe('GET /api/owned-vehicles', () => {
     expect(call.where.AND).toBeDefined()
     expect(call.where.AND).toEqual(
       expect.arrayContaining([
-        { product: expect.objectContaining({ productTags: { some: { tagId: 1 } } }) },
-        { product: expect.objectContaining({ productTags: { some: { tagId: 2 } } }) },
+        { product: { is: { productTags: { some: { tagId: 1 } } } } },
+        { product: { is: { productTags: { some: { tagId: 2 } } } } },
       ])
     )
   })
@@ -297,7 +289,7 @@ describe('GET /api/owned-vehicles', () => {
 
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: [{ purchaseDate: { sort: 'desc', nulls: 'last' } }],
+        orderBy: [{ purchaseDate: { sort: 'desc', nulls: 'last' } }, { id: 'asc' }],
       })
     )
   })
@@ -306,7 +298,7 @@ describe('GET /api/owned-vehicles', () => {
     await GET(makeRequest({ sortBy: 'managementId', sortOrder: 'asc' }))
 
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { managementId: 'asc' } })
+      expect.objectContaining({ orderBy: [{ managementId: 'asc' }, { id: 'asc' }] })
     )
   })
 
@@ -314,7 +306,7 @@ describe('GET /api/owned-vehicles', () => {
     await GET(makeRequest({ sortBy: 'createdAt', sortOrder: 'asc' }))
 
     expect(mockOwnedVehicleFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { createdAt: 'asc' } })
+      expect.objectContaining({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })
     )
   })
 
@@ -372,7 +364,7 @@ describe('GET /api/owned-vehicles', () => {
     const res = await GET(makeRequest())
     expect(res.status).toBe(500)
     const data = await res.json()
-    expect(data.error).toBe('Failed to fetch owned vehicles')
+    expect(data).toMatchObject({ error: '保有車両一覧を取得できませんでした', code: 'INTERNAL_ERROR' })
   })
 })
 
@@ -381,7 +373,7 @@ describe('POST /api/owned-vehicles', () => {
     vi.clearAllMocks()
     mockGetServerSession.mockResolvedValue(mockSession)
     mockUserFindUnique.mockResolvedValue(mockUser)
-    mockAutoRegisterSetComponents.mockResolvedValue([])
+    mockCreateOwnedVehicle.mockResolvedValue({ vehicle: mockOwnedVehicle(), componentOwnedVehicles: [] })
   })
 
   // --- 認証 ---
@@ -402,7 +394,7 @@ describe('POST /api/owned-vehicles', () => {
 
   it('vehicleType=INDEPENDENT で独立車両が作成される', async () => {
     const createdVehicle = mockOwnedVehicle({ productId: null })
-    mockOwnedVehicleCreate.mockResolvedValue(createdVehicle)
+    mockCreateOwnedVehicle.mockResolvedValue({ vehicle: createdVehicle, componentOwnedVehicles: [] })
 
     const body = {
       vehicleType: 'INDEPENDENT',
@@ -414,20 +406,17 @@ describe('POST /api/owned-vehicles', () => {
     const res = await POST(makePostRequest(body))
 
     expect(res.status).toBe(201)
-    expect(mockOwnedVehicleCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          independentVehicle: { create: { name: 'E231系', brand: 'KATO' } },
-        }),
-      })
-    )
+    expect(mockCreateOwnedVehicle).toHaveBeenCalledWith(expect.objectContaining({
+      vehicleType: 'INDEPENDENT',
+      independentVehicle: { name: 'E231系', brand: 'KATO' },
+    }), mockUser.id)
   })
 
   // --- 製品車両作成 ---
 
   it('vehicleType=PRODUCT で製品IDが指定された場合に作成される', async () => {
     const createdVehicle = mockOwnedVehicle()
-    mockOwnedVehicleCreate.mockResolvedValue(createdVehicle)
+    mockCreateOwnedVehicle.mockResolvedValue({ vehicle: createdVehicle, componentOwnedVehicles: [] })
 
     const body = {
       vehicleType: 'PRODUCT',
@@ -442,10 +431,8 @@ describe('POST /api/owned-vehicles', () => {
   })
 
   it('vehicleType=PRODUCT でメーカー・品番指定時は製品検索する', async () => {
-    const mockProduct = { id: 99, name: 'Test', brand: 'KATO', productCode: '10-001' }
-    mockProductFindFirst.mockResolvedValue(mockProduct)
     const createdVehicle = mockOwnedVehicle({ productId: 99 })
-    mockOwnedVehicleCreate.mockResolvedValue(createdVehicle)
+    mockCreateOwnedVehicle.mockResolvedValue({ vehicle: createdVehicle, componentOwnedVehicles: [] })
 
     const body = {
       vehicleType: 'PRODUCT',
@@ -458,24 +445,24 @@ describe('POST /api/owned-vehicles', () => {
     const res = await POST(makePostRequest(body))
 
     expect(res.status).toBe(201)
-    expect(mockProductFindFirst).toHaveBeenCalled()
-    expect(mockOwnedVehicleCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ productId: 99 }),
-      })
-    )
+    expect(mockCreateOwnedVehicle).toHaveBeenCalledWith(expect.objectContaining({
+      vehicleType: 'PRODUCT', productBrand: 'KATO', productCode: '10-001',
+    }), mockUser.id)
   })
 
-  it('vehicleType=PRODUCT でメーカー・品番検索が失敗した場合に 400 を返す', async () => {
-    mockProductFindFirst.mockResolvedValue(null)
+  it('vehicleType=PRODUCT でメーカー・品番検索が失敗した場合に 404 を返す', async () => {
+    mockCreateOwnedVehicle.mockRejectedValueOnce(new ApiError('一致する製品が見つかりません', 404, 'NOT_FOUND'))
 
     const body = {
       vehicleType: 'PRODUCT',
       productBrand: 'UNKNOWN',
       productCode: '99-999',
+      managementId: 'M001',
+      currentStatus: 'NORMAL',
+      storageCondition: 'WITH_CASE',
     }
     const res = await POST(makePostRequest(body))
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(404)
   })
 
   it('vehicleType=PRODUCT で製品ID・メーカー品番が未指定の場合に 400 を返す', async () => {
@@ -504,9 +491,8 @@ describe('POST /api/owned-vehicles', () => {
 
   it('セット製品登録時に構成車両が自動登録される', async () => {
     const createdVehicle = mockOwnedVehicle({ productId: 10 })
-    mockOwnedVehicleCreate.mockResolvedValue(createdVehicle)
     const componentVehicles = [mockOwnedVehicle({ id: 2, productId: 11 })]
-    mockAutoRegisterSetComponents.mockResolvedValue(componentVehicles)
+    mockCreateOwnedVehicle.mockResolvedValue({ vehicle: createdVehicle, componentOwnedVehicles: componentVehicles })
 
     const body = {
       vehicleType: 'PRODUCT',
@@ -520,18 +506,19 @@ describe('POST /api/owned-vehicles', () => {
 
     expect(res.status).toBe(201)
     expect(data.componentOwnedVehicles).toHaveLength(1)
-    expect(mockAutoRegisterSetComponents).toHaveBeenCalled()
+    expect(mockCreateOwnedVehicle).toHaveBeenCalled()
   })
 
   it('構成車両がない場合は componentOwnedVehicles なしで返す', async () => {
     const createdVehicle = mockOwnedVehicle()
-    mockOwnedVehicleCreate.mockResolvedValue(createdVehicle)
-    mockAutoRegisterSetComponents.mockResolvedValue([])
+    mockCreateOwnedVehicle.mockResolvedValue({ vehicle: createdVehicle, componentOwnedVehicles: [] })
 
     const body = {
       vehicleType: 'PRODUCT',
       managementId: 'M001',
       productId: 10,
+      currentStatus: 'NORMAL',
+      storageCondition: 'WITH_CASE',
     }
     const res = await POST(makePostRequest(body))
     const data = await res.json()
@@ -543,16 +530,18 @@ describe('POST /api/owned-vehicles', () => {
   // --- エラーハンドリング ---
 
   it('DB エラー時に 500 を返す', async () => {
-    mockOwnedVehicleCreate.mockRejectedValueOnce(new Error('DB error'))
+    mockCreateOwnedVehicle.mockRejectedValueOnce(new Error('DB error'))
 
     const body = {
       vehicleType: 'PRODUCT',
       managementId: 'M001',
       productId: 10,
+      currentStatus: 'NORMAL',
+      storageCondition: 'WITH_CASE',
     }
     const res = await POST(makePostRequest(body))
     expect(res.status).toBe(500)
     const data = await res.json()
-    expect(data.error).toBe('Failed to create owned vehicle')
+    expect(data).toMatchObject({ error: '保有車両を作成できませんでした', code: 'INTERNAL_ERROR' })
   })
 })

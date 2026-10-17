@@ -12,43 +12,12 @@ import Pagination from '@/components/Pagination'
 import { useViewMode } from '@/hooks/useViewMode'
 import { Tags } from 'lucide-react'
 import { PRODUCT_TYPES, PRODUCT_TYPE_SET_SINGLE } from '@/constants/productTypes'
-
-interface Tag {
-  id: number
-  name: string
-  category: string
-}
-
-interface ProductTag {
-  tag: Tag
-}
-
-interface Product {
-  id: number
-  brand: string
-  productCode: string | null
-  name: string
-  type: string
-  priceIncludingTax: number | null
-  imageUrls: string[]
-  _count?: { ownedVehicles: number }
-  productTags?: ProductTag[]
-}
-
-interface ProductsResponse {
-  products: Product[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-}
+import type { ProductApiOutput, ProductListApiOutput } from '@/lib/contracts/api'
 
 export default function ProductsPage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductApiOutput[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [brand, setBrand] = useState('')
@@ -60,7 +29,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(1)
-  const [pagination, setPagination] = useState<ProductsResponse['pagination'] | null>(null)
+  const [pagination, setPagination] = useState<ProductListApiOutput['pagination'] | null>(null)
   const { viewMode, setViewMode } = useViewMode()
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [showBulkTagDialog, setShowBulkTagDialog] = useState(false)
@@ -87,7 +56,7 @@ export default function ProductsPage() {
       params.append('limit', '100')
 
       const response = await fetch(`/api/products?${params}`)
-      const data: ProductsResponse = await response.json()
+        const data: ProductListApiOutput = await response.json()
 
 
       setProducts(data.products)

@@ -7,7 +7,7 @@ const mockProduct: Product = {
     name: 'Test Product',
     brand: 'KATO',
     productCode: '10-001',
-    type: 'EC',
+    type: 'SINGLE',
     priceIncludingTax: 15000,
     imageUrls: ['http://example.com/image.jpg'],
     productTags: [
@@ -37,6 +37,12 @@ describe('ProductCard', () => {
         screen.getByText('Test Product').click()
 
         expect(handleClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('renders a zero price', () => {
+        render(<ProductCard product={{ ...mockProduct, priceIncludingTax: 0 }} />)
+
+        expect(screen.getByText('¥0')).toBeInTheDocument()
     })
 
     it('renders "画像なし" when no images', () => {

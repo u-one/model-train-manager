@@ -12,6 +12,7 @@ export default defineConfig({
         setupFiles: './src/test/setup.ts',
         alias: {
             '@': path.resolve(__dirname, './src'),
+            'server-only': path.resolve(__dirname, './src/test/server-only.ts'),
         },
         coverage: {
             provider: 'v8',

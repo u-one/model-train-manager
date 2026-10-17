@@ -9,7 +9,7 @@
 - [開発状況](docs/development-log.md): 進捗、残課題、作業記録。
 - [リファクタリング計画](docs/refactoring-plan.md): R0〜R5のTODO・完了条件。
 - [デプロイ手順](apps/web-next/docs/deployment-setup.md): 環境変数、配置、復旧。
-- [DBスキーマ管理](docs/database-schema-management.md)、[リポジトリルール](docs/rules.md)。
+- [DBスキーマ管理](apps/web-next/docs/database-schema-management.md)、[リポジトリルール](docs/rules.md)。
 
 技術構成・API・環境変数・進捗をこの文書へ重複記載しない。
 現在の実装を正とし、実装済み・既知の制限・未実装計画を区別する。

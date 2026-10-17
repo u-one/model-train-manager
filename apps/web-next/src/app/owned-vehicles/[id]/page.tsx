@@ -6,53 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import ImageGallery from '@/components/ImageGallery'
-
-interface OwnedVehicle {
-  id: number
-  managementId: string
-  productId: number | null
-  currentStatus: string
-  storageCondition: string
-  purchaseDate: string | null
-  purchasePriceExcludingTax: number | null
-  purchasePriceIncludingTax: number | null
-  purchaseStore: string | null
-  purchaseCondition: string | null
-  maintenanceNotes: string | null
-  notes: string | null
-  imageUrls: string[]
-  product?: {
-    id: number
-    name: string
-    brand: string
-    productCode: string | null
-    type: string
-  } | null
-  independentVehicle?: {
-    name: string
-    brand: string | null
-    productCode: string | null
-    vehicleType: string | null
-    description: string | null
-  } | null
-  maintenanceRecords: MaintenanceRecord[]
-  componentOwnedVehicles?: Array<{
-    id: number
-    managementId: string
-    product: {
-      id: number
-      name: string
-      brand: string
-    }
-  }>
-}
-
-interface MaintenanceRecord {
-  id: number
-  maintenanceDate: string
-  content: string
-  createdAt: string
-}
+import type { OwnedVehicleDetailApiOutput } from '@/lib/contracts/api'
 
 const statusLabels: Record<string, string> = {
   NORMAL: '正常',
@@ -74,7 +28,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
   const resolvedParams = use(params)
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [vehicle, setVehicle] = useState<OwnedVehicle | null>(null)
+  const [vehicle, setVehicle] = useState<OwnedVehicleDetailApiOutput | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -302,9 +256,9 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{componentVehicle.product.name}</h3>
+                        <h3 className="font-medium text-gray-900">{componentVehicle.product?.name ?? '不明な構成車両'}</h3>
                         <p className="text-sm text-gray-600 mt-1">
-                          {componentVehicle.product.brand}
+                          {componentVehicle.product?.brand ?? ''}
                         </p>
                       </div>
                       <div className="text-sm text-gray-500">
@@ -333,7 +287,7 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
                   <span className="ml-2 font-medium">{purchaseConditionLabels[vehicle.purchaseCondition] || vehicle.purchaseCondition}</span>
                 </div>
               )}
-              {vehicle.purchasePriceIncludingTax && (
+              {vehicle.purchasePriceIncludingTax !== null && (
                 <div>
                   <span className="text-gray-600">購入価格:</span>
                   <span className="ml-2 font-medium">¥{vehicle.purchasePriceIncludingTax.toLocaleString()}</span>

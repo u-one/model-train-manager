@@ -4,6 +4,7 @@ export interface ParsedCSVResult<T> {
   data: T[]
   errors: string[]
   skippedRows: number[]
+  warnings?: string[]
 }
 
 export interface ProductCSVRow {
@@ -43,6 +44,14 @@ export interface OwnedVehicleCSVRow {
 function convertHtmlBreaks(text: string | null): string | null {
   if (!text) return null
   return text.replace(/<BR\s*\/?>/gi, '\n')
+}
+
+function parseIntegerValue(value: string | null): number | null {
+  if (!value) return null
+  const normalized = value.replace(/[\s,¥￥円]/g, '')
+  if (!/^-?\d+$/.test(normalized)) return null
+  const parsed = Number(normalized)
+  return Number.isSafeInteger(parsed) ? parsed : null
 }
 
 export function parseCSV(csvContent: string): string[][] {
@@ -85,6 +94,7 @@ export function parseProductCSV(csvContent: string): ParsedCSVResult<ProductCSVR
   const data: ProductCSVRow[] = []
   const errors: string[] = []
   const skippedRows: number[] = []
+  const warnings: string[] = []
 
   if (rows.length === 0) {
     errors.push('CSVファイルが空です')
@@ -165,6 +175,7 @@ export function parseProductCSV(csvContent: string): ParsedCSVResult<ProductCSVR
         convertedType = '単品'
       } else if (type) {
         console.log(`行 ${rowIndex + 1}: 不明な種別 "${type}" → 単品 に変換`)
+        warnings.push(`行 ${rowIndex + 1}: 不明な種別「${type}」を単品に変換しました`)
         convertedType = '単品'
       }
     }
@@ -185,8 +196,8 @@ export function parseProductCSV(csvContent: string): ParsedCSVResult<ProductCSVR
       }
     }
 
-    let priceExcludingTax = getField(priceExclIndex) ? parseFloat(getField(priceExclIndex)!) : null
-    let priceIncludingTax = getField(priceInclIndex) ? parseFloat(getField(priceInclIndex)!) : null
+    let priceExcludingTax = parseIntegerValue(getField(priceExclIndex))
+    let priceIncludingTax = parseIntegerValue(getField(priceInclIndex))
 
     if (priceExcludingTax !== null && (isNaN(priceExcludingTax) || priceExcludingTax < 0)) {
       priceExcludingTax = null // エラーではなく null に設定
@@ -219,7 +230,7 @@ export function parseProductCSV(csvContent: string): ParsedCSVResult<ProductCSVR
     })
   }
 
-  return { data, errors, skippedRows }
+  return { data, errors, skippedRows, ...(warnings.length ? { warnings } : {}) }
 }
 
 export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedVehicleCSVRow> {
@@ -301,27 +312,22 @@ export function parseOwnedVehicleCSV(csvContent: string): ParsedCSVResult<OwnedV
       storageCondition = StorageCondition.WITHOUT_CASE
     }
 
-    const purchasePriceStr = getField(purchasePriceInclIndex)
-    const purchasePrice = purchasePriceStr ? parseFloat(purchasePriceStr) : null
+    const purchasePrice = parseIntegerValue(getField(purchasePriceInclIndex))
 
     let purchaseDate: string | null = null
     const dateStr = getField(dateIndex)
     if (dateStr) {
-      try {
-        // 日本の日付形式 YYYY/MM/DD を処理
-        const dateParts = dateStr.split('/')
-        if (dateParts.length === 3) {
-          const year = parseInt(dateParts[0])
-          const month = parseInt(dateParts[1])
-          const day = parseInt(dateParts[2])
-          const date = new Date(year, month - 1, day)
-          if (!isNaN(date.getTime())) {
-            purchaseDate = date.toISOString()
-          }
-        }
-      } catch {
-        // 日付解析エラーは無視
+      const match = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
+      const year = match ? Number(match[1]) : 0
+      const month = match ? Number(match[2]) : 0
+      const day = match ? Number(match[3]) : 0
+      const date = new Date(Date.UTC(year, month - 1, day))
+      if (!match || date.getUTCFullYear() !== year || date.getUTCMonth() + 1 !== month || date.getUTCDate() !== day) {
+        skippedRows.push(rowIndex + 1)
+        errors.push(`行 ${rowIndex + 1}: 購入日「${dateStr}」が有効な日付ではありません`)
+        continue
       }
+      purchaseDate = `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
     }
 
     // 商品情報の組み立て

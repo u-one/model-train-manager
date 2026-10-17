@@ -3,20 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Search, Plus, Edit2, Trash2, X } from 'lucide-react'
 import { TAG_CATEGORIES, getCategoryLabel } from '@/constants/tags'
-
-interface Tag {
-  id: number
-  name: string
-  category: string
-  description: string | null
-  createdAt: string
-  _count?: {
-    productTags: number
-  }
-}
+import type { AdminTagApiOutput } from '@/lib/contracts/api'
 
 export default function AdminTags() {
-  const [tags, setTags] = useState<Tag[]>([])
+  const [tags, setTags] = useState<AdminTagApiOutput[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
@@ -28,7 +18,7 @@ export default function AdminTags() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [selectedTag, setSelectedTag] = useState<Tag | null>(null)
+  const [selectedTag, setSelectedTag] = useState<AdminTagApiOutput | null>(null)
 
   // フォーム状態
   const [formData, setFormData] = useState({
@@ -74,7 +64,7 @@ export default function AdminTags() {
     setShowCreateModal(true)
   }
 
-  const handleEditClick = (tag: Tag) => {
+  const handleEditClick = (tag: AdminTagApiOutput) => {
     setSelectedTag(tag)
     setFormData({
       name: tag.name,
@@ -85,7 +75,7 @@ export default function AdminTags() {
     setShowEditModal(true)
   }
 
-  const handleDeleteClick = (tag: Tag) => {
+  const handleDeleteClick = (tag: AdminTagApiOutput) => {
     setSelectedTag(tag)
     setShowDeleteDialog(true)
   }

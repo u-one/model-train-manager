@@ -2,28 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Search, Trash2, AlertCircle } from 'lucide-react'
-
-interface Product {
-  id: number
-  brand: string
-  productCode: string | null
-  name: string
-  type: string
-  createdAt: string
-  _count?: {
-    ownedVehicles: number
-  }
-}
-
-interface Pagination {
-  page: number
-  limit: number
-  total: number
-  totalPages: number
-}
+import type { ProductApiOutput, PaginationApiOutput } from '@/lib/contracts/api'
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductApiOutput[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
@@ -32,7 +14,7 @@ export default function AdminProducts() {
   const [deleting, setDeleting] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [page, setPage] = useState(1)
-  const [pagination, setPagination] = useState<Pagination | null>(null)
+  const [pagination, setPagination] = useState<PaginationApiOutput | null>(null)
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)

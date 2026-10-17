@@ -84,7 +84,7 @@ export default function OwnedVehicleListItem({ vehicle, onClick }: OwnedVehicleL
                 <span className="whitespace-nowrap">購入: {new Date(vehicle.purchaseDate).toLocaleDateString('ja-JP')}</span>
               </>
             )}
-            {vehicle.purchasePriceIncludingTax && (
+            {vehicle.purchasePriceIncludingTax !== null && (
               <>
                 <span>|</span>
                 <span>¥{vehicle.purchasePriceIncludingTax.toLocaleString()}</span>

@@ -2,42 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Search, Trash2, AlertCircle } from 'lucide-react'
-
-interface OwnedVehicle {
-  id: number
-  productId: number | null
-  userId: string
-  notes: string | null
-  purchaseDate: string | null
-  purchasePrice: number | null
-  condition: string
-  location: string | null
-  createdAt: string
-  user: {
-    name: string | null
-    email: string | null
-  }
-  product: {
-    brand: string
-    productCode: string | null
-    name: string
-    type: string
-  } | null
-  independentVehicle?: {
-    brand: string | null
-    name: string
-  } | null
-}
-
-interface Pagination {
-  page: number
-  limit: number
-  total: number
-  totalPages: number
-}
+import type { AdminOwnedVehicleApiOutput, PaginationApiOutput } from '@/lib/contracts/api'
 
 export default function AdminOwnedVehicles() {
-  const [ownedVehicles, setOwnedVehicles] = useState<OwnedVehicle[]>([])
+  const [ownedVehicles, setOwnedVehicles] = useState<AdminOwnedVehicleApiOutput[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
@@ -46,7 +14,7 @@ export default function AdminOwnedVehicles() {
   const [deleting, setDeleting] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [page, setPage] = useState(1)
-  const [pagination, setPagination] = useState<Pagination | null>(null)
+  const [pagination, setPagination] = useState<PaginationApiOutput | null>(null)
 
   const fetchOwnedVehicles = useCallback(async () => {
     setLoading(true)
@@ -313,18 +281,14 @@ export default function AdminOwnedVehicles() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      vehicle.condition === 'EXCELLENT' ? 'bg-green-100 text-green-800' :
-                      vehicle.condition === 'GOOD' ? 'bg-blue-100 text-blue-800' :
-                      vehicle.condition === 'FAIR' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
+                      vehicle.storageCondition === 'WITH_CASE' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
                     }`}>
-                      {vehicle.condition === 'EXCELLENT' ? '優' :
-                       vehicle.condition === 'GOOD' ? '良' :
-                       vehicle.condition === 'FAIR' ? '可' : '不良'}
+                      {vehicle.storageCondition === 'WITH_CASE' ? 'ケースあり' : 'ケースなし'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {vehicle.purchasePrice ? `¥${vehicle.purchasePrice.toLocaleString()}` : '-'}
+                    {vehicle.purchasePriceIncludingTax !== null ? `¥${vehicle.purchasePriceIncludingTax.toLocaleString()}` : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString('ja-JP') : '-'}

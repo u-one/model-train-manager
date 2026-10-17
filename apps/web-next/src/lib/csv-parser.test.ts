@@ -146,6 +146,23 @@ describe('parseProductCSV', () => {
       priceExcludingTax: null,
       priceIncludingTax: null,
     })
+    expect(result.warnings).toEqual(['行 4: 不明な種別「unknown」を単品に変換しました'])
+  })
+
+  it('整数以外の金額をnullにし、桁区切り・円記号を許可する', () => {
+    const csv = [
+      '1,2,3,4,5,6,7,8,9,10,11',
+      'ブランド,品番,親品番,種別,商品名,税抜,税込,発売日,URL,詳細,タグ',
+      'KATO,10-001,,単品,車両,"1,200","￥1,320",2024/01,,,',
+      'TOMIX,98765,,単品,車両,10.5,1000,2024/01,,,',
+    ].join('\n')
+
+    const result = parseProductCSV(csv)
+
+    expect(result.data.map(row => [row.priceExcludingTax, row.priceIncludingTax])).toEqual([
+      [1200, 1320],
+      [null, 1000],
+    ])
   })
 })
 
@@ -177,7 +194,7 @@ describe('parseOwnedVehicleCSV', () => {
         independentVehicleType: 'E233',
         currentStatus: VehicleStatus.NORMAL,
         storageCondition: StorageCondition.WITHOUT_CASE,
-        purchaseDate: new Date(2024, 4, 6).toISOString(),
+        purchaseDate: '2024-05-06',
         purchasePriceIncludingTax: 19800,
         notes: '備考\n1, 備考2, 入手場所: 模型店',
       },
@@ -201,5 +218,18 @@ describe('parseOwnedVehicleCSV', () => {
       errors: ['行 2: 必要な列数が不足しています'],
       skippedRows: [2],
     })
+  })
+
+  it('存在しない購入日を登録対象から除外する', () => {
+    const invalidDateRow = [...ownedVehicleRow]
+    invalidDateRow[13] = '2024/02/31'
+    const result = parseOwnedVehicleCSV([
+      ownedVehicleHeader.join(','),
+      invalidDateRow.join(','),
+    ].join('\n'))
+
+    expect(result.data).toEqual([])
+    expect(result.errors).toEqual(['行 2: 購入日「2024/02/31」が有効な日付ではありません'])
+    expect(result.skippedRows).toEqual([2])
   })
 })

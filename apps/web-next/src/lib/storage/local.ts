@@ -1,6 +1,6 @@
 import { StorageProvider, UploadOptions, UploadResult, StorageItem, StorageMetadata } from './interface'
-import { writeFile, unlink, readdir, stat } from 'fs/promises'
-import { join } from 'path'
+import { writeFile, unlink, readdir, stat, mkdir } from 'fs/promises'
+import { dirname, join, relative, resolve, sep } from 'path'
 
 /**
  * ローカルファイルシステムストレージプロバイダー
@@ -18,18 +18,20 @@ export class LocalStorage implements StorageProvider {
 
   async upload(file: File | Buffer, options: UploadOptions): Promise<UploadResult> {
     try {
-      // ディレクトリ作成（存在しない場合）
-      const { mkdir } = await import('fs/promises')
-      await mkdir(this.baseDir, { recursive: true })
-
       // ファイル名にタイムスタンプを追加してユニークにする
       const timestamp = Date.now()
       const randomSuffix = Math.random().toString(36).substring(2, 8)
+      const pathParts = options.pathname.split(/[\\/]+/).filter(Boolean)
+      if (pathParts.length === 0 || pathParts.some(part => part === '.' || part === '..')) {
+        throw new Error('Invalid upload path')
+      }
+      const leaf = pathParts.pop() as string
       const filename = options.addRandomSuffix
-        ? `${timestamp}-${randomSuffix}-${options.pathname.split('/').pop()}`
-        : options.pathname.replace(/\//g, '-')
-
-      const filePath = join(this.baseDir, filename)
+        ? `${timestamp}-${randomSuffix}-${leaf}`
+        : leaf
+      const relativeKey = [...pathParts, filename].join('/')
+      const filePath = this.resolveFilePath(relativeKey)
+      await mkdir(dirname(filePath), { recursive: true })
 
       // ファイルを保存
       let buffer: Buffer
@@ -45,8 +47,8 @@ export class LocalStorage implements StorageProvider {
       const size = file instanceof File ? file.size : file.length
 
       return {
-        url: `${this.baseUrl}/${filename}`,
-        key: filename,
+        url: `${this.baseUrl}/${relativeKey.split('/').map(encodeURIComponent).join('/')}`,
+        key: relativeKey,
         size,
         uploadedAt: new Date(),
       }
@@ -58,7 +60,8 @@ export class LocalStorage implements StorageProvider {
 
   async delete(key: string): Promise<void> {
     try {
-      const filePath = join(this.baseDir, key)
+      const relativeKey = this.getRelativeKey(key)
+      const filePath = this.resolveFilePath(relativeKey)
       await unlink(filePath)
     } catch (error) {
       console.error('Local storage delete error:', error)
@@ -66,25 +69,57 @@ export class LocalStorage implements StorageProvider {
     }
   }
 
+  private getRelativeKey(key: string): string {
+    let pathValue = key
+    if (/^https?:\/\//i.test(key)) {
+      const url = new URL(key)
+      if (!url.pathname.startsWith(`${this.baseUrl}/`)) {
+        throw new Error('Invalid local storage URL')
+      }
+      pathValue = url.pathname
+    }
+    if (pathValue.startsWith(`${this.baseUrl}/`)) {
+      pathValue = pathValue.slice(this.baseUrl.length + 1)
+    }
+    return decodeURIComponent(pathValue).replace(/^[/\\]+/, '')
+  }
+
+  private resolveFilePath(relativeKey: string): string {
+    const filePath = resolve(this.baseDir, relativeKey)
+    const pathFromBase = relative(this.baseDir, filePath)
+    if (!pathFromBase || pathFromBase === '..' || pathFromBase.startsWith(`..${sep}`) || resolve(this.baseDir) === filePath) {
+      throw new Error('Invalid storage path')
+    }
+    return filePath
+  }
+
   async list(prefix?: string): Promise<StorageItem[]> {
     try {
-      const files = await readdir(this.baseDir)
-      const filteredFiles = prefix
-        ? files.filter(f => f.startsWith(prefix))
-        : files
-
       const items: StorageItem[] = []
-      for (const file of filteredFiles) {
-        const filePath = join(this.baseDir, file)
-        const stats = await stat(filePath)
+      const visit = async (directory: string): Promise<void> => {
+        const entries = await readdir(directory, { withFileTypes: true })
+        for (const entry of entries) {
+          const filePath = join(directory, entry.name)
+          if (entry.isDirectory()) {
+            await visit(filePath)
+            continue
+          }
+          if (!entry.isFile()) continue
 
-        items.push({
-          key: file,
-          url: `${this.baseUrl}/${file}`,
-          size: stats.size,
-          uploadedAt: stats.mtime,
-        })
+          const key = relative(this.baseDir, filePath)
+          const normalizedKey = key.split(sep).join('/')
+          if (prefix && !normalizedKey.startsWith(prefix)) continue
+
+          const stats = await stat(filePath)
+          items.push({
+            key: normalizedKey,
+            url: `${this.baseUrl}/${normalizedKey.split('/').map(encodeURIComponent).join('/')}`,
+            size: stats.size,
+            uploadedAt: stats.mtime,
+          })
+        }
       }
+      await visit(this.baseDir)
 
       return items
     } catch (error) {
@@ -95,15 +130,17 @@ export class LocalStorage implements StorageProvider {
 
   async getMetadata(key: string): Promise<StorageMetadata> {
     try {
-      const filePath = join(this.baseDir, key)
+      const relativeKey = this.getRelativeKey(key)
+      const filePath = this.resolveFilePath(relativeKey)
       const stats = await stat(filePath)
+      const normalizedKey = relativeKey.split(sep).join('/')
 
       return {
-        key,
-        url: `${this.baseUrl}/${key}`,
+        key: normalizedKey,
+        url: `${this.baseUrl}/${normalizedKey.split('/').map(encodeURIComponent).join('/')}`,
         size: stats.size,
         uploadedAt: stats.mtime,
-        contentType: this.getContentType(key),
+        contentType: this.getContentType(normalizedKey),
       }
     } catch (error) {
       console.error('Local storage getMetadata error:', error)

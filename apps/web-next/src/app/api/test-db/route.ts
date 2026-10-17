@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { apiErrorResponse } from '@/lib/server/api-errors'
 
 export async function GET() {
   try {
@@ -20,12 +21,7 @@ export async function GET() {
       }
     })
   } catch (error) {
-    console.error('Database connection error:', error)
-    return NextResponse.json({
-      success: false,
-      message: 'データベース接続エラー',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    return apiErrorResponse(error, 'データベース接続を確認できませんでした')
   } finally {
     await prisma.$disconnect()
   }

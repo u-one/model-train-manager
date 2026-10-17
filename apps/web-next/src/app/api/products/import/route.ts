@@ -1,121 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { parseProductCSV } from '@/lib/csv-parser'
-import { prisma } from '@/lib/prisma'
-import type { ProductType } from '@prisma/client'
-
-// csv-parser は日本語の種別を返すため Prisma enum 値に変換する
-const PRODUCT_TYPE_MAP: Record<string, ProductType> = {
-  '単品': 'SINGLE',
-  'セット': 'SET',
-  'セット単品': 'SET_SINGLE',
-}
+import { getAuthContext } from '@/lib/server/auth'
+import { productInputSchema } from '@/lib/contracts/product'
+import { apiErrorJson, apiErrorResponse } from '@/lib/server/api-errors'
+import { createImportedProduct } from '@/lib/server/products'
 
 // Vercel Hobby plan: 最大60秒
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await getAuthContext()
+    if (!auth.session?.user?.email) {
+      return apiErrorJson('ログインが必要です', 401, 'UNAUTHENTICATED')
     }
+    if (!auth.user) return apiErrorJson('ユーザーが見つかりません', 404, 'NOT_FOUND')
 
     const formData = await request.formData()
     const file = formData.get('file') as File
 
     if (!file) {
-      return NextResponse.json({ error: 'ファイルが選択されていません' }, { status: 400 })
+      return apiErrorJson('ファイルが選択されていません', 400, 'VALIDATION_ERROR')
     }
 
     if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-      return NextResponse.json({ error: 'CSVファイルを選択してください' }, { status: 400 })
+      return apiErrorJson('CSVファイルを選択してください', 400, 'VALIDATION_ERROR')
     }
 
     const csvContent = await file.text()
-    console.log('CSV file content preview:', csvContent.substring(0, 500))
-
     const parseResult = parseProductCSV(csvContent)
-    console.log('Parse result:', { dataCount: parseResult.data.length, errorCount: parseResult.errors.length, errors: parseResult.errors })
 
     if (parseResult.errors.length > 0) {
       console.error('CSV parsing errors:', parseResult.errors)
-      return NextResponse.json({
-        error: 'CSVファイルの解析でエラーが発生しました',
-        details: parseResult.errors,
+      return apiErrorJson('CSVファイルの解析でエラーが発生しました', 400, 'VALIDATION_ERROR', {
+        errors: parseResult.errors,
         skippedRows: parseResult.skippedRows
-      }, { status: 400 })
+      })
     }
 
     const importResults = {
       totalRows: parseResult.data.length,
       successCount: 0,
       errorCount: 0,
-      errors: [] as string[]
+      errors: [] as string[],
+      warnings: [...(parseResult.warnings ?? [])]
     }
 
-    // 既存製品を一括取得（重複チェック用）
-    const existingProducts = await prisma.product.findMany({
-      select: { brand: true, productCode: true }
-    })
-    const existingSet = new Set(
-      existingProducts
-        .filter(p => p.productCode)
-        .map(p => `${p.brand.toLowerCase()}:${p.productCode!.toLowerCase()}`)
-    )
+    const seen = new Set<string>()
 
     for (let i = 0; i < parseResult.data.length; i++) {
-      const productData = parseResult.data[i]
+      const row = parseResult.data[i]
+      const rowNumber = i + 3
+      const type = row.type === 'セット' ? 'SET' : row.type === 'セット単品' ? 'SET_SINGLE' : 'SINGLE'
+      const realVehicle = {
+        vehicleType: row.vehicleType,
+        company: row.company,
+        manufacturingYear: row.manufacturingYear,
+        operationLine: row.operationLine,
+        notes: row.notes
+      }
+      const parsed = productInputSchema.safeParse({
+        brand: row.brand,
+        productCode: row.productCode,
+        parentCode: row.parentCode,
+        type,
+        name: row.name,
+        releaseYear: row.releaseYear,
+        priceExcludingTax: row.priceExcludingTax,
+        priceIncludingTax: row.priceIncludingTax,
+        description: row.description,
+        imageUrls: row.imageUrl ? [row.imageUrl] : [],
+        realVehicles: Object.values(realVehicle).some(Boolean) ? [realVehicle] : []
+      })
+      if (!parsed.success) {
+        importResults.errorCount++
+        importResults.errors.push(`行 ${rowNumber}: ${parsed.error.issues.map(issue => issue.message).join('、')}`)
+        continue
+      }
+
+      const duplicateKey = `${parsed.data.brand.toLocaleLowerCase()}:${(parsed.data.productCode ?? '').toLocaleLowerCase()}`
+      if (seen.has(duplicateKey)) {
+        importResults.errorCount++
+        importResults.errors.push(`行 ${rowNumber}: 同じメーカー・品番がこのCSV内に重複しています`)
+        continue
+      }
+      seen.add(duplicateKey)
 
       try {
-        if (productData.productCode) {
-          const key = `${productData.brand.toLowerCase()}:${productData.productCode.toLowerCase()}`
-          if (existingSet.has(key)) {
-            importResults.errorCount++
-            importResults.errors.push(`行 ${i + 2}: "${productData.brand} ${productData.productCode}" は既に存在します`)
-            continue
-          }
-        }
-
-        const product = await prisma.product.create({
-          data: {
-            brand: productData.brand,
-            productCode: productData.productCode,
-            parentCode: productData.parentCode,
-            name: productData.name,
-            type: PRODUCT_TYPE_MAP[productData.type] ?? 'SINGLE',
-            releaseYear: productData.releaseYear,
-            priceExcludingTax: productData.priceExcludingTax,
-            priceIncludingTax: productData.priceIncludingTax,
-            description: productData.description,
-            imageUrls: productData.imageUrl ? [productData.imageUrl] : [],
-          }
-        })
-
-        if (productData.vehicleType || productData.company || productData.manufacturingYear ||
-            productData.operationLine || productData.notes) {
-          await prisma.realVehicle.create({
-            data: {
-              productId: product.id,
-              vehicleType: productData.vehicleType,
-              company: productData.company,
-              manufacturingYear: productData.manufacturingYear,
-              operationLine: productData.operationLine,
-              notes: productData.notes,
-            }
-          })
-        }
-
-        // 同一インポート内での重複防止
-        if (productData.productCode) {
-          existingSet.add(`${productData.brand.toLowerCase()}:${productData.productCode.toLowerCase()}`)
-        }
-
+        await createImportedProduct(parsed.data, auth.user.id)
         importResults.successCount++
       } catch (error) {
         importResults.errorCount++
-        importResults.errors.push(`行 ${i + 2}: 予期しないエラー - ${error instanceof Error ? error.message : 'Unknown error'}`)
+        const result = apiErrorResponse(error, '製品登録エラー')
+        const body = await result.json()
+        importResults.errors.push(`行 ${rowNumber}: ${body.error ?? '製品登録エラー'}`)
       }
     }
 
@@ -125,10 +103,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Product import error:', error)
-    return NextResponse.json(
-      { error: 'サーバーエラーが発生しました' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error, '製品CSVを取り込めませんでした')
   }
 }
