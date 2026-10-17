@@ -24,6 +24,13 @@ const purchaseConditionLabels: Record<string, string> = {
   USED: '中古'
 }
 
+function todayString() {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
 export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const { data: session, status } = useSession()
@@ -31,6 +38,10 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
   const [vehicle, setVehicle] = useState<OwnedVehicleDetailApiOutput | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [maintenanceDate, setMaintenanceDate] = useState(todayString)
+  const [maintenanceContent, setMaintenanceContent] = useState('')
+  const [isAddingRecord, setIsAddingRecord] = useState(false)
+  const [recordError, setRecordError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -91,6 +102,39 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
       alert('削除中にエラーが発生しました')
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleAddRecord = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!maintenanceContent.trim()) return
+    setIsAddingRecord(true)
+    setRecordError(null)
+    try {
+      const response = await fetch(`/api/owned-vehicles/${resolvedParams.id}/maintenance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maintenanceDate, content: maintenanceContent })
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        setRecordError(data?.error ?? '整備記録を追加できませんでした')
+        return
+      }
+      const record = await response.json()
+      setVehicle(prev => {
+        if (!prev) return prev
+        const records = [record, ...prev.maintenanceRecords].sort((a, b) =>
+          b.maintenanceDate.localeCompare(a.maintenanceDate) || b.id - a.id
+        )
+        return { ...prev, maintenanceRecords: records }
+      })
+      setMaintenanceContent('')
+    } catch (error) {
+      console.error('Failed to add maintenance record:', error)
+      setRecordError('整備記録の追加中にエラーが発生しました')
+    } finally {
+      setIsAddingRecord(false)
     }
   }
 
@@ -325,13 +369,35 @@ export default function OwnedVehicleDetailPage({ params }: { params: Promise<{ i
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-900">整備記録</h2>
-              <button
-                onClick={() => router.push(`/owned-vehicles/${vehicle.id}/maintenance/new`)}
-                className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-              >
-                記録追加
-              </button>
             </div>
+
+            <form onSubmit={handleAddRecord} className="mb-4 flex flex-col gap-2 sm:flex-row">
+              <input
+                type="date"
+                value={maintenanceDate}
+                onChange={(e) => setMaintenanceDate(e.target.value)}
+                required
+                aria-label="整備日"
+                className="border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+              />
+              <input
+                type="text"
+                value={maintenanceContent}
+                onChange={(e) => setMaintenanceContent(e.target.value)}
+                placeholder="整備内容（例: 注油・清掃）"
+                maxLength={5000}
+                aria-label="整備内容"
+                className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+              />
+              <button
+                type="submit"
+                disabled={isAddingRecord || !maintenanceContent.trim()}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+              >
+                {isAddingRecord ? '追加中...' : '追加'}
+              </button>
+            </form>
+            {recordError && <p className="mb-4 text-sm text-red-600">{recordError}</p>}
 
             {vehicle.maintenanceRecords.length > 0 ? (
               <div className="space-y-4">

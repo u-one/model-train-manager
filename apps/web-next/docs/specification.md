@@ -51,7 +51,7 @@ GitHub ActionsのcoverageワークフローがPull Requestでテストを実行�
 | Product / RealVehicle | 共有製品、実車情報 |
 | OwnedVehicle | ユーザーの保有車両 |
 | IndependentVehicle | 製品未紐付け車両の情報。保有車両と1対1 |
-| MaintenanceRecord | 整備記録。モデル・既存記録の表示のみ実装 |
+| MaintenanceRecord | 整備記録。表示と詳細ページからの追加（POST /api/owned-vehicles/:id/maintenance）を実装。編集・削除は未実装 |
 | Tag / ProductTag | タグ、製品との多対多関係 |
 
 - ProductとOwnedVehicleは画像URL配列を持つ。
@@ -99,7 +99,7 @@ GitHub ActionsのcoverageワークフローがPull Requestでテストを実行�
 | DELETE | /api/admin/products/delete-all、/api/admin/owned-vehicles/delete-all | 全削除 |
 | GET | /api/test-db | DB接続確認 |
 
-整備記録CRUD、車両TODO、CSV出力、共有、自動タグ付け、保有車両一括更新のAPIは未実装。
+整備記録の編集・削除、車両TODO、CSV出力、共有、自動タグ付け、保有車両一括更新のAPIは未実装。
 
 ## 認証・認可の現状
 
